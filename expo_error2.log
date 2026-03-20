@@ -1,0 +1,55 @@
+﻿Starting project at C:\Users\sebas\OneDrive\Escritorio\Un Pique\un-pique
+node.exe : Error 
+[ERR_UNSUPPORTED_ESM_URL_SCHEME]: 
+Error loading Metro config at: C:\
+Users\sebas\OneDrive\Escritorio\Un
+ Pique\un-pique\metro.config.js
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (Error [ERR_UNSU..  
+  .metro.config.js:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+Only URLs with a scheme in: file, 
+data, and node are supported by 
+the default ESM loader. On 
+Windows, absolute paths must be 
+valid file:// URLs. Received 
+protocol 'c:'
+Error: Only URLs with a scheme 
+in: file, data, and node are 
+supported by the default ESM 
+loader. On Windows, absolute 
+paths must be valid file:// URLs. 
+Received protocol 'c:'
+    at 
+throwIfUnsupportedURLScheme (node:
+internal/modules/esm/load:209:11)
+    at defaultLoad (node:internal/
+modules/esm/load:107:3)
+    at ModuleLoader.load (node:int
+ernal/modules/esm/loader:800:12)
+    at 
+ModuleLoader.loadAndTranslate (nod
+e:internal/modules/esm/loader:580:
+43)
+    at 
+ModuleLoader.#createModuleJob (nod
+e:internal/modules/esm/loader:604:
+36)
+    at ModuleLoader.#getJobFromRes
+olveResult (node:internal/modules/
+esm/loader:338:34)
+    at ModuleLoader.getModuleJobFo
+rImport (node:internal/modules/esm
+/loader:306:41)
+    at 
+onImport.tracePromise.__proto__ (n
+ode:internal/modules/esm/loader:64
+3:25)

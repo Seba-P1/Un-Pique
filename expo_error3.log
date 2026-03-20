@@ -1,0 +1,19 @@
+﻿Starting project at C:\Users\sebas\OneDrive\Escritorio\Un Pique\un-pique
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+node.exe : Skipping dependency 
+validation in offline mode
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (Skipping depend..  
+  .in offline mode:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+Waiting on http://localhost:8081
+Logs for your project will appear below.

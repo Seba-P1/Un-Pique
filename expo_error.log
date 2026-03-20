@@ -1,0 +1,71 @@
+﻿Starting project at C:\Users\sebas\OneDrive\Escritorio\Un Pique\un-pique
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+node.exe : TypeError: fetch failed
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (TypeError: fetch   
+  failed:String) [], RemoteExce   
+ ption
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+TypeError: fetch failed
+    at node:internal/deps/undici/u
+ndici:13510:13
+    at processTicksAndRejections (
+node:internal/process/task_queues:
+105:5)
+    at fetchWithCredentials (C:\Us
+ers\sebas\OneDrive\Escritorio\Un P
+ique\un-pique\node_modules\expo\no
+de_modules\@expo\cli\src\api\rest\
+client.ts:98:24)
+    at cachedFetch (C:\Users\sebas
+\OneDrive\Escritorio\Un Pique\un-p
+ique\node_modules\expo\node_module
+s\@expo\cli\src\api\rest\cache\wra
+pFetchWithCache.ts:26:24)
+    at 
+getNativeModuleVersionsAsync (C:\U
+sers\sebas\OneDrive\Escritorio\Un 
+Pique\un-pique\node_modules\expo\n
+ode_modules\@expo\cli\src\api\getN
+ativeModuleVersions.ts:39:20)
+    at 
+getVersionedNativeModulesAsync (C:
+\Users\sebas\OneDrive\Escritorio\U
+n Pique\un-pique\node_modules\expo
+\node_modules\@expo\cli\src\start\
+doctor\dependencies\bundledNativeM
+odules.ts:33:14)
+    at 
+getCombinedKnownVersionsAsync (C:\
+Users\sebas\OneDrive\Escritorio\Un
+ Pique\un-pique\node_modules\expo\
+node_modules\@expo\cli\src\start\d
+octor\dependencies\getVersionedPac
+kages.ts:58:7)
+    at 
+getVersionedDependenciesAsync (C:\
+Users\sebas\OneDrive\Escritorio\Un
+ Pique\un-pique\node_modules\expo\
+node_modules\@expo\cli\src\start\d
+octor\dependencies\validateDepende
+nciesVersions.ts:100:33)
+    at 
+validateDependenciesVersionsAsync 
+(C:\Users\sebas\OneDrive\Escritori
+o\Un Pique\un-pique\node_modules\e
+xpo\node_modules\@expo\cli\src\sta
+rt\doctor\dependencies\validateDep
+endenciesVersions.ts:49:25)
+    at startAsync (C:\Users\sebas\
+OneDrive\Escritorio\Un Pique\un-pi
+que\node_modules\expo\node_modules
+\@expo\cli\src\start\startAsync.ts
+:110:5)
