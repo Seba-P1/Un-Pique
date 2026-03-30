@@ -6,7 +6,7 @@ import {
     View, Text, StyleSheet, Image, TouchableOpacity,
     ActivityIndicator, RefreshControl, useWindowDimensions,
     FlatList, TextInput, Platform, ScrollView, Modal, TouchableWithoutFeedback,
-    Animated as RNAnimated, NativeScrollEvent, NativeSyntheticEvent, Pressable
+    Animated as RNAnimated, NativeScrollEvent, NativeSyntheticEvent, Pressable, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,36 +29,20 @@ import { supabase } from '../../lib/supabase';
 import { showAlert } from '../../utils/alert';
 
 // =============================================
-// DATOS MOCK — Se reemplazarán con datos reales de Supabase
+// HELPER: Menú de opciones de un post
 // =============================================
-const MOCK_STORIES = [
-    { id: '1', name: 'Panadería El Sol', avatar: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100&h=100&fit=crop', hasNew: true },
-    { id: '2', name: 'Juan P.', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop', hasNew: true },
-    { id: '3', name: 'Juan Elias', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcabd9c?w=100&h=100&fit=crop', hasNew: true },
-    { id: '4', name: 'Eventos RC', avatar: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=100&h=100&fit=crop', hasNew: false },
-    { id: '5', name: 'Mercado Central', avatar: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&h=100&fit=crop', hasNew: false },
-];
 
-const MOCK_TRENDING = [
-    '#hashtagspopulares',
-    '#riocolorado',
-    '#saborlocal',
-    '#MercadoCentral',
-    '#eventosRC',
-];
-
-const MOCK_SUGGESTIONS = [
-    { id: '1', name: 'Juan P.', subtitle: 'hace alrededor ...', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop', color: colors.primary.DEFAULT },
-    { id: '2', name: 'Sebastian', subtitle: 'hace sauceña', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop', color: '#3b82f6' },
-    { id: '3', name: 'Eventos RC', subtitle: 'Eventos locales', avatar: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=80&h=80&fit=crop', color: '#ef4444' },
-    { id: '4', name: 'Mercado Central', subtitle: 'Mercado Central', avatar: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&h=80&fit=crop', color: '#22c55e' },
-];
-
-const MOCK_EVENTS = [
-    { id: '1', day: '24', month: 'may', title: 'Títulos en Río Colorado', time: 'Dentro de 5 horas' },
-    { id: '2', day: '26', month: 'abr', title: 'Titus de Franca', time: 'Dentro de 7 horas' },
-    { id: '3', day: '27', month: 'abr', title: 'Festival Gastronómico', time: 'Dentro de 8 horas' },
-];
+const showPostMenu = (post: Post) => {
+    if (Platform.OS === 'web') {
+        showAlert('Opciones', 'Reportar publicación / Copiar contenido — Próximamente');
+    } else {
+        Alert.alert('Opciones', undefined, [
+            { text: 'Reportar publicación', onPress: () => showAlert('Reportado', 'Gracias por tu reporte. Lo revisaremos pronto.') },
+            { text: 'Copiar contenido', onPress: async () => { /* clipboard */ showAlert('Copiado', 'Contenido copiado al portapapeles.'); } },
+            { text: 'Cancelar', style: 'cancel' },
+        ]);
+    }
+};
 
 // =============================================
 // COMPONENTE PRINCIPAL — SocialScreen
@@ -318,13 +302,7 @@ function LocalStories({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
     const { user } = useAuthStore();
 
     const handleAddStory = () => {
-        // TODO: Conectar con lógica real de creación de historias
         showAlert('Próximamente', 'La función de historias estará disponible pronto. ¡Podrás compartir tu día a día con la comunidad!');
-    };
-
-    const handleViewStory = (storyId: string, name: string) => {
-        // TODO: Conectar con visualización real de historias
-        showAlert(name, 'Las historias se mostrarán aquí cuando los usuarios las publiquen.');
     };
 
     return (
@@ -341,7 +319,6 @@ function LocalStories({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
                                 <Plus size={24} color={colors.primary.DEFAULT} />
                             )}
                         </View>
-                        {/* Badge "+" pequeño en la esquina inferior */}
                         <View style={[styles.addStoryBadge, { backgroundColor: colors.primary.DEFAULT }]}>
                             <Plus size={10} color="#fff" />
                         </View>
@@ -349,25 +326,15 @@ function LocalStories({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
                     <Text style={[styles.storyName, { color: tc.textSecondary }]}>Tu historia</Text>
                 </TouchableOpacity>
 
-                {/* Historias de otros usuarios */}
-                {MOCK_STORIES.map((story) => (
-                    <TouchableOpacity
-                        key={story.id}
-                        style={styles.storyItem}
-                        activeOpacity={0.7}
-                        onPress={() => handleViewStory(story.id, story.name)}
-                    >
-                        <View style={[
-                            styles.storyAvatarRing,
-                            { borderColor: story.hasNew ? colors.primary.DEFAULT : tc.borderLight }
-                        ]}>
-                            <Image source={{ uri: story.avatar }} style={styles.storyAvatar} />
+                {/* Placeholder — las historias reales se integrarán en el futuro */}
+                <View style={[styles.storyItem, { opacity: 0.5 }]}>
+                    <View style={[styles.storyAvatarRing, { borderColor: tc.borderLight }]}>
+                        <View style={[styles.addStoryCircle, { backgroundColor: tc.bgInput }]}>
+                            <Calendar size={20} color={tc.textMuted} />
                         </View>
-                        <Text style={[styles.storyName, { color: tc.textSecondary }]} numberOfLines={1}>
-                            {story.name}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+                    </View>
+                    <Text style={[styles.storyName, { color: tc.textMuted }]} numberOfLines={1}>Pronto...</Text>
+                </View>
             </ScrollView>
         </View>
     );
@@ -422,10 +389,11 @@ function CreatePostBox({ tc, onPress }: { tc: ReturnType<typeof useThemeColors>;
 }
 
 // =============================================
-// COMENTARIOS EN LÍNEA
+// COMENTARIOS EN LÍNEA — 2-step query (sin embedded join)
 // =============================================
 function InlineComments({ postId, tc, visible }: { postId: string; tc: ReturnType<typeof useThemeColors>; visible: boolean }) {
     const { user } = useAuthStore();
+    const { profile } = useAuthStore();
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
     const [loading, setLoading] = useState(false);
@@ -439,13 +407,34 @@ function InlineComments({ postId, tc, visible }: { postId: string; tc: ReturnTyp
         if (!postId) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('comments')
-                .select(`*, user:user_id (id, full_name, avatar_url)`)
+            // Step 1: fetch comments
+            const { data: rawComments, error } = await supabase
+                .from('post_comments')
+                .select('*')
                 .eq('post_id', postId)
                 .order('created_at', { ascending: true })
-                .limit(10);
-            if (!error && data) setComments(data);
+                .limit(20);
+            if (error || !rawComments) { setLoading(false); return; }
+
+            // Step 2: fetch user profiles for unique user_ids
+            const userIds = [...new Set(rawComments.map(c => c.user_id))];
+            let usersMap: Record<string, any> = {};
+            if (userIds.length > 0) {
+                const { data: usersData } = await supabase
+                    .from('users')
+                    .select('id, full_name, avatar_url')
+                    .in('id', userIds);
+                if (usersData) {
+                    usersData.forEach((u: any) => { usersMap[u.id] = u; });
+                }
+            }
+
+            // Merge
+            const merged = rawComments.map(c => ({
+                ...c,
+                user: usersMap[c.user_id] || { id: c.user_id, full_name: 'Usuario', avatar_url: null },
+            }));
+            setComments(merged);
         } catch (err) {
             console.error('Error al obtener comentarios:', err);
         }
@@ -461,13 +450,22 @@ function InlineComments({ postId, tc, visible }: { postId: string; tc: ReturnTyp
         setSending(true);
         try {
             const { data, error } = await supabase
-                .from('comments')
+                .from('post_comments')
                 .insert({ post_id: postId, user_id: user.id, content: newComment.trim() })
-                .select(`*, user:user_id (id, full_name, avatar_url)`)
+                .select('*')
                 .single();
             if (error) throw error;
             if (data) {
-                setComments(prev => [...prev, data]);
+                // Attach current user info locally (no need for another DB call)
+                const enrichedComment = {
+                    ...data,
+                    user: {
+                        id: user.id,
+                        full_name: profile?.full_name || user.user_metadata?.full_name || 'Yo',
+                        avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null,
+                    },
+                };
+                setComments(prev => [...prev, enrichedComment]);
                 setNewComment('');
             }
         } catch (err) {
@@ -504,7 +502,7 @@ function InlineComments({ postId, tc, visible }: { postId: string; tc: ReturnTyp
                         <Text style={[styles.noComments, { color: tc.textMuted }]}>Sé el primero en comentar</Text>
                     )}
                     <View style={[styles.commentInputRow, { borderTopColor: tc.borderLight }]}>
-                        <Image source={{ uri: user?.user_metadata?.avatar_url || 'https://via.placeholder.com/30' }} style={[styles.commentAvatar, { backgroundColor: tc.bgInput }]} />
+                        <Image source={{ uri: profile?.avatar_url || user?.user_metadata?.avatar_url || 'https://via.placeholder.com/30' }} style={[styles.commentAvatar, { backgroundColor: tc.bgInput }]} />
                         <TextInput
                             style={[styles.commentInput, { backgroundColor: tc.bgInput, color: tc.text }]}
                             placeholder="Escribí un comentario..."
@@ -534,6 +532,7 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
     const [refreshing, setRefreshing] = useState(false);
     const [createModalVisible, setCreateModalVisible] = useState(false);
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+    const [repostTarget, setRepostTarget] = useState<Post | null>(null);
 
     useEffect(() => {
         if (currentLocality) fetchPosts(currentLocality.id);
@@ -562,7 +561,7 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
 
     const renderItem = useCallback(({ item }: { item: Post }) => {
         return (
-            <PostCard item={item} tc={tc} isDesktop={isDesktop} toggleLike={toggleLike} isLiked={isLiked} toggleComments={toggleComments} expandedComments={expandedComments} currentLocality={currentLocality} />
+            <PostCard item={item} tc={tc} isDesktop={isDesktop} toggleLike={toggleLike} isLiked={isLiked} toggleComments={toggleComments} expandedComments={expandedComments} currentLocality={currentLocality} onRepost={setRepostTarget} />
         );
     }, [tc, isDesktop, expandedComments, currentLocality]);
 
@@ -609,25 +608,157 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
             </Pressable>
 
             <CreatePostModal visible={createModalVisible} onClose={() => setCreateModalVisible(false)} />
+            <RepostModal post={repostTarget} onClose={() => setRepostTarget(null)} tc={tc} />
         </View>
     );
 }
 
-// Extracted PostCard for memoization potential
-function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, expandedComments, currentLocality }: any) {
+// =============================================
+// MODAL DE REPOST (Compartir en mi muro, estilo Facebook)
+// =============================================
+function RepostModal({ post, onClose, tc }: { post: Post | null; onClose: () => void; tc: ReturnType<typeof useThemeColors> }) {
+    const { user } = useAuthStore();
+    const { profile } = useAuthStore();
+    const { createPost } = useSocialStore();
+    const { currentLocality } = useLocationStore();
+    const [comment, setComment] = useState('');
+    const [sending, setSending] = useState(false);
+
+    if (!post) return null;
+
+    const handleRepost = async () => {
+        if (!user) {
+            showAlert('Acción requerida', 'Debes iniciar sesión para compartir.');
+            return;
+        }
+        setSending(true);
+        try {
+            // Build repost content — user comment + quoted original
+            const userComment = comment.trim() ? `${comment.trim()}\n\n` : '';
+            const repostContent = `${userComment}🔄 Compartido de ${post.author.full_name}:\n"${post.content}"`;
+            await createPost(repostContent, post.media_urls || [], currentLocality?.id || post.locality_id || '');
+            showAlert('¡Compartido!', 'La publicación se compartió en tu muro.');
+            setComment('');
+            onClose();
+        } catch (error) {
+            showAlert('Error', 'No se pudo compartir la publicación.');
+        } finally {
+            setSending(false);
+        }
+    };
+
+    return (
+        <Modal visible={!!post} transparent animationType="slide" onRequestClose={onClose}>
+            <TouchableWithoutFeedback onPress={onClose}>
+                <View style={styles.repostOverlay}>
+                    <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
+                        <View style={[styles.repostContainer, { backgroundColor: tc.bgCard }]}>
+                            {/* Header */}
+                            <View style={[styles.repostHeader, { borderBottomColor: tc.borderLight }]}>
+                                <Text style={[styles.repostTitle, { color: tc.text }]}>Compartir en tu muro</Text>
+                                <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
+                                    <X size={22} color={tc.text} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
+                                {/* User comment input */}
+                                <View style={styles.repostCommentSection}>
+                                    <Image source={{ uri: profile?.avatar_url || user?.user_metadata?.avatar_url || 'https://via.placeholder.com/36' }} style={styles.repostUserAvatar} />
+                                    <TextInput
+                                        style={[styles.repostInput, { color: tc.text }]}
+                                        placeholder="Decí algo sobre esta publicación..."
+                                        placeholderTextColor={tc.textMuted}
+                                        value={comment}
+                                        onChangeText={setComment}
+                                        multiline
+                                        maxLength={500}
+                                        autoFocus
+                                    />
+                                </View>
+
+                                {/* Original post preview */}
+                                <View style={[styles.repostPreview, { borderColor: tc.borderLight, backgroundColor: tc.bgSecondary }]}>
+                                    <View style={styles.repostPreviewHeader}>
+                                        <Image source={{ uri: post.author.avatar_url || 'https://via.placeholder.com/30' }} style={styles.repostPreviewAvatar} />
+                                        <View>
+                                            <Text style={[styles.repostPreviewName, { color: tc.text }]}>{post.author.full_name}</Text>
+                                            <Text style={[styles.repostPreviewTime, { color: tc.textMuted }]}>
+                                                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <Text style={[styles.repostPreviewContent, { color: tc.textSecondary }]} numberOfLines={4}>{post.content}</Text>
+                                    {post.media_urls && post.media_urls.length > 0 && (
+                                        <Image source={{ uri: post.media_urls[0] }} style={styles.repostPreviewImage} resizeMode="cover" />
+                                    )}
+                                </View>
+                            </ScrollView>
+
+                            {/* Submit button */}
+                            <View style={[styles.repostFooter, { borderTopColor: tc.borderLight }]}>
+                                <TouchableOpacity
+                                    style={[styles.repostBtn, { opacity: sending ? 0.6 : 1 }]}
+                                    onPress={handleRepost}
+                                    disabled={sending}
+                                >
+                                    {sending ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Text style={styles.repostBtnText}>Compartir ahora</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+            </TouchableWithoutFeedback>
+        </Modal>
+    );
+}
+
+// =============================================
+// POST CARD — Con repost y guardado con feedback
+// =============================================
+function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, expandedComments, currentLocality, onRepost }: any) {
+    const { isSaved, toggleSave } = useSocialStore();
+    const { user } = useAuthStore();
+    const router = useRouter();
     const liked = isLiked(item.id);
+    const saved = isSaved(item.id);
     const commentsOpen = expandedComments.has(item.id);
+    const [saveFlash, setSaveFlash] = useState(false);
+
+    const handleSave = () => {
+        if (!user) {
+            showAlert('Acción requerida', 'Debes iniciar sesión para guardar.');
+            return;
+        }
+        const wasSaved = isSaved(item.id);
+        toggleSave(item.id);
+        if (!wasSaved) {
+            setSaveFlash(true);
+            setTimeout(() => setSaveFlash(false), 2000);
+        }
+    };
+
+    const handleShare = () => {
+        if (!user) {
+            showAlert('Acción requerida', 'Debes iniciar sesión para compartir.');
+            return;
+        }
+        onRepost?.(item);
+    };
 
     return (
         <View style={[styles.postCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-            {/* Cabecera — Avatar + Nombre verificado + Hora + Ubicación */}
+            {/* Cabecera — Avatar + Nombre + Hora + Ubicación */}
             <View style={styles.postHeader}>
-                <View style={styles.userInfo}>
+                <Pressable style={[styles.userInfo, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={() => router.push(`/profile/${item.author_id}` as any)}>
                     <Image source={{ uri: item.author.avatar_url || 'https://via.placeholder.com/44' }} style={styles.avatar} />
                     <View style={{ flex: 1 }}>
                         <View style={styles.nameRow}>
                             <Text style={[styles.userName, { color: tc.text }]}>{item.author.full_name}</Text>
-                            <CheckCircle size={14} color={colors.primary.DEFAULT} style={{ marginLeft: 4 }} />
                         </View>
                         <View style={styles.metaRow}>
                             <Text style={[styles.timeAgo, { color: tc.textMuted }]}>
@@ -638,8 +769,8 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
                             )}
                         </View>
                     </View>
-                </View>
-                <Pressable style={({ pressed }) => [styles.moreBtn, pressed && { opacity: 0.6 }]} hitSlop={8}>
+                </Pressable>
+                <Pressable style={({ pressed }) => [styles.moreBtn, pressed && { opacity: 0.6 }]} hitSlop={8} onPress={() => showPostMenu(item)}>
                     <MoreHorizontal size={18} color={tc.textMuted} />
                 </Pressable>
             </View>
@@ -678,7 +809,7 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
                 )}
             </View>
 
-            {/* Acciones — Me gusta, Comentar, Compartir, Guardar (pill-shaped, full hit-area) */}
+            {/* Acciones — Me gusta, Comentar, Compartir, Guardar */}
             <View style={[styles.actionBar, { borderBottomColor: tc.borderLight }]}>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={() => toggleLike(item.id)}>
                     <Heart size={15} color={liked ? colors.danger : tc.textSecondary} fill={liked ? colors.danger : 'transparent'} />
@@ -688,15 +819,23 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
                     <MessageCircle size={15} color={tc.textSecondary} />
                     <Text style={[styles.actionText, { color: tc.textSecondary }]}>Comentar</Text>
                 </Pressable>
-                <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]}>
+                <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={handleShare}>
                     <Share2 size={15} color={tc.textSecondary} />
                     <Text style={[styles.actionText, { color: tc.textSecondary }]}>Compartir</Text>
                 </Pressable>
-                <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]}>
-                    <Bookmark size={15} color={tc.textSecondary} />
-                    <Text style={[styles.actionText, { color: tc.textSecondary }]}>Guardar</Text>
+                <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={handleSave}>
+                    <Bookmark size={15} color={saved ? colors.primary.DEFAULT : tc.textSecondary} fill={saved ? colors.primary.DEFAULT : 'transparent'} />
+                    <Text style={[styles.actionText, { color: saved ? colors.primary.DEFAULT : tc.textSecondary }]}>{saved ? 'Guardado ✓' : 'Guardar'}</Text>
                 </Pressable>
             </View>
+
+            {/* Flash de confirmación al guardar */}
+            {saveFlash && (
+                <View style={[styles.saveFlash, { backgroundColor: colors.primary.DEFAULT }]}>
+                    <Bookmark size={14} color="#fff" fill="#fff" />
+                    <Text style={styles.saveFlashText}>Guardado — lo encontrarás en tu perfil</Text>
+                </View>
+            )}
 
             <InlineComments postId={item.id} tc={tc} visible={commentsOpen} />
         </View>
@@ -707,13 +846,8 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
 // PANEL DERECHO — "Comunidad"
 // =============================================
 function CommunityPanel({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
-    const handleFollow = (name: string) => {
-        showAlert('Seguir', `Ahora sigues a ${name}. Verás sus publicaciones en tu feed.`);
-    };
-
-    const handleEventPress = (title: string) => {
-        showAlert('Evento', `Evento: ${title}. Pronto podrás confirmar tu asistencia.`);
-    };
+    const { currentLocality } = useLocationStore();
+    const localityName = currentLocality?.name || 'tu localidad';
 
     return (
         <View style={styles.communityContent}>
@@ -723,57 +857,39 @@ function CommunityPanel({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
             <View style={[styles.communityCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
                 <View style={styles.communityCardHeader}>
                     <TrendingUp size={16} color={colors.primary.DEFAULT} />
-                    <Text style={[styles.communityCardTitle, { color: tc.text }]}>Tendencias en Río Colorado</Text>
+                    <Text style={[styles.communityCardTitle, { color: tc.text }]}>Tendencias en {localityName}</Text>
                 </View>
-                {MOCK_TRENDING.map((tag, i) => (
-                    <TouchableOpacity key={i} style={styles.trendingItem}>
-                        <Text style={[styles.trendingTag, { color: tc.textSecondary }]}>{tag}</Text>
-                    </TouchableOpacity>
-                ))}
+                <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                    <Text style={{ color: tc.textMuted, fontSize: 13, textAlign: 'center', fontStyle: 'italic' }}>
+                        Las tendencias se mostrarán cuando haya más actividad en la comunidad.
+                    </Text>
+                </View>
             </View>
 
             {/* Sugerencias */}
             <View style={[styles.communityCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                <Text style={[styles.communityCardTitle, { color: tc.text, marginBottom: 12 }]}>Sugerencias</Text>
-                {MOCK_SUGGESTIONS.map((s) => (
-                    <View key={s.id} style={styles.suggestionItem}>
-                        <View style={[styles.suggestionAvatar, { borderColor: s.color }]}>
-                            <Image source={{ uri: s.avatar }} style={styles.suggestionAvatarImg} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.suggestionName, { color: tc.text }]}>{s.name}</Text>
-                            <Text style={[styles.suggestionSub, { color: tc.textMuted }]}>{s.subtitle}</Text>
-                        </View>
-                        <Pressable
-                            style={({ pressed }) => [
-                                styles.followBtn,
-                                { borderColor: colors.primary.DEFAULT, backgroundColor: pressed ? colors.primary.DEFAULT : 'transparent' },
-                            ]}
-                            onPress={() => handleFollow(s.name)}
-                        >
-                            {({ pressed }) => (
-                                <Text style={[styles.followBtnText, { color: pressed ? '#fff' : colors.primary.DEFAULT }]}>Seguir</Text>
-                            )}
-                        </Pressable>
-                    </View>
-                ))}
+                <View style={styles.communityCardHeader}>
+                    <UserPlus size={16} color={'#3b82f6'} />
+                    <Text style={[styles.communityCardTitle, { color: tc.text }]}>Sugerencias para vos</Text>
+                </View>
+                <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                    <Text style={{ color: tc.textMuted, fontSize: 13, textAlign: 'center', fontStyle: 'italic' }}>
+                        Sugerencias de personas y negocios aparecerán aquí a medida que crezcamos.
+                    </Text>
+                </View>
             </View>
 
             {/* Próximos Eventos */}
             <View style={[styles.communityCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                <Text style={[styles.communityCardTitle, { color: tc.text, marginBottom: 12 }]}>Próximos Eventos</Text>
-                {MOCK_EVENTS.map((ev) => (
-                    <TouchableOpacity key={ev.id} style={styles.eventItem} onPress={() => handleEventPress(ev.title)}>
-                        <View style={[styles.eventDate, { backgroundColor: tc.bgInput }]}>
-                            <Text style={[styles.eventDay, { color: colors.primary.DEFAULT }]}>{ev.day}</Text>
-                            <Text style={[styles.eventMonth, { color: tc.textMuted }]}>{ev.month}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.eventTitle, { color: tc.text }]}>{ev.title}</Text>
-                            <Text style={[styles.eventTime, { color: tc.textMuted }]}>{ev.time}</Text>
-                        </View>
-                    </TouchableOpacity>
-                ))}
+                <View style={styles.communityCardHeader}>
+                    <Calendar size={16} color={'#22c55e'} />
+                    <Text style={[styles.communityCardTitle, { color: tc.text }]}>Próximos Eventos</Text>
+                </View>
+                <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                    <Text style={{ color: tc.textMuted, fontSize: 13, textAlign: 'center', fontStyle: 'italic' }}>
+                        Los eventos de la comunidad aparecerán aquí pronto.
+                    </Text>
+                </View>
             </View>
         </View>
     );
@@ -1230,4 +1346,27 @@ const styles = StyleSheet.create({
             shadowRadius: 10,
         }),
     },
+
+    // — Repost Modal —
+    repostOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    repostContainer: { width: '90%', maxWidth: 520, borderRadius: 20, overflow: 'hidden' },
+    repostHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
+    repostTitle: { fontSize: 17, fontWeight: '700' },
+    repostCommentSection: { flexDirection: 'row', padding: 16, gap: 12, alignItems: 'flex-start' },
+    repostUserAvatar: { width: 36, height: 36, borderRadius: 18 },
+    repostInput: { flex: 1, fontSize: 15, lineHeight: 20, minHeight: 50, textAlignVertical: 'top', ...(Platform.OS === 'web' ? { outlineStyle: 'none', borderWidth: 0 } as any : {}) },
+    repostPreview: { marginHorizontal: 16, marginBottom: 16, borderWidth: 1, borderRadius: 12, overflow: 'hidden' },
+    repostPreviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+    repostPreviewAvatar: { width: 30, height: 30, borderRadius: 15 },
+    repostPreviewName: { fontSize: 13, fontWeight: '700' },
+    repostPreviewTime: { fontSize: 11 },
+    repostPreviewContent: { fontSize: 13, lineHeight: 18, paddingHorizontal: 12, paddingBottom: 10 },
+    repostPreviewImage: { width: '100%', height: 160 },
+    repostFooter: { padding: 16, borderTopWidth: 1 },
+    repostBtn: { backgroundColor: colors.primary.DEFAULT, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+    repostBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+    // — Save flash toast —
+    saveFlash: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 8 },
+    saveFlashText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 });

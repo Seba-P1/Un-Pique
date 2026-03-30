@@ -28,7 +28,7 @@ interface CommentModalProps {
 }
 
 export function CommentModal({ visible, postId, onClose }: CommentModalProps) {
-    const { user } = useAuthStore();
+    const { user, profile } = useAuthStore();
     const tc = useThemeColors();
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
@@ -45,22 +45,34 @@ export function CommentModal({ visible, postId, onClose }: CommentModalProps) {
         if (!postId) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('comments')
-                .select(`
-                    *,
-                    user:user_id (
-                        id,
-                        full_name,
-                        avatar_url
-                    )
-                `)
+            // Step 1: fetch comments without embedded join
+            const { data: rawComments, error } = await supabase
+                .from('post_comments')
+                .select('*')
                 .eq('post_id', postId)
                 .order('created_at', { ascending: true });
 
-            if (!error && data) {
-                setComments(data);
+            if (error || !rawComments) { setLoading(false); return; }
+
+            // Step 2: fetch user profiles
+            const userIds = [...new Set(rawComments.map(c => c.user_id))];
+            let usersMap: Record<string, any> = {};
+            if (userIds.length > 0) {
+                const { data: usersData } = await supabase
+                    .from('users')
+                    .select('id, full_name, avatar_url')
+                    .in('id', userIds);
+                if (usersData) {
+                    usersData.forEach((u: any) => { usersMap[u.id] = u; });
+                }
             }
+
+            // Merge
+            const merged = rawComments.map(c => ({
+                ...c,
+                user: usersMap[c.user_id] || { id: c.user_id, full_name: 'Usuario', avatar_url: null },
+            }));
+            setComments(merged);
         } catch (err) {
             console.error('Error fetching comments:', err);
         }
@@ -73,24 +85,26 @@ export function CommentModal({ visible, postId, onClose }: CommentModalProps) {
         setSending(true);
         try {
             const { data, error } = await supabase
-                .from('comments')
+                .from('post_comments')
                 .insert({
                     post_id: postId,
                     user_id: user.id,
                     content: newComment.trim()
                 })
-                .select(`
-                    *,
-                    user:user_id (
-                        id,
-                        full_name,
-                        avatar_url
-                    )
-                `)
+                .select('*')
                 .single();
 
             if (!error && data) {
-                setComments([...comments, data]);
+                // Enrich with local user data
+                const enrichedComment = {
+                    ...data,
+                    user: {
+                        id: user.id,
+                        full_name: profile?.full_name || user.user_metadata?.full_name || 'Yo',
+                        avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null,
+                    },
+                };
+                setComments([...comments, enrichedComment]);
                 setNewComment('');
             }
         } catch (err) {

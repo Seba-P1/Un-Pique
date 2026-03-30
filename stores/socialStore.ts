@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 
 export interface Post {
@@ -21,18 +23,63 @@ interface SocialState {
     posts: Post[];
     loading: boolean;
     fetchPosts: (localityId: string) => Promise<void>;
-    createPost: (content: string, mediaUrls: string[], localityId: string) => Promise<void>;
+    fetchUserPosts: (userId: string) => Promise<Post[]>;
+    fetchSavedPosts: (postIds: string[]) => Promise<Post[]>;
+    createPost: (content: string, mediaUrls: string[], localityId: string, options?: { isRepost?: boolean }) => Promise<void>;
     likePost: (postId: string) => Promise<void>;
     unlikePost: (postId: string) => Promise<void>;
     toggleLike: (postId: string) => Promise<void>;
     isLiked: (postId: string) => boolean;
     likedPosts: Set<string>;
+    savedPosts: string[];
+    isSaved: (postId: string) => boolean;
+    toggleSave: (postId: string) => void;
 }
 
-export const useSocialStore = create<SocialState>((set, get) => ({
-    posts: [],
-    loading: false,
-    likedPosts: new Set(),
+export const useSocialStore = create<SocialState>()(
+    persist(
+        (set, get) => ({
+            posts: [],
+            loading: false,
+            likedPosts: new Set(),
+            savedPosts: [],
+
+            fetchUserPosts: async (userId: string) => {
+                const { data, error } = await supabase
+                    .from('posts')
+                    .select(`
+                        id, content, media_urls, likes_count, comments_count, created_at, author_id, locality_id,
+                        users:author_id (id, full_name, avatar_url)
+                    `)
+                    .eq('author_id', userId)
+                    .order('created_at', { ascending: false });
+                if (error) return [];
+                return data.map((post: any) => ({
+                    id: post.id, content: post.content, media_urls: post.media_urls || [],
+                    likes_count: post.likes_count, comments_count: post.comments_count,
+                    created_at: post.created_at, author_id: post.author_id, locality_id: post.locality_id,
+                    author: { id: post.users?.id, full_name: post.users?.full_name || 'Usuario', avatar_url: post.users?.avatar_url || 'https://via.placeholder.com/150' }
+                }));
+            },
+
+            fetchSavedPosts: async (postIds: string[]) => {
+                if (postIds.length === 0) return [];
+                const { data, error } = await supabase
+                    .from('posts')
+                    .select(`
+                        id, content, media_urls, likes_count, comments_count, created_at, author_id, locality_id,
+                        users:author_id (id, full_name, avatar_url)
+                    `)
+                    .in('id', postIds)
+                    .order('created_at', { ascending: false });
+                if (error) return [];
+                return data.map((post: any) => ({
+                    id: post.id, content: post.content, media_urls: post.media_urls || [],
+                    likes_count: post.likes_count, comments_count: post.comments_count,
+                    created_at: post.created_at, author_id: post.author_id, locality_id: post.locality_id,
+                    author: { id: post.users?.id, full_name: post.users?.full_name || 'Usuario', avatar_url: post.users?.avatar_url || 'https://via.placeholder.com/150' }
+                }));
+            },
 
     fetchPosts: async (localityId) => {
         set({ loading: true });
@@ -95,19 +142,24 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         }
     },
 
-    createPost: async (content, mediaUrls, localityId) => {
+    createPost: async (content, mediaUrls, localityId, options = {}) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not authenticated');
 
+            const insertData: any = {
+                content,
+                media_urls: mediaUrls,
+                author_id: user.id,
+                locality_id: localityId,
+            };
+            
+            // Si en el futuro integramos "is_repost" en la tabla, lo haríamos acá. 
+            // Por ahora asumo que content ya refleja el Repost en texto para ser compatible.
+
             const { error } = await supabase
                 .from('posts')
-                .insert({
-                    content,
-                    media_urls: mediaUrls,
-                    author_id: user.id,
-                    locality_id: localityId,
-                });
+                .insert(insertData);
 
             if (error) throw error;
 
@@ -183,4 +235,26 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     isLiked: (postId) => {
         return get().likedPosts.has(postId);
     },
-}));
+
+    isSaved: (postId) => {
+        return get().savedPosts.includes(postId);
+    },
+
+    toggleSave: (postId) => {
+        set((state) => {
+            const nextSaved = [...state.savedPosts];
+            if (nextSaved.includes(postId)) {
+                return { savedPosts: nextSaved.filter(id => id !== postId) };
+            } else {
+                return { savedPosts: [...nextSaved, postId] };
+            }
+        });
+    },
+        }),
+        {
+            name: 'social-storage',
+            storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({ savedPosts: state.savedPosts }),
+        }
+    )
+);
