@@ -168,7 +168,7 @@ export default function UserProfileScreen() {
                 </View>
 
                 {/* ====== PROFILE INFO SECTION ====== */}
-                <View style={[styles.profileSection, { backgroundColor: tc.bgCard, maxWidth: isMobile ? undefined : contentMaxWidth, alignSelf: isMobile ? undefined : 'center', width: isMobile ? '100%' : '100%' }]}>
+                <View style={[styles.profileSection, { maxWidth: isMobile ? undefined : contentMaxWidth, alignSelf: isMobile ? undefined : 'center', width: isMobile ? '100%' : '100%' }]}>
                     <View style={[styles.profileInfoRow, isMobile && styles.profileInfoRowMobile]}>
                         {/* Avatar */}
                         <View style={[styles.avatarWrapper, { marginTop: -(avatarSize / 2) }]}>
@@ -232,7 +232,7 @@ export default function UserProfileScreen() {
                 </View>
 
                 {/* ====== TAB NAVIGATION ====== */}
-                <View style={[styles.tabBar, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight, maxWidth: isMobile ? undefined : contentMaxWidth, alignSelf: isMobile ? undefined : 'center', width: isMobile ? '100%' : '100%' }]}>
+                <View style={[styles.tabBar, { borderBottomColor: tc.borderLight, backgroundColor: 'transparent', maxWidth: isMobile ? undefined : contentMaxWidth, alignSelf: isMobile ? undefined : 'center', width: isMobile ? '100%' : '100%' }]}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
                         {tabs.map((tab) => (
                             <Pressable
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     messageBtnText: { fontSize: 14, fontWeight: '600' },
 
     // Tabs
-    tabBar: { borderBottomWidth: 1 },
+    tabBar: { borderBottomWidth: 0.5 },
     tabScroll: { paddingHorizontal: 16 },
     tabItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabItemActive: { borderBottomWidth: 3 },

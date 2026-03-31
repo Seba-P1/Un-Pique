@@ -1,11 +1,12 @@
 // Favorites Screen - Dark Mode
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, RefreshControl, FlatList, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, RefreshControl, Pressable } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Heart } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useFavoritesStore } from '../../stores/favoritesStore';
-import { useBusinessStore } from '../../stores/businessStore';
+import { useBusinessStore, Business } from '../../stores/businessStore';
 import { useAuthStore } from '../../stores/authStore';
 import { BusinessCard } from '../../components/delivery';
 import { Card } from '../../components/ui';
@@ -41,7 +42,7 @@ export default function FavoritesScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
-            <View style={[styles.header, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight }]}>
+            <View style={[styles.header, { borderBottomColor: tc.borderLight, backgroundColor: 'transparent' }]}>
                 <Text style={[styles.title, { color: tc.text }]}>❤️ Favoritos</Text>
                 <Text style={[styles.subtitle, { color: tc.textSecondary }]}>Tus lugares preferidos</Text>
             </View>
@@ -51,11 +52,13 @@ export default function FavoritesScreen() {
                     <ActivityIndicator size="large" color={tc.primary} />
                 </View>
             ) : favoriteBusinesses.length > 0 ? (
-                <FlatList
+                <FlashList
                     data={favoriteBusinesses}
-                    renderItem={({ item }) => <BusinessCard business={item as any} />}
+                    renderItem={({ item }: { item: Business }) => <BusinessCard business={item as any} />}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
+                    // @ts-ignore
+                    estimatedItemSize={120}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
                 />
             ) : (

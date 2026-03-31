@@ -44,21 +44,27 @@ const NAV_ITEMS = [
     { key: 'profile', label: 'Mi Perfil', icon: User, route: '/(tabs)/profile' },
 ];
 
-const EXTRA_ITEMS = [
-    { key: 'orders', label: 'Mis Pedidos', icon: ShoppingBag, route: '/orders' },
+const EXTRA_ITEMS_BASE = [
     { key: 'alojamiento', label: 'Alojamientos', icon: Hotel, route: '/alojamiento' },
-    { key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business/dashboard' },
-    { key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Truck, route: '/driver' },
-    { key: 'settings', label: 'Configuración', icon: Settings, route: '/settings' },
-    { key: 'help', label: 'Ayuda', icon: HelpCircle, route: '/help' },
 ];
+
+function getExtraItems(roles: string[] = []) {
+    const items = [...EXTRA_ITEMS_BASE];
+    if (roles.includes('business_owner')) {
+        items.push({ key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business/dashboard' });
+    }
+    if (roles.includes('delivery_driver')) {
+        items.push({ key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Truck, route: '/driver' });
+    }
+    return items;
+}
 
 function DesktopSidebar() {
     const tc = useThemeColors();
     const router = useRouter();
     const pathname = usePathname();
     const { theme, toggleTheme } = useThemeStore();
-    const { signOut } = useAuthStore();
+    const { signOut, profile } = useAuthStore();
     const [collapsed, setCollapsed] = useState(false);
 
     const isActive = (key: string) => {
@@ -74,7 +80,7 @@ function DesktopSidebar() {
         : require('../../public/logo_unpique-modoclaro.svg');
 
     return (
-        <View style={[styles.sidebar, { width: sidebarWidth, backgroundColor: tc.tabBarBg, borderRightColor: tc.borderLight }]}>
+        <View style={[styles.sidebar, { width: sidebarWidth, borderRightColor: tc.borderLight }, Platform.OS === 'web' ? { backgroundColor: (tc.tabBarBg || tc.bgCard) + 'E6', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } as any : { backgroundColor: tc.tabBarBg }]}>
             {/* Header / Logo */}
             <View style={[styles.sidebarHeader, collapsed && { paddingHorizontal: 0, alignItems: 'center' }]}>
                 {collapsed ? (
@@ -143,7 +149,7 @@ function DesktopSidebar() {
                 {/* Extra Options */}
                 <View style={[styles.section, { marginTop: 12 }]}>
                     {!collapsed && <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>MAS OPCIONES</Text>}
-                    {EXTRA_ITEMS.map((item) => (
+                    {getExtraItems(profile?.roles).map((item) => (
                         <Pressable
                             key={item.key}
                             style={({ pressed }) => [
@@ -199,7 +205,7 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
     const tc = useThemeColors();
     const router = useRouter();
     const { theme, toggleTheme } = useThemeStore();
-    const { signOut } = useAuthStore();
+    const { signOut, profile } = useAuthStore();
 
     const logoSource = theme === 'dark'
         ? require('../../public/logo_unpique-mododark.svg')
@@ -223,7 +229,7 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
                     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                         {/* Only show items NOT accessible from bottom tabs */}
                         <Text style={[styles.drawerSectionTitle, { color: tc.textMuted }]}>ACCESOS RÁPIDOS</Text>
-                        {EXTRA_ITEMS.map((item) => (
+                        {getExtraItems(profile?.roles).map((item) => (
                             <TouchableOpacity
                                 key={item.key}
                                 style={styles.drawerItem}
@@ -369,7 +375,7 @@ const styles = StyleSheet.create({
     },
     // Sidebar
     sidebar: {
-        borderRightWidth: 1,
+        borderRightWidth: 0.5,
         paddingTop: 12,
         height: '100%',
         position: 'relative',

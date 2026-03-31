@@ -126,7 +126,7 @@ function SocialHeader({ tc, router, insets, onOpenDM, shadowOpacity }: any) {
 
     return (
         <View style={{ position: 'relative', zIndex: 100 }}>
-            <View style={[styles.header, { backgroundColor: tc.bg, borderBottomColor: 'transparent' }]}>
+            <View style={[styles.header, { borderBottomColor: 'transparent' }, Platform.OS === 'web' ? { backgroundColor: tc.bg + 'CC', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } as any : { backgroundColor: tc.bg }]}>
                 {/* Lado Izquierdo — Logo / Título (más grande, menos gap) */}
                 <View style={styles.headerLeft}>
                     <View style={[styles.headerBrandIcon, { backgroundColor: colors.primary.DEFAULT }]}>

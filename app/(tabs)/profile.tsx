@@ -75,8 +75,10 @@ export default function ProfileScreen() {
             {/* Header */}
             <View style={[
                 styles.header,
-                { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight },
-                scrolledY > 10 && styles.headerScrolled
+                { borderBottomColor: tc.borderLight },
+                scrolledY > 10
+                    ? [styles.headerScrolled, Platform.OS === 'web' ? { backgroundColor: tc.bgCard + 'E6', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } as any : { backgroundColor: tc.bgCard }]
+                    : { backgroundColor: 'transparent' }
             ]}>
                 <View style={styles.headerLeft}>
                     {!isDesktop && (
@@ -102,6 +104,7 @@ export default function ProfileScreen() {
                 showsVerticalScrollIndicator={false}
                 onScroll={(e) => setScrolledY(e.nativeEvent.contentOffset.y)}
                 scrollEventThrottle={16}
+                style={{ marginTop: -1 }}
             >
                 {/* ====== COVER PHOTO ====== */}
                 <View style={[styles.coverContainer, { height: coverHeight }]}>
@@ -161,7 +164,7 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* ====== TAB BAR ====== */}
-                <View style={[styles.tabBar, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight, borderTopColor: tc.borderLight }, !isMobile && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+                <View style={[styles.tabBar, { borderBottomColor: tc.borderLight, backgroundColor: 'transparent' }, !isMobile && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
                     <Pressable
                         style={[styles.tabItem, activeView === 'wall' && { borderBottomColor: colors.primary.DEFAULT, borderBottomWidth: 3 }]}
                         onPress={() => setActiveView('wall')}
@@ -408,8 +411,8 @@ function ThemeOption({ icon: Icon, label, active, onPress, tc }: any) {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     // Header
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, zIndex: 10 },
-    headerScrolled: { ...Platform.select({ web: { boxShadow: '0 4px 20px rgba(0,0,0,0.06)' } as any, ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }, android: { elevation: 8 } }) },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5, zIndex: 10, position: 'sticky' as any, top: 0 },
+    headerScrolled: { ...Platform.select({ web: { boxShadow: '0 2px 16px rgba(0,0,0,0.08)' } as any, ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10 }, android: { elevation: 4 } }) },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     menuButton: { padding: 6 },
     headerTitle: { fontSize: 20, fontWeight: '800' },
@@ -448,7 +451,7 @@ const styles = StyleSheet.create({
     editBtnText: { fontSize: 14, fontWeight: '600' },
 
     // Tabs
-    tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderTopWidth: 0.5 },
+    tabBar: { flexDirection: 'row', borderBottomWidth: 0.5, borderTopWidth: 0 },
     tabItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabLabel: { fontSize: 14, fontWeight: '500' },
 
