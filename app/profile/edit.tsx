@@ -13,7 +13,7 @@ import { supabase } from '../../lib/supabase';
 export default function EditProfileScreen() {
     const router = useRouter();
     const tc = useThemeColors();
-    const { profile, user, refreshProfile } = useAuthStore() as any;
+    const { profile, user, fetchProfile } = useAuthStore();
 
     const [fullName, setFullName] = useState(profile?.full_name || '');
     const [loading, setLoading] = useState(false);
@@ -81,7 +81,7 @@ export default function EditProfileScreen() {
         if (error) {
             showAlert('Error', error.message);
         } else {
-            await refreshProfile();
+            await fetchProfile();
             showAlert('Éxito', 'Perfil actualizado');
             router.back();
         }

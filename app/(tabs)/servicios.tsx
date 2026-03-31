@@ -9,19 +9,21 @@ import { AdBanner } from '../../components/features/ads/AdBanner';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
 import { showAlert } from '../../utils/alert';
+import { useRouter } from 'expo-router';
 
 export default function ServicesScreen() {
     const tc = useThemeColors();
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
     const { user } = useAuthStore();
+    const router = useRouter();
 
     const handlePublishService = () => {
         if (!user) {
             showAlert('Iniciá sesión', 'Necesitás una cuenta para publicar tu servicio. ¡Regístrate gratis!');
             return;
         }
-        showAlert('Publicar servicio', 'Próximamente vas a poder ofrecer tus servicios profesionales a todo tu barrio desde acá. ¡Estamos trabajando en ello!');
+        router.push('/publish/service' as any);
     };
 
     return (
@@ -33,6 +35,25 @@ export default function ServicesScreen() {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={[styles.maxContainer, isDesktop && { maxWidth: 900 }]}>
                     <ServiceCategories />
+                    
+                    {/* Botón de publicación movido aquí para no solapar la UI tipo FAB */}
+                    <TouchableOpacity
+                        style={[
+                            styles.publishBanner, 
+                            { backgroundColor: tc.primary + '15', borderColor: tc.primary }
+                        ]}
+                        onPress={handlePublishService}
+                        activeOpacity={0.8}
+                    >
+                        <View style={[styles.publishIconWrapper, { backgroundColor: tc.primary }]}>
+                            <Plus size={20} color="#fff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.publishTitle, { color: tc.text }]}>¿Ofrecés algún servicio?</Text>
+                            <Text style={[styles.publishSub, { color: tc.textMuted }]}>Publicá tu perfil y llegá a más clientes en tu zona.</Text>
+                        </View>
+                    </TouchableOpacity>
+
                     <View style={styles.bannerContainer}>
                         <AdBanner />
                     </View>
@@ -40,18 +61,6 @@ export default function ServicesScreen() {
                 </View>
             </ScrollView>
 
-            {/* FAB: Publicar servicio */}
-            <TouchableOpacity
-                style={[styles.fab, {
-                    backgroundColor: tc.primary,
-                    ...(Platform.OS === 'web' ? { boxShadow: '0px 6px 20px rgba(255,107,53,0.4)' } : {}),
-                }]}
-                onPress={handlePublishService}
-                activeOpacity={0.85}
-            >
-                <Plus size={22} color="#fff" strokeWidth={3} />
-                {isDesktop && <Text style={styles.fabText}>Publicar servicio</Text>}
-            </TouchableOpacity>
         </SafeAreaView>
     );
 }
@@ -62,11 +71,14 @@ const styles = StyleSheet.create({
     content: { flex: 1 },
     scrollContent: { alignItems: 'center', paddingBottom: 80 },
     maxContainer: { width: '100%', maxWidth: 600 },
-    bannerContainer: { marginBottom: 8 },
-    fab: {
-        position: 'absolute', bottom: 24, right: 24, height: 56, borderRadius: 28,
-        justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8,
-        paddingHorizontal: 20, zIndex: 50,
+    bannerContainer: { marginBottom: 16 },
+    publishBanner: {
+        flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, 
+        borderWidth: 1, marginHorizontal: 20, marginBottom: 20, gap: 16
     },
-    fabText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+    publishIconWrapper: {
+        width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center'
+    },
+    publishTitle: { fontSize: 16, fontWeight: '800', marginBottom: 2 },
+    publishSub: { fontSize: 13 },
 });

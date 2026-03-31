@@ -1,0 +1,71 @@
+﻿env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY
+Starting project at C:\Users\sebas\OneDrive\Escritorio\Un Pique\un-pique
+Starting Metro Bundler
+node.exe : TypeError: fetch 
+failed
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: (TypeError  
+  : fetch failed:String) []   
+ , RemoteException
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 
+TypeError: fetch failed
+    at node:internal/deps/undi
+ci/undici:13510:13
+    at fetchWithCredentials (C
+:\Users\sebas\OneDrive\Escrito
+rio\Un Pique\un-pique\node_mod
+ules\@expo\cli\src\api\rest\cl
+ient.ts:98:24)
+    at cachedFetch (C:\Users\s
+ebas\OneDrive\Escritorio\Un Pi
+que\un-pique\node_modules\@exp
+o\cli\src\api\rest\cache\wrapF
+etchWithCache.ts:26:24)
+    at getVersionsAsync (C:\Us
+ers\sebas\OneDrive\Escritorio\
+Un Pique\un-pique\node_modules
+\@expo\cli\src\api\getVersions
+.ts:52:19)
+    at 
+getRemoteVersionsForSdkAsync (
+C:\Users\sebas\OneDrive\Escrit
+orio\Un Pique\un-pique\node_mo
+dules\@expo\cli\src\start\doct
+or\dependencies\getVersionedPa
+ckages.ts:82:29)
+    at 
+getCombinedKnownVersionsAsync 
+(C:\Users\sebas\OneDrive\Escri
+torio\Un Pique\un-pique\node_m
+odules\@expo\cli\src\start\doc
+tor\dependencies\getVersionedP
+ackages.ts:61:7)
+    at 
+getVersionedDependenciesAsync 
+(C:\Users\sebas\OneDrive\Escri
+torio\Un Pique\un-pique\node_m
+odules\@expo\cli\src\start\doc
+tor\dependencies\validateDepen
+denciesVersions.ts:100:33)
+    at validateDependenciesVer
+sionsAsync (C:\Users\sebas\One
+Drive\Escritorio\Un Pique\un-p
+ique\node_modules\@expo\cli\sr
+c\start\doctor\dependencies\va
+lidateDependenciesVersions.ts:
+49:25)
+    at startAsync (C:\Users\se
+bas\OneDrive\Escritorio\Un Piq
+ue\un-pique\node_modules\@expo
+\cli\src\start\startAsync.ts:1
+10:5)

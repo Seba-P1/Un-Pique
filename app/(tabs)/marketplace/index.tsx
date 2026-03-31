@@ -20,6 +20,7 @@ import { useBusinessStore } from '../../../stores/businessStore';
 import { useFavoritesStore } from '../../../stores/favoritesStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { useThemeColors } from '../../../hooks/useThemeColors';
+import { glassStyle } from '../../../utils/glass';
 
 
 export default function DeliveryScreen() {
@@ -89,7 +90,7 @@ export default function DeliveryScreen() {
             {/* Animated Header */}
             <Animated.View style={[
                 styles.headerWrapper,
-                { backgroundColor: tc.bgCard },
+                glassStyle(tc.bgCard, 0.75, 16),
                 {
                     ...(Platform.OS === 'web'
                         ? {

@@ -23,9 +23,9 @@ const MOCK_BUSINESSES: Record<string, any> = {
 };
 
 const MOCK_PRODUCTS = [
-    { id: 'p1', name: 'Producto de ejemplo 1', description: 'Descripción del producto de ejemplo uno', price: 2500, image_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&q=60', is_available: true },
-    { id: 'p2', name: 'Producto de ejemplo 2', description: 'Descripción del producto de ejemplo dos', price: 3200, image_url: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=300&q=60', is_available: true },
-    { id: 'p3', name: 'Producto de ejemplo 3', description: 'Descripción del producto de ejemplo tres', price: 1800, image_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=60', is_available: true },
+    { id: 'p1', business_id: '1', category_id: 'general', options: {}, name: 'Producto de ejemplo 1', description: 'Descripción del producto de ejemplo uno', price: 2500, image_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&q=60', is_available: true },
+    { id: 'p2', business_id: '1', category_id: 'general', options: {}, name: 'Producto de ejemplo 2', description: 'Descripción del producto de ejemplo dos', price: 3200, image_url: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=300&q=60', is_available: true },
+    { id: 'p3', business_id: '1', category_id: 'general', options: {}, name: 'Producto de ejemplo 3', description: 'Descripción del producto de ejemplo tres', price: 1800, image_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=60', is_available: true },
 ];
 
 export default function BusinessDetailScreen() {

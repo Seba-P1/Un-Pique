@@ -17,6 +17,7 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { useRouter } from 'expo-router';
 import { showAlert } from '../../utils/alert';
 import { openMobileDrawer } from './_layout';
+import { glassStyle } from '../../utils/glass';
 
 // Mock search data
 const SEARCH_DATA = [
@@ -99,8 +100,7 @@ export default function HomeScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             {/* Header */}
-            <Animated.View style={[styles.header, {
-                backgroundColor: tc.bg,
+            <Animated.View style={[styles.header, glassStyle(tc.bg, 0.8, 14), {
                 borderBottomColor: tc.borderLight,
                 borderBottomWidth: headerShadowOpacity.interpolate({
                     inputRange: [0, 1],

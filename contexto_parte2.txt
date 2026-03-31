@@ -1,0 +1,3047 @@
+﻿
+=== contexto_antigravity.md ===
+# Contexto Antigravity â€” Un Pique (Sabor Local)
+> Ãšltima actualizaciÃ³n: 2026-02-26
+
+## Estado Actual
+El proyecto se encuentra en una fase avanzada de rediseÃ±o premium. Se ha completado la transiciÃ³n global a **Dark Mode** (vÃ­a `useThemeColors`) y se han implementado micro-interacciones de alta fidelidad para mejorar la percepciÃ³n de "app nativa premium". La estructura de navegaciÃ³n se ha optimizado y se han integrado herramientas de IA (NotebookLM) para la gestiÃ³n del conocimiento.
+
+## Historial de Cambios
+
+### 2026-02-26 â€” Premium Overhaul: Fases 7, 8 y 9
+- **Archivos modificados:**
+    - `components/services/ProfessionalCard.tsx`, `app/directory/[id].tsx`, `app/profile/edit.tsx`, `app/orders/history.tsx`, `app/chat/[id].tsx`, `app/onboarding/location.tsx`, `app/onboarding/features.tsx`, `app/directory/index.tsx`, `app/admin/dashboard.tsx` (RefactorizaciÃ³n completa a Dark Mode).
+    - `app/(tabs)/_layout.tsx` (Limpieza de duplicados en MobileDrawer).
+    - `app/index.tsx`, `components/ui/SplashScreen.tsx` (RediseÃ±o de Splash Screen con organic radial glow).
+    - `components/ui/Header.tsx` (AnimaciÃ³n de bÃºsqueda expandida y lÃ³gica responsive de ubicaciÃ³n).
+    - `components/delivery/BusinessCard.tsx` (Animaciones Scale/Hover premium).
+- **QuÃ© se hizo:**
+    - AuditorÃ­a y correcciÃ³n de colores hardcodeados en 10+ pantallas restantes.
+    - ImplementaciÃ³n de `LayoutAnimation` en el header para transiciones fluidas.
+    - SustituciÃ³n de gradientes lineales por orbes desenfocados (blur/shadows) para un efecto visual Apple-like en el splash.
+    - OptimizaciÃ³n del Drawer para evitar redundancia con el bottom tab bar.
+- **Pendientes:**
+    - Verificar persistencia de estados tras el rediseÃ±o.
+    - Revisar performance de animaciones en dispositivos Android de gama baja.
+
+### 2026-02-25 â€” IntegraciÃ³n NotebookLM
+- **QuÃ© se hizo:**
+    - ConexiÃ³n exitosa de NotebookLM vÃ­a MCP.
+    - SincronizaciÃ³n de tokens de sesiÃ³n para acceso a notebooks del proyecto.
+
+## Arquitectura y Decisiones
+- **Tema DinÃ¡mico:** Se utiliza estrictamente el hook `useThemeColors()` para que todos los componentes reaccionen al modo claro/oscuro de forma centralizada.
+- **Sombras/Blur:** Para mantener un look premium en web y nativo, se prefiere el uso de `shadows` con alta dispersiÃ³n en lugar de bordes marcados.
+- **NavegaciÃ³n:** `expo-router` es el estÃ¡ndar. Se evitan duplicidades entre el Drawer y el TabBar para no confundir al usuario.
+
+## Bugs Conocidos y Pendientes
+- [ ] Posible delay en la actualizaciÃ³n del Splash Screen en algunos dispositivos (caching de Expo).
+- [ ] Ajustar el "Quick Access Menu" del Header para que no tape elementos crÃ­ticos en navegadores desktop muy estrechos.
+
+
+=== error.log ===
+type : No se encuentra la ruta de acceso 'C:\Users\sebas\OneDrive\Escritorio\Un Pique\un-pique\nul' porque no existe.
+En línea: 1 Carácter: 1
++ type nul > error.log 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\sebas\...ue\un-pique\nul:String) [Get-Content], ItemNotFoundEx 
+   ception
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+ 
+
+
+=== expo_error.log ===
+Starting project at C:\Users\sebas\OneDrive\Escritorio\Un Pique\un-pique
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+node.exe : TypeError: fetch failed
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (TypeError: fetch   
+  failed:String) [], RemoteExce   
+ ption
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+TypeError: fetch failed
+    at node:internal/deps/undici/u
+ndici:13510:13
+    at processTicksAndRejections (
+node:internal/process/task_queues:
+105:5)
+    at fetchWithCredentials (C:\Us
+ers\sebas\OneDrive\Escritorio\Un P
+ique\un-pique\node_modules\expo\no
+de_modules\@expo\cli\src\api\rest\
+client.ts:98:24)
+    at cachedFetch (C:\Users\sebas
+\OneDrive\Escritorio\Un Pique\un-p
+ique\node_modules\expo\node_module
+s\@expo\cli\src\api\rest\cache\wra
+pFetchWithCache.ts:26:24)
+    at 
+getNativeModuleVersionsAsync (C:\U
+sers\sebas\OneDrive\Escritorio\Un 
+Pique\un-pique\node_modules\expo\n
+ode_modules\@expo\cli\src\api\getN
+ativeModuleVersions.ts:39:20)
+    at 
+getVersionedNativeModulesAsync (C:
+\Users\sebas\OneDrive\Escritorio\U
+n Pique\un-pique\node_modules\expo
+\node_modules\@expo\cli\src\start\
+doctor\dependencies\bundledNativeM
+odules.ts:33:14)
+    at 
+getCombinedKnownVersionsAsync (C:\
+Users\sebas\OneDrive\Escritorio\Un
+ Pique\un-pique\node_modules\expo\
+node_modules\@expo\cli\src\start\d
+octor\dependencies\getVersionedPac
+kages.ts:58:7)
+    at 
+getVersionedDependenciesAsync (C:\
+Users\sebas\OneDrive\Escritorio\Un
+ Pique\un-pique\node_modules\expo\
+node_modules\@expo\cli\src\start\d
+octor\dependencies\validateDepende
+nciesVersions.ts:100:33)
+    at 
+validateDependenciesVersionsAsync 
+(C:\Users\sebas\OneDrive\Escritori
+o\Un Pique\un-pique\node_modules\e
+xpo\node_modules\@expo\cli\src\sta
+rt\doctor\dependencies\validateDep
+endenciesVersions.ts:49:25)
+    at startAsync (C:\Users\sebas\
+OneDrive\Escritorio\Un Pique\un-pi
+que\node_modules\expo\node_modules
+\@expo\cli\src\start\startAsync.ts
+:110:5)
+
+
+=== expo_error2.log ===
+Starting project at C:\Users\sebas\OneDrive\Escritorio\Un Pique\un-pique
+node.exe : Error 
+[ERR_UNSUPPORTED_ESM_URL_SCHEME]: 
+Error loading Metro config at: C:\
+Users\sebas\OneDrive\Escritorio\Un
+ Pique\un-pique\metro.config.js
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (Error [ERR_UNSU..  
+  .metro.config.js:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+Only URLs with a scheme in: file, 
+data, and node are supported by 
+the default ESM loader. On 
+Windows, absolute paths must be 
+valid file:// URLs. Received 
+protocol 'c:'
+Error: Only URLs with a scheme 
+in: file, data, and node are 
+supported by the default ESM 
+loader. On Windows, absolute 
+paths must be valid file:// URLs. 
+Received protocol 'c:'
+    at 
+throwIfUnsupportedURLScheme (node:
+internal/modules/esm/load:209:11)
+    at defaultLoad (node:internal/
+modules/esm/load:107:3)
+    at ModuleLoader.load (node:int
+ernal/modules/esm/loader:800:12)
+    at 
+ModuleLoader.loadAndTranslate (nod
+e:internal/modules/esm/loader:580:
+43)
+    at 
+ModuleLoader.#createModuleJob (nod
+e:internal/modules/esm/loader:604:
+36)
+    at ModuleLoader.#getJobFromRes
+olveResult (node:internal/modules/
+esm/loader:338:34)
+    at ModuleLoader.getModuleJobFo
+rImport (node:internal/modules/esm
+/loader:306:41)
+    at 
+onImport.tracePromise.__proto__ (n
+ode:internal/modules/esm/loader:64
+3:25)
+
+
+=== expo_error3.log ===
+Starting project at C:\Users\sebas\OneDrive\Escritorio\Un Pique\un-pique
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+node.exe : Skipping dependency 
+validation in offline mode
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (Skipping depend..  
+  .in offline mode:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+
+
+=== tsc-errors.log ===
+app/(auth)/locality-selector.tsx(39,17): error TS2322: Type '(false | { marginBottom: number; } | { borderWidth: number; borderColor: string; } | { opacity: number; })[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends false | { marginBottom: number; } | { borderWidth: number; borderColor: string; } | { opacity: number; }>(predicate: (value: false | { marginBottom: number; } | { borderWidth: number; borderColor: string; } | { ...; }, index: number, array: (false | ... 2 more ... | { ...; })[]) => value is S, thisArg?:...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+app/(tabs)/favorites.tsx(70,18): error TS2552: Cannot find name 'FlatList'. Did you mean 'FlashList'?
+app/(tabs)/favorites.tsx(73,36): error TS7006: Parameter 'item' implicitly has an 'any' type.
+app/profile/edit.tsx(14,28): error TS2339: Property 'refreshProfile' does not exist on type 'AuthState'.
+app/settings.tsx(7,36): error TS2305: Module '"lucide-react-native"' has no exported member 'CircleHelp'.
+app/shop/[id].tsx(231,41): error TS2322: Type 'Product | { id: string; name: string; description: string; price: number; image_url: string; }' is not assignable to type 'Product'.
+  Property 'is_available' is missing in type '{ id: string; name: string; description: string; price: number; image_url: string; }' but required in type 'Product'.
+components/business/BusinessSidebar.tsx(73,23): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(75,19): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(76,31): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(78,31): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(79,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(87,23): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(88,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(91,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(98,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ScrollViewProps): ScrollView', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ScrollViewProps, context: any): ScrollView', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(100,38): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(102,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(113,41): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+    Type 'TextStyle' is not assignable to type 'ViewStyle'.
+      Types of property 'cursor' are incompatible.
+        Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+          Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(114,41): error TS2322: Type 'false | (ViewStyle | TextStyle | ImageStyle)[]' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type '(ViewStyle | TextStyle | ImageStyle)[]' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+    Type '(ViewStyle | TextStyle | ImageStyle)[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>>'.
+      The types returned by 'pop()' are incompatible between these types.
+        Type 'ViewStyle | TextStyle | ImageStyle | undefined' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+          Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+            Type 'TextStyle' is not assignable to type 'ViewStyle'.
+              Types of property 'cursor' are incompatible.
+                Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(123,38): error TS2769: No overload matches this call.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'false | ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(134,55): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(144,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(146,29): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+    Type 'TextStyle' is not assignable to type 'ViewStyle'.
+      Types of property 'cursor' are incompatible.
+        Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+          Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(146,73): error TS2339: Property 'bgAlert' does not exist on type '{ isDark: boolean; bg: string; bgSecondary: string; bgCard: string; bgInput: string; bgElevated: string; bgHover: string; bgSurface: string; text: string; textSecondary: string; textMuted: string; ... 11 more ...; iconActive: string; }'.
+components/business/BusinessSidebar.tsx(151,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(155,21): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+  Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+    Type 'TextStyle' is not assignable to type 'ViewStyle'.
+      Types of property 'cursor' are incompatible.
+        Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+          Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(163,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<TextStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<TextStyle>'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<TextStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<TextStyle>'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(171,5): error TS2322: Type '{ boxShadow?: string | undefined; height?: "100vh" | undefined; position?: any; top?: number | undefined; width: number; borderRightWidth: number; }' is not assignable to type 'ViewStyle | TextStyle | ImageStyle'.
+  Type '{ boxShadow?: string | undefined; height?: "100vh" | undefined; position?: any; top?: number | undefined; width: number; borderRightWidth: number; }' is not assignable to type 'TextStyle'.
+    Types of property 'height' are incompatible.
+      Type '"100vh" | undefined' is not assignable to type 'DimensionValue | undefined'.
+        Type '"100vh"' is not assignable to type 'DimensionValue | undefined'.
+components/features/ads/AdBanner.tsx(116,9): error TS2345: Argument of type '{ container: { alignItems: "center"; marginVertical: number; }; slide: { borderRadius: number; overflow: "hidden"; shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; position: "relative"; }; ... 6 more ...; activeDot: { ...; }; }' is not assignable to parameter of type '{ container: { alignItems: "center"; marginVertical: number; }; slide: { borderRadius: number; overflow: "hidden"; shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; position: "relative"; }; ... 6 more ...; activeDot: { ...; }; } & N...'.
+  Property 'overlay' is incompatible with index signature.
+    Object literal may only specify known properties, and 'background' does not exist in type 'ViewStyle | TextStyle | ImageStyle'.
+components/home/BusinessFeed.tsx(34,34): error TS2322: Type '({ padding: number; overflow: "hidden"; borderRadius: number; } | { backgroundColor: string; })[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends { padding: number; overflow: "hidden"; borderRadius: number; } | { backgroundColor: string; }>(predicate: (value: { padding: number; overflow: "hidden"; borderRadius: number; } | { backgroundColor: string; }, index: number, array: ({ ...; } | { ...; })[]) => value is S, thisArg?: any): S[]; (predicate: ...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+components/ui/Header.tsx(194,128): error TS17001: JSX elements cannot have multiple attributes with the same name.
+
+
+=== tsc-errors.txt ===
+app/(auth)/locality-selector.tsx(39,17): error TS2322: Type '(false | { marginBottom: number; } | { borderWidth: number; borderColor: string; } | { opacity: number; })[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends false | { marginBottom: number; } | { borderWidth: number; borderColor: string; } | { opacity: number; }>(predicate: (value: false | { marginBottom: number; } | { borderWidth: number; borderColor: string; } | { ...; }, index: number, array: (false | ... 2 more ... | { ...; })[]) => value is S, thisArg?:...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+app/(tabs)/favorites.tsx(70,18): error TS2552: Cannot find name 'FlatList'. Did you mean 'FlashList'?
+app/(tabs)/favorites.tsx(73,36): error TS7006: Parameter 'item' implicitly has an 'any' type.
+app/profile/edit.tsx(14,28): error TS2339: Property 'refreshProfile' does not exist on type 'AuthState'.
+app/settings.tsx(7,36): error TS2305: Module '"lucide-react-native"' has no exported member 'CircleHelp'.
+app/shop/[id].tsx(231,41): error TS2322: Type 'Product | { id: string; name: string; description: string; price: number; image_url: string; }' is not assignable to type 'Product'.
+  Property 'is_available' is missing in type '{ id: string; name: string; description: string; price: number; image_url: string; }' but required in type 'Product'.
+components/business/BusinessSidebar.tsx(73,23): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(75,19): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(76,31): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(78,31): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(79,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(87,23): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(88,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(91,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(98,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ScrollViewProps): ScrollView', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ScrollViewProps, context: any): ScrollView', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(100,38): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(102,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(113,41): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+    Type 'TextStyle' is not assignable to type 'ViewStyle'.
+      Types of property 'cursor' are incompatible.
+        Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+          Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(114,41): error TS2322: Type 'false | (ViewStyle | TextStyle | ImageStyle)[]' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type '(ViewStyle | TextStyle | ImageStyle)[]' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+    Type '(ViewStyle | TextStyle | ImageStyle)[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>>'.
+      The types returned by 'pop()' are incompatible between these types.
+        Type 'ViewStyle | TextStyle | ImageStyle | undefined' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+          Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+            Type 'TextStyle' is not assignable to type 'ViewStyle'.
+              Types of property 'cursor' are incompatible.
+                Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(123,38): error TS2769: No overload matches this call.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'false | ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(134,55): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(144,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'TextStyle' is not assignable to type 'ViewStyle'.
+          Types of property 'cursor' are incompatible.
+            Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+              Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(146,29): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Type 'TextStyle' is not assignable to type 'ViewStyle | Falsy | RegisteredStyle<ViewStyle> | RecursiveArray<ViewStyle | Falsy | RegisteredStyle<ViewStyle>> | readonly (ViewStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+    Type 'TextStyle' is not assignable to type 'ViewStyle'.
+      Types of property 'cursor' are incompatible.
+        Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+          Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(146,73): error TS2339: Property 'bgAlert' does not exist on type '{ isDark: boolean; bg: string; bgSecondary: string; bgCard: string; bgInput: string; bgElevated: string; bgHover: string; bgSurface: string; text: string; textSecondary: string; textMuted: string; ... 11 more ...; iconActive: string; }'.
+components/business/BusinessSidebar.tsx(151,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type 'ViewStyle' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(155,21): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+  Type 'TextStyle' is not assignable to type 'StyleProp<ViewStyle>'.
+    Type 'TextStyle' is not assignable to type 'ViewStyle'.
+      Types of property 'cursor' are incompatible.
+        Type 'string | undefined' is not assignable to type 'CursorValue | undefined'.
+          Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/business/BusinessSidebar.tsx(163,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<TextStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<TextStyle>'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<TextStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<TextStyle>'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+              Type 'string' is not assignable to type '"none" | "auto" | "contain" | "text" | "all" | undefined'.
+components/business/BusinessSidebar.tsx(171,5): error TS2322: Type '{ boxShadow?: string | undefined; height?: "100vh" | undefined; position?: any; top?: number | undefined; width: number; borderRightWidth: number; }' is not assignable to type 'ViewStyle | TextStyle | ImageStyle'.
+  Type '{ boxShadow?: string | undefined; height?: "100vh" | undefined; position?: any; top?: number | undefined; width: number; borderRightWidth: number; }' is not assignable to type 'TextStyle'.
+    Types of property 'height' are incompatible.
+      Type '"100vh" | undefined' is not assignable to type 'DimensionValue | undefined'.
+        Type '"100vh"' is not assignable to type 'DimensionValue | undefined'.
+components/features/ads/AdBanner.tsx(116,9): error TS2345: Argument of type '{ container: { alignItems: "center"; marginVertical: number; }; slide: { borderRadius: number; overflow: "hidden"; shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; position: "relative"; }; ... 6 more ...; activeDot: { ...; }; }' is not assignable to parameter of type '{ container: { alignItems: "center"; marginVertical: number; }; slide: { borderRadius: number; overflow: "hidden"; shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; position: "relative"; }; ... 6 more ...; activeDot: { ...; }; } & N...'.
+  Property 'overlay' is incompatible with index signature.
+    Object literal may only specify known properties, and 'background' does not exist in type 'ViewStyle | TextStyle | ImageStyle'.
+components/home/BusinessFeed.tsx(34,34): error TS2322: Type '({ padding: number; overflow: "hidden"; borderRadius: number; } | { backgroundColor: string; })[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends { padding: number; overflow: "hidden"; borderRadius: number; } | { backgroundColor: string; }>(predicate: (value: { padding: number; overflow: "hidden"; borderRadius: number; } | { backgroundColor: string; }, index: number, array: ({ ...; } | { ...; })[]) => value is S, thisArg?: any): S[]; (predicate: ...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+components/ui/Header.tsx(194,128): error TS17001: JSX elements cannot have multiple attributes with the same name.
+
+
+=== .agent/ARCHITECTURE.md ===
+# Antigravity Kit Architecture
+
+> Comprehensive AI Agent Capability Expansion Toolkit
+
+---
+
+## ðŸ“‹ Overview
+
+Antigravity Kit is a modular system consisting of:
+
+- **20 Specialist Agents** - Role-based AI personas
+- **36 Skills** - Domain-specific knowledge modules
+- **11 Workflows** - Slash command procedures
+
+---
+
+## ðŸ—ï¸ Directory Structure
+
+```plaintext
+.agent/
+â”œâ”€â”€ ARCHITECTURE.md          # This file
+â”œâ”€â”€ agents/                  # 20 Specialist Agents
+â”œâ”€â”€ skills/                  # 36 Skills
+â”œâ”€â”€ workflows/               # 11 Slash Commands
+â”œâ”€â”€ rules/                   # Global Rules
+â””â”€â”€ scripts/                 # Master Validation Scripts
+```
+
+---
+
+## ðŸ¤– Agents (20)
+
+Specialist AI personas for different domains.
+
+| Agent                    | Focus                      | Skills Used                                              |
+| ------------------------ | -------------------------- | -------------------------------------------------------- |
+| `orchestrator`           | Multi-agent coordination   | parallel-agents, behavioral-modes                        |
+| `project-planner`        | Discovery, task planning   | brainstorming, plan-writing, architecture                |
+| `frontend-specialist`    | Web UI/UX                  | frontend-design, react-best-practices, tailwind-patterns |
+| `backend-specialist`     | API, business logic        | api-patterns, nodejs-best-practices, database-design     |
+| `database-architect`     | Schema, SQL                | database-design, prisma-expert                           |
+| `mobile-developer`       | iOS, Android, RN           | mobile-design                                            |
+| `game-developer`         | Game logic, mechanics      | game-development                                         |
+| `devops-engineer`        | CI/CD, Docker              | deployment-procedures, docker-expert                     |
+| `security-auditor`       | Security compliance        | vulnerability-scanner, red-team-tactics                  |
+| `penetration-tester`     | Offensive security         | red-team-tactics                                         |
+| `test-engineer`          | Testing strategies         | testing-patterns, tdd-workflow, webapp-testing           |
+| `debugger`               | Root cause analysis        | systematic-debugging                                     |
+| `performance-optimizer`  | Speed, Web Vitals          | performance-profiling                                    |
+| `seo-specialist`         | Ranking, visibility        | seo-fundamentals, geo-fundamentals                       |
+| `documentation-writer`   | Manuals, docs              | documentation-templates                                  |
+| `product-manager`        | Requirements, user stories | plan-writing, brainstorming                              |
+| `product-owner`          | Strategy, backlog, MVP     | plan-writing, brainstorming                              |
+| `qa-automation-engineer` | E2E testing, CI pipelines  | webapp-testing, testing-patterns                         |
+| `code-archaeologist`     | Legacy code, refactoring   | clean-code, code-review-checklist                        |
+| `explorer-agent`         | Codebase analysis          | -                                                        |
+
+---
+
+## ðŸ§© Skills (36)
+
+Modular knowledge domains that agents can load on-demand. based on task context.
+
+### Frontend & UI
+
+| Skill                   | Description                                                           |
+| ----------------------- | --------------------------------------------------------------------- |
+| `react-best-practices`  | React & Next.js performance optimization (Vercel - 57 rules)          |
+| `web-design-guidelines` | Web UI audit - 100+ rules for accessibility, UX, performance (Vercel) |
+| `tailwind-patterns`     | Tailwind CSS v4 utilities                                             |
+| `frontend-design`       | UI/UX patterns, design systems                                        |
+| `ui-ux-pro-max`         | 50 styles, 21 palettes, 50 fonts                                      |
+
+### Backend & API
+
+| Skill                   | Description                    |
+| ----------------------- | ------------------------------ |
+| `api-patterns`          | REST, GraphQL, tRPC            |
+| `nestjs-expert`         | NestJS modules, DI, decorators |
+| `nodejs-best-practices` | Node.js async, modules         |
+| `python-patterns`       | Python standards, FastAPI      |
+
+### Database
+
+| Skill             | Description                 |
+| ----------------- | --------------------------- |
+| `database-design` | Schema design, optimization |
+| `prisma-expert`   | Prisma ORM, migrations      |
+
+### TypeScript/JavaScript
+
+| Skill               | Description                         |
+| ------------------- | ----------------------------------- |
+| `typescript-expert` | Type-level programming, performance |
+
+### Cloud & Infrastructure
+
+| Skill                   | Description               |
+| ----------------------- | ------------------------- |
+| `docker-expert`         | Containerization, Compose |
+| `deployment-procedures` | CI/CD, deploy workflows   |
+| `server-management`     | Infrastructure management |
+
+### Testing & Quality
+
+| Skill                   | Description              |
+| ----------------------- | ------------------------ |
+| `testing-patterns`      | Jest, Vitest, strategies |
+| `webapp-testing`        | E2E, Playwright          |
+| `tdd-workflow`          | Test-driven development  |
+| `code-review-checklist` | Code review standards    |
+| `lint-and-validate`     | Linting, validation      |
+
+### Security
+
+| Skill                   | Description              |
+| ----------------------- | ------------------------ |
+| `vulnerability-scanner` | Security auditing, OWASP |
+| `red-team-tactics`      | Offensive security       |
+
+### Architecture & Planning
+
+| Skill           | Description                |
+| --------------- | -------------------------- |
+| `app-builder`   | Full-stack app scaffolding |
+| `architecture`  | System design patterns     |
+| `plan-writing`  | Task planning, breakdown   |
+| `brainstorming` | Socratic questioning       |
+
+### Mobile
+
+| Skill           | Description           |
+| --------------- | --------------------- |
+| `mobile-design` | Mobile UI/UX patterns |
+
+### Game Development
+
+| Skill              | Description           |
+| ------------------ | --------------------- |
+| `game-development` | Game logic, mechanics |
+
+### SEO & Growth
+
+| Skill              | Description                   |
+| ------------------ | ----------------------------- |
+| `seo-fundamentals` | SEO, E-E-A-T, Core Web Vitals |
+| `geo-fundamentals` | GenAI optimization            |
+
+### Shell/CLI
+
+| Skill                | Description               |
+| -------------------- | ------------------------- |
+| `bash-linux`         | Linux commands, scripting |
+| `powershell-windows` | Windows PowerShell        |
+
+### Other
+
+| Skill                     | Description               |
+| ------------------------- | ------------------------- |
+| `clean-code`              | Coding standards (Global) |
+| `behavioral-modes`        | Agent personas            |
+| `parallel-agents`         | Multi-agent patterns      |
+| `mcp-builder`             | Model Context Protocol    |
+| `documentation-templates` | Doc formats               |
+| `i18n-localization`       | Internationalization      |
+| `performance-profiling`   | Web Vitals, optimization  |
+| `systematic-debugging`    | Troubleshooting           |
+
+---
+
+## ðŸ”„ Workflows (11)
+
+Slash command procedures. Invoke with `/command`.
+
+| Command          | Description              |
+| ---------------- | ------------------------ |
+| `/brainstorm`    | Socratic discovery       |
+| `/create`        | Create new features      |
+| `/debug`         | Debug issues             |
+| `/deploy`        | Deploy application       |
+| `/enhance`       | Improve existing code    |
+| `/orchestrate`   | Multi-agent coordination |
+| `/plan`          | Task breakdown           |
+| `/preview`       | Preview changes          |
+| `/status`        | Check project status     |
+| `/test`          | Run tests                |
+| `/ui-ux-pro-max` | Design with 50 styles    |
+
+---
+
+## ðŸŽ¯ Skill Loading Protocol
+
+```plaintext
+User Request â†’ Skill Description Match â†’ Load SKILL.md
+                                            â†“
+                                    Read references/
+                                            â†“
+                                    Read scripts/
+```
+
+### Skill Structure
+
+```plaintext
+skill-name/
+â”œâ”€â”€ SKILL.md           # (Required) Metadata & instructions
+â”œâ”€â”€ scripts/           # (Optional) Python/Bash scripts
+â”œâ”€â”€ references/        # (Optional) Templates, docs
+â””â”€â”€ assets/            # (Optional) Images, logos
+```
+
+### Enhanced Skills (with scripts/references)
+
+| Skill               | Files | Coverage                            |
+| ------------------- | ----- | ----------------------------------- |
+| `ui-ux-pro-max`     | 27    | 50 styles, 21 palettes, 50 fonts    |
+| `app-builder`       | 20    | Full-stack scaffolding              |
+
+---
+
+## ï¿½ Scripts (2)
+
+Master validation scripts that orchestrate skill-level scripts.
+
+### Master Scripts
+
+| Script          | Purpose                                 | When to Use              |
+| --------------- | --------------------------------------- | ------------------------ |
+| `checklist.py`  | Priority-based validation (Core checks) | Development, pre-commit  |
+| `verify_all.py` | Comprehensive verification (All checks) | Pre-deployment, releases |
+
+### Usage
+
+```bash
+# Quick validation during development
+python .agent/scripts/checklist.py .
+
+# Full verification before deployment
+python .agent/scripts/verify_all.py . --url http://localhost:3000
+```
+
+### What They Check
+
+**checklist.py** (Core checks):
+
+- Security (vulnerabilities, secrets)
+- Code Quality (lint, types)
+- Schema Validation
+- Test Suite
+- UX Audit
+- SEO Check
+
+**verify_all.py** (Full suite):
+
+- Everything in checklist.py PLUS:
+- Lighthouse (Core Web Vitals)
+- Playwright E2E
+- Bundle Analysis
+- Mobile Audit
+- i18n Check
+
+For details, see [scripts/README.md](scripts/README.md)
+
+---
+
+## ðŸ“Š Statistics
+
+| Metric              | Value                         |
+| ------------------- | ----------------------------- |
+| **Total Agents**    | 20                            |
+| **Total Skills**    | 36                            |
+| **Total Workflows** | 11                            |
+| **Total Scripts**   | 2 (master) + 18 (skill-level) |
+| **Coverage**        | ~90% web/mobile development   |
+
+---
+
+## ðŸ”— Quick Reference
+
+| Need     | Agent                 | Skills                                |
+| -------- | --------------------- | ------------------------------------- |
+| Web App  | `frontend-specialist` | react-best-practices, frontend-design |
+| API      | `backend-specialist`  | api-patterns, nodejs-best-practices   |
+| Mobile   | `mobile-developer`    | mobile-design                         |
+| Database | `database-architect`  | database-design, prisma-expert        |
+| Security | `security-auditor`    | vulnerability-scanner                 |
+| Testing  | `test-engineer`       | testing-patterns, webapp-testing      |
+| Debug    | `debugger`            | systematic-debugging                  |
+| Plan     | `project-planner`     | brainstorming, plan-writing           |
+
+
+=== .agent/rules/GEMINI.md ===
+---
+trigger: always_on
+---
+
+# GEMINI.md - Antigravity Kit
+
+> This file defines how the AI behaves in this workspace.
+
+---
+
+## CRITICAL: AGENT & SKILL PROTOCOL (START HERE)
+
+> **MANDATORY:** You MUST read the appropriate agent file and its skills BEFORE performing any implementation. This is the highest priority rule.
+
+### 1. Modular Skill Loading Protocol
+
+Agent activated â†’ Check frontmatter "skills:" â†’ Read SKILL.md (INDEX) â†’ Read specific sections.
+
+- **Selective Reading:** DO NOT read ALL files in a skill folder. Read `SKILL.md` first, then only read sections matching the user's request.
+- **Rule Priority:** P0 (GEMINI.md) > P1 (Agent .md) > P2 (SKILL.md). All rules are binding.
+
+### 2. Enforcement Protocol
+
+1. **When agent is activated:**
+    - âœ… Activate: Read Rules â†’ Check Frontmatter â†’ Load SKILL.md â†’ Apply All.
+2. **Forbidden:** Never skip reading agent rules or skill instructions. "Read â†’ Understand â†’ Apply" is mandatory.
+
+---
+
+## ðŸ“¥ REQUEST CLASSIFIER (STEP 1)
+
+**Before ANY action, classify the request:**
+
+| Request Type     | Trigger Keywords                           | Active Tiers                   | Result                      |
+| ---------------- | ------------------------------------------ | ------------------------------ | --------------------------- |
+| **QUESTION**     | "what is", "how does", "explain"           | TIER 0 only                    | Text Response               |
+| **SURVEY/INTEL** | "analyze", "list files", "overview"        | TIER 0 + Explorer              | Session Intel (No File)     |
+| **SIMPLE CODE**  | "fix", "add", "change" (single file)       | TIER 0 + TIER 1 (lite)         | Inline Edit                 |
+| **COMPLEX CODE** | "build", "create", "implement", "refactor" | TIER 0 + TIER 1 (full) + Agent | **{task-slug}.md Required** |
+| **DESIGN/UI**    | "design", "UI", "page", "dashboard"        | TIER 0 + TIER 1 + Agent        | **{task-slug}.md Required** |
+| **SLASH CMD**    | /create, /orchestrate, /debug              | Command-specific flow          | Variable                    |
+
+---
+
+## ðŸ¤– INTELLIGENT AGENT ROUTING (STEP 2 - AUTO)
+
+**ALWAYS ACTIVE: Before responding to ANY request, automatically analyze and select the best agent(s).**
+
+> ðŸ”´ **MANDATORY:** You MUST follow the protocol defined in `@[skills/intelligent-routing]`.
+
+### Auto-Selection Protocol
+
+1. **Analyze (Silent)**: Detect domains (Frontend, Backend, Security, etc.) from user request.
+2. **Select Agent(s)**: Choose the most appropriate specialist(s).
+3. **Inform User**: Concisely state which expertise is being applied.
+4. **Apply**: Generate response using the selected agent's persona and rules.
+
+### Response Format (MANDATORY)
+
+When auto-applying an agent, inform the user:
+
+```markdown
+ðŸ¤– **Applying knowledge of `@[agent-name]`...**
+
+[Continue with specialized response]
+```
+
+**Rules:**
+
+1. **Silent Analysis**: No verbose meta-commentary ("I am analyzing...").
+2. **Respect Overrides**: If user mentions `@agent`, use it.
+3. **Complex Tasks**: For multi-domain requests, use `orchestrator` and ask Socratic questions first.
+
+### âš ï¸ AGENT ROUTING CHECKLIST (MANDATORY BEFORE EVERY CODE/DESIGN RESPONSE)
+
+**Before ANY code or design work, you MUST complete this mental checklist:**
+
+| Step | Check | If Unchecked |
+|------|-------|--------------|
+| 1 | Did I identify the correct agent for this domain? | â†’ STOP. Analyze request domain first. |
+| 2 | Did I READ the agent's `.md` file (or recall its rules)? | â†’ STOP. Open `.agent/agents/{agent}.md` |
+| 3 | Did I announce `ðŸ¤– Applying knowledge of @[agent]...`? | â†’ STOP. Add announcement before response. |
+| 4 | Did I load required skills from agent's frontmatter? | â†’ STOP. Check `skills:` field and read them. |
+
+**Failure Conditions:**
+
+- âŒ Writing code without identifying an agent = **PROTOCOL VIOLATION**
+- âŒ Skipping the announcement = **USER CANNOT VERIFY AGENT WAS USED**
+- âŒ Ignoring agent-specific rules (e.g., Purple Ban) = **QUALITY FAILURE**
+
+> ðŸ”´ **Self-Check Trigger:** Every time you are about to write code or create UI, ask yourself:
+> "Have I completed the Agent Routing Checklist?" If NO â†’ Complete it first.
+
+---
+
+## TIER 0: UNIVERSAL RULES (Always Active)
+
+### ðŸŒ Language Handling
+
+When user's prompt is NOT in English:
+
+1. **Internally translate** for better comprehension
+2. **Respond in user's language** - match their communication
+3. **Code comments/variables** remain in English
+
+### ðŸ§¹ Clean Code (Global Mandatory)
+
+**ALL code MUST follow `@[skills/clean-code]` rules. No exceptions.**
+
+- **Code**: Concise, direct, no over-engineering. Self-documenting.
+- **Testing**: Mandatory. Pyramid (Unit > Int > E2E) + AAA Pattern.
+- **Performance**: Measure first. Adhere to 2025 standards (Core Web Vitals).
+- **Infra/Safety**: 5-Phase Deployment. Verify secrets security.
+
+### ðŸ“ File Dependency Awareness
+
+**Before modifying ANY file:**
+
+1. Check `CODEBASE.md` â†’ File Dependencies
+2. Identify dependent files
+3. Update ALL affected files together
+
+### ðŸ—ºï¸ System Map Read
+
+> ðŸ”´ **MANDATORY:** Read `ARCHITECTURE.md` at session start to understand Agents, Skills, and Scripts.
+
+**Path Awareness:**
+
+- Agents: `.agent/` (Project)
+- Skills: `.agent/skills/` (Project)
+- Runtime Scripts: `.agent/skills/<skill>/scripts/`
+
+### ðŸ§  Read â†’ Understand â†’ Apply
+
+```
+âŒ WRONG: Read agent file â†’ Start coding
+âœ… CORRECT: Read â†’ Understand WHY â†’ Apply PRINCIPLES â†’ Code
+```
+
+**Before coding, answer:**
+
+1. What is the GOAL of this agent/skill?
+2. What PRINCIPLES must I apply?
+3. How does this DIFFER from generic output?
+
+---
+
+## TIER 1: CODE RULES (When Writing Code)
+
+### ðŸ“± Project Type Routing
+
+| Project Type                           | Primary Agent         | Skills                        |
+| -------------------------------------- | --------------------- | ----------------------------- |
+| **MOBILE** (iOS, Android, RN, Flutter) | `mobile-developer`    | mobile-design                 |
+| **WEB** (Next.js, React web)           | `frontend-specialist` | frontend-design               |
+| **BACKEND** (API, server, DB)          | `backend-specialist`  | api-patterns, database-design |
+
+> ðŸ”´ **Mobile + frontend-specialist = WRONG.** Mobile = mobile-developer ONLY.
+
+### ðŸ›‘ Socratic Gate
+
+**For complex requests, STOP and ASK first:**
+
+### ðŸ›‘ GLOBAL SOCRATIC GATE (TIER 0)
+
+**MANDATORY: Every user request must pass through the Socratic Gate before ANY tool use or implementation.**
+
+| Request Type            | Strategy       | Required Action                                                   |
+| ----------------------- | -------------- | ----------------------------------------------------------------- |
+| **New Feature / Build** | Deep Discovery | ASK minimum 3 strategic questions                                 |
+| **Code Edit / Bug Fix** | Context Check  | Confirm understanding + ask impact questions                      |
+| **Vague / Simple**      | Clarification  | Ask Purpose, Users, and Scope                                     |
+| **Full Orchestration**  | Gatekeeper     | **STOP** subagents until user confirms plan details               |
+| **Direct "Proceed"**    | Validation     | **STOP** â†’ Even if answers are given, ask 2 "Edge Case" questions |
+
+**Protocol:**
+
+1. **Never Assume:** If even 1% is unclear, ASK.
+2. **Handle Spec-heavy Requests:** When user gives a list (Answers 1, 2, 3...), do NOT skip the gate. Instead, ask about **Trade-offs** or **Edge Cases** (e.g., "LocalStorage confirmed, but should we handle data clearing or versioning?") before starting.
+3. **Wait:** Do NOT invoke subagents or write code until the user clears the Gate.
+4. **Reference:** Full protocol in `@[skills/brainstorming]`.
+
+### ðŸ Final Checklist Protocol
+
+**Trigger:** When the user says "son kontrolleri yap", "final checks", "Ã§alÄ±ÅŸtÄ±r tÃ¼m testleri", or similar phrases.
+
+| Task Stage       | Command                                            | Purpose                        |
+| ---------------- | -------------------------------------------------- | ------------------------------ |
+| **Manual Audit** | `python .agent/scripts/checklist.py .`             | Priority-based project audit   |
+| **Pre-Deploy**   | `python .agent/scripts/checklist.py . --url <URL>` | Full Suite + Performance + E2E |
+
+**Priority Execution Order:**
+
+1. **Security** â†’ 2. **Lint** â†’ 3. **Schema** â†’ 4. **Tests** â†’ 5. **UX** â†’ 6. **Seo** â†’ 7. **Lighthouse/E2E**
+
+**Rules:**
+
+- **Completion:** A task is NOT finished until `checklist.py` returns success.
+- **Reporting:** If it fails, fix the **Critical** blockers first (Security/Lint).
+
+**Available Scripts (12 total):**
+
+| Script                     | Skill                 | When to Use         |
+| -------------------------- | --------------------- | ------------------- |
+| `security_scan.py`         | vulnerability-scanner | Always on deploy    |
+| `dependency_analyzer.py`   | vulnerability-scanner | Weekly / Deploy     |
+| `lint_runner.py`           | lint-and-validate     | Every code change   |
+| `test_runner.py`           | testing-patterns      | After logic change  |
+| `schema_validator.py`      | database-design       | After DB change     |
+| `ux_audit.py`              | frontend-design       | After UI change     |
+| `accessibility_checker.py` | frontend-design       | After UI change     |
+| `seo_checker.py`           | seo-fundamentals      | After page change   |
+| `bundle_analyzer.py`       | performance-profiling | Before deploy       |
+| `mobile_audit.py`          | mobile-design         | After mobile change |
+| `lighthouse_audit.py`      | performance-profiling | Before deploy       |
+| `playwright_runner.py`     | webapp-testing        | Before deploy       |
+
+> ðŸ”´ **Agents & Skills can invoke ANY script** via `python .agent/skills/<skill>/scripts/<script>.py`
+
+### ðŸŽ­ Gemini Mode Mapping
+
+| Mode     | Agent             | Behavior                                     |
+| -------- | ----------------- | -------------------------------------------- |
+| **plan** | `project-planner` | 4-phase methodology. NO CODE before Phase 4. |
+| **ask**  | -                 | Focus on understanding. Ask questions.       |
+| **edit** | `orchestrator`    | Execute. Check `{task-slug}.md` first.       |
+
+**Plan Mode (4-Phase):**
+
+1. ANALYSIS â†’ Research, questions
+2. PLANNING â†’ `{task-slug}.md`, task breakdown
+3. SOLUTIONING â†’ Architecture, design (NO CODE!)
+4. IMPLEMENTATION â†’ Code + tests
+
+> ðŸ”´ **Edit mode:** If multi-file or structural change â†’ Offer to create `{task-slug}.md`. For single-file fixes â†’ Proceed directly.
+
+---
+
+## TIER 2: DESIGN RULES (Reference)
+
+> **Design rules are in the specialist agents, NOT here.**
+
+| Task         | Read                            |
+| ------------ | ------------------------------- |
+| Web UI/UX    | `.agent/frontend-specialist.md` |
+| Mobile UI/UX | `.agent/mobile-developer.md`    |
+
+**These agents contain:**
+
+- Purple Ban (no violet/purple colors)
+- Template Ban (no standard layouts)
+- Anti-clichÃ© rules
+- Deep Design Thinking protocol
+
+> ðŸ”´ **For design work:** Open and READ the agent file. Rules are there.
+
+---
+
+## ðŸ“ QUICK REFERENCE
+
+### Agents & Skills
+
+- **Masters**: `orchestrator`, `project-planner`, `security-auditor` (Cyber/Audit), `backend-specialist` (API/DB), `frontend-specialist` (UI/UX), `mobile-developer`, `debugger`, `game-developer`
+- **Key Skills**: `clean-code`, `brainstorming`, `app-builder`, `frontend-design`, `mobile-design`, `plan-writing`, `behavioral-modes`
+
+### Key Scripts
+
+- **Verify**: `.agent/scripts/verify_all.py`, `.agent/scripts/checklist.py`
+- **Scanners**: `security_scan.py`, `dependency_analyzer.py`
+- **Audits**: `ux_audit.py`, `mobile_audit.py`, `lighthouse_audit.py`, `seo_checker.py`
+- **Test**: `playwright_runner.py`, `test_runner.py`
+
+---
+
+
+=== constants/colors.ts ===
+// App Color Constants - Un Pique Design System v6.0
+export const colors = {
+    // Primary
+    primary: {
+        DEFAULT: '#FF6B35',
+        dark: '#E8551E',
+        light: '#FF8C61',
+    },
+
+    // Secondary
+    secondary: {
+        DEFAULT: '#004E89',
+        dark: '#003658',
+        light: '#1A6FA7',
+    },
+
+    // Semantic
+    success: '#00D9B5',
+    warning: '#FF9F1C',
+    danger: '#EF233C',
+    error: '#EF233C', // Alias for danger
+    info: '#3B82F6',
+
+    // WhatsApp
+    whatsapp: '#25D366',
+
+    // Grays
+    gray: {
+        50: '#F8F9FA',
+        100: '#F3F4F6',
+        200: '#E5E7EB',
+        300: '#D1D5DB',
+        400: '#9CA3AF',
+        500: '#6B7280',
+        600: '#4B5563',
+        700: '#374151',
+        800: '#1F2937',
+        900: '#111827',
+    },
+
+    white: '#FFFFFF',
+    black: '#000000',
+    transparent: 'transparent',
+
+    // Light Theme
+    light: {
+        bg: {
+            primary: '#FFFFFF',
+            secondary: '#F8F9FA',
+        },
+        text: {
+            primary: '#1F1F1F',
+            secondary: '#6B7280',
+        },
+        border: '#E5E7EB',
+    },
+
+    // Dark Theme â€” pure neutral grays, NO blue tones
+    dark: {
+        bg: {
+            primary: '#121212',
+            secondary: '#1A1A1A',
+        },
+        text: {
+            primary: '#FFFFFF',
+            secondary: '#A0A0A0',
+        },
+        border: '#333333',
+    },
+};
+
+export default colors;
+
+
+=== constants/categories.ts ===
+// Food Delivery Categories - Un Pique
+// Based on SVG files in /public folder
+
+export const DELIVERY_CATEGORIES = [
+    { id: 'hamburguesas', name: 'Hamburguesas', icon: 'ðŸ”', svg: 'hamburguesas.svg' },
+    { id: 'pizzas', name: 'Pizzas', icon: 'ðŸ•', svg: 'pizzas.svg' },
+    { id: 'empanadas', name: 'Empanadas', icon: 'ðŸ¥Ÿ', svg: 'empanadas.svg' },
+    { id: 'lomitos', name: 'Lomitos', icon: 'ðŸ¥™', svg: 'lomitos.svg' },
+    { id: 'milanesas', name: 'Milanesas', icon: 'ðŸ—', svg: 'milanesas.svg' },
+    { id: 'sushi', name: 'Sushi', icon: 'ðŸ£', svg: 'sushi.svg' },
+    { id: 'pastas', name: 'Pastas', icon: 'ðŸ', svg: 'pastas.svg' },
+    { id: 'carnes', name: 'Carnes', icon: 'ðŸ¥©', svg: 'carnes.svg' },
+    { id: 'pescados', name: 'Pescados', icon: 'ðŸŸ', svg: 'pescados.svg' },
+    { id: 'sandwiches', name: 'Sandwiches', icon: 'ðŸ¥ª', svg: 'sandwiches.svg' },
+    { id: 'panchos', name: 'Panchos', icon: 'ðŸŒ­', svg: 'panchos.svg' },
+    { id: 'burritos', name: 'Burritos', icon: 'ðŸŒ¯', svg: 'burritos.svg' },
+    { id: 'tortillas', name: 'Tortillas', icon: 'ðŸ«“', svg: 'tortillas.svg' },
+    { id: 'tartas', name: 'Tartas', icon: 'ðŸ¥§', svg: 'tartas.svg' },
+    { id: 'papas_fritas', name: 'Papas Fritas', icon: 'ðŸŸ', svg: 'papas fritas.svg' },
+    { id: 'guarniciones', name: 'Guarniciones', icon: 'ðŸ¥—', svg: 'guarniciones.svg' },
+    { id: 'picadas', name: 'Picadas', icon: 'ðŸ§€', svg: 'picadas.svg' },
+    { id: 'combos', name: 'Combos', icon: 'ðŸ±', svg: 'combos.svg' },
+    { id: 'desayunos', name: 'Desayunos', icon: 'ðŸ¥', svg: 'desayunos.svg' },
+    { id: 'panaderia', name: 'PanaderÃ­a', icon: 'ðŸ¥–', svg: 'panaderia.svg' },
+    { id: 'postres', name: 'Postres', icon: 'ðŸ°', svg: 'postres.svg' },
+    { id: 'helados', name: 'Helados', icon: 'ðŸ¦', svg: 'helados.svg' },
+    { id: 'cafeteria', name: 'CafeterÃ­a', icon: 'â˜•', svg: 'cafeteria.svg' },
+    { id: 'bebidas', name: 'Bebidas', icon: 'ðŸ¥¤', svg: 'bebidas.svg' },
+    { id: 'vegano', name: 'Vegano', icon: 'ðŸ¥¬', svg: 'vegano.svg' },
+    { id: 'sin_tacc', name: 'Sin TACC', icon: 'ðŸŒ¾', svg: 'sin-tacc.svg' },
+    { id: 'promociones', name: 'Promociones', icon: 'ðŸŽ', svg: 'promociones.svg' },
+] as const;
+
+export type DeliveryCategoryId = typeof DELIVERY_CATEGORIES[number]['id'];
+
+// Helper to get category by ID
+export const getCategoryById = (id: string) =>
+    DELIVERY_CATEGORIES.find(cat => cat.id === id);
+
+// Helper to get category name
+export const getCategoryName = (id: string) =>
+    getCategoryById(id)?.name || id;
+
+
+=== constants/config.ts ===
+// App Configuration Constants
+export const config = {
+    // App Info
+    appName: 'Un Pique',
+    appVersion: '1.0.0',
+    appScheme: 'unpique',
+
+    // API URLs
+    supabaseUrl: 'https://porrpkougyolayfzzmyn.supabase.co',
+
+    // Default Values
+    defaultLocality: 'rio-colorado',
+    defaultDeliveryRadiusKm: 5,
+    defaultDeliveryFee: 0,
+    minOrderAmount: 500,
+
+    // Commission Rates
+    commissionRates: {
+        free: 0.09,    // 9%
+        premium: 0.04, // 4%
+    },
+
+    // Story Duration
+    storyExpiryHours: 24,
+    storyDefaultDuration: 5, // seconds
+
+    // Driver Settings
+    driverAcceptTimeout: 30, // seconds
+
+    // Pagination
+    defaultPageSize: 20,
+
+    // Cache Times (in milliseconds)
+    cacheTimes: {
+        short: 1000 * 60 * 5,      // 5 minutes
+        medium: 1000 * 60 * 15,    // 15 minutes
+        long: 1000 * 60 * 60,      // 1 hour
+    },
+};
+
+export default config;
+
+
+=== stores/authStore.ts ===
+// Auth Store - Zustand state management for authentication
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
+import type { User, Session } from '@supabase/supabase-js';
+
+// User role type
+export type UserRole = 'customer' | 'business_owner' | 'delivery_driver' | 'admin' | 'super_admin';
+
+// Extended user profile
+export interface UserProfile {
+    id: string;
+    full_name: string;
+    phone?: string;
+    avatar_url?: string;
+    locality_id?: string;
+    roles: UserRole[];
+    is_active: boolean;
+    onboarding_completed: boolean;
+}
+
+// Auth state interface
+interface AuthState {
+    user: User | null;
+    session: Session | null;
+    profile: UserProfile | null;
+    isLoading: boolean;
+    isInitialized: boolean;
+    isAuthenticated: boolean;
+    currentRole: UserRole;
+
+    // Actions
+    setUser: (user: User | null) => void;
+    setSession: (session: Session | null) => void;
+    setProfile: (profile: UserProfile | null) => void;
+    setLoading: (loading: boolean) => void;
+    setCurrentRole: (role: UserRole) => void;
+    signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+    signUp: (email: string, password: string, fullName: string) => Promise<{ data: { user: User | null; session: Session | null } | null; error: Error | null }>;
+    signOut: () => Promise<void>;
+    fetchProfile: () => Promise<void>;
+    completeOnboarding: () => Promise<void>;
+    initialize: () => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>()(
+    persist(
+        (set, get) => ({
+            user: null,
+            session: null,
+            profile: null,
+            isLoading: false,
+            isInitialized: false,
+            isAuthenticated: false,
+            currentRole: 'customer',
+
+            setUser: (user) => set({ user, isAuthenticated: !!user }),
+            setSession: (session) => set({ session }),
+            setProfile: (profile) => set({ profile }),
+            setLoading: (isLoading) => set({ isLoading }),
+            setCurrentRole: (currentRole) => set({ currentRole }),
+
+            signIn: async (email, password) => {
+                set({ isLoading: true });
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+
+                if (error) {
+                    set({ isLoading: false });
+                    return { error };
+                }
+
+                set({
+                    user: data.user,
+                    session: data.session,
+                    isAuthenticated: true,
+                    isLoading: false,
+                });
+
+                // Fetch user profile
+                await get().fetchProfile();
+
+                return { error: null };
+            },
+
+            signUp: async (email, password, fullName) => {
+                set({ isLoading: true });
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: { full_name: fullName },
+                    },
+                });
+
+                if (error) {
+                    set({ isLoading: false });
+                    return { data: null, error };
+                }
+
+                // Create user profile
+                if (data.user) {
+                    const { error: dbError } = await supabase.from('users').insert({
+                        id: data.user.id,
+                        full_name: fullName,
+                        roles: ['customer'],
+                    });
+
+                    if (dbError) {
+                        // If DB insert fails, we might want to return an error, 
+                        // but auth user is created. We could try to delete the auth user?
+                        // For now, let's just log it and return it.
+                        console.error('Error creating user profile:', dbError);
+                        set({ isLoading: false });
+                        return { data, error: new Error('Error al guardar datos de usuario: ' + dbError.message) };
+                    }
+                }
+
+                set({
+                    user: data.user,
+                    session: data.session,
+                    isAuthenticated: !!data.session,
+                    isLoading: false,
+                });
+
+                return { data, error: null };
+            },
+
+            signOut: async () => {
+                await supabase.auth.signOut();
+                set({
+                    user: null,
+                    session: null,
+                    profile: null,
+                    isAuthenticated: false,
+                    currentRole: 'customer',
+                });
+            },
+
+            fetchProfile: async () => {
+                const user = get().user;
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!error && data) {
+                    set({
+                        profile: data as UserProfile,
+                        currentRole: data.roles?.[0] || 'customer',
+                    });
+                }
+            },
+
+            completeOnboarding: async () => {
+                const user = get().user;
+                if (!user) return;
+
+                const { error } = await supabase
+                    .from('users')
+                    .update({ onboarding_completed: true })
+                    .eq('id', user.id);
+
+                if (!error) {
+                    const profile = get().profile;
+                    if (profile) {
+                        set({ profile: { ...profile, onboarding_completed: true } });
+                    }
+                }
+            },
+
+            initialize: async () => {
+                // Note: We don't set isLoading here anymore to avoid conflicting with other loading states
+                // or if we do, we need to ensure UI handles it gracefully.
+                // But for global splash, we use isInitialized.
+
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session) {
+                    set({
+                        user: session.user,
+                        session,
+                        isAuthenticated: true,
+                    });
+                    await get().fetchProfile();
+                }
+
+                set({ isInitialized: true });
+
+                // Listen for auth changes
+                supabase.auth.onAuthStateChange((_event, session) => {
+                    set({
+                        user: session?.user || null,
+                        session,
+                        isAuthenticated: !!session,
+                    });
+                    if (session) {
+                        get().fetchProfile();
+                    }
+                });
+            },
+        }),
+        {
+            name: 'auth-storage',
+            storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({
+                currentRole: state.currentRole,
+            }),
+        }
+    )
+);
+
+
+=== stores/locationStore.ts ===
+// Location Store - Zustand state management for locality
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
+
+// Locality interface
+export interface Locality {
+    id: string;
+    name: string;
+    slug: string;
+    province: string;
+    country: string;
+    is_active: boolean;
+    is_live: boolean;
+}
+
+// Location state interface
+interface LocationState {
+    currentLocality: Locality | null;
+    availableLocalities: Locality[];
+    isLoading: boolean;
+
+    // Actions
+    setCurrentLocality: (locality: Locality) => void;
+    fetchLocalities: () => Promise<void>;
+    selectLocalityBySlug: (slug: string) => Promise<boolean>;
+}
+
+export const useLocationStore = create<LocationState>()(
+    persist(
+        (set, get) => ({
+            currentLocality: null,
+            availableLocalities: [],
+            isLoading: false,
+
+            setCurrentLocality: (locality) => set({ currentLocality: locality }),
+
+            fetchLocalities: async () => {
+                set({ isLoading: true });
+
+                const { data, error } = await supabase
+                    .from('localities')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('name');
+
+                if (!error && data) {
+                    set({ availableLocalities: data as Locality[] });
+
+                    // Auto-select first locality if none selected
+                    const current = get().currentLocality;
+                    if (!current && data.length > 0) {
+                        // Prefer live localities, then first available
+                        const liveLocality = data.find((l) => l.is_live);
+                        set({ currentLocality: (liveLocality || data[0]) as Locality });
+                    }
+                }
+
+                set({ isLoading: false });
+            },
+
+            selectLocalityBySlug: async (slug) => {
+                const localities = get().availableLocalities;
+                let locality = localities.find((l) => l.slug === slug);
+
+                if (!locality) {
+                    // Fetch from database
+                    const { data, error } = await supabase
+                        .from('localities')
+                        .select('*')
+                        .eq('slug', slug)
+                        .eq('is_active', true)
+                        .single();
+
+                    if (error || !data) return false;
+                    locality = data as Locality;
+                }
+
+                set({ currentLocality: locality });
+                return true;
+            },
+        }),
+        {
+            name: 'location-storage',
+            storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state) => ({
+                currentLocality: state.currentLocality,
+            }),
+        }
+    )
+);
+
+
+=== stores/themeStore.ts ===
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+type Theme = 'light' | 'dark' | 'system';
+
+interface ThemeState {
+    theme: Theme;
+    setTheme: (theme: Theme) => void;
+    toggleTheme: () => void;
+}
+
+export const useThemeStore = create<ThemeState>()(
+    persist(
+        (set) => ({
+            theme: 'dark',
+            setTheme: (theme) => set({ theme }),
+            toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+        }),
+        {
+            name: 'theme-storage',
+            storage: createJSONStorage(() => AsyncStorage),
+        }
+    )
+);
+
+
+=== hooks/useAuth.ts ===
+import { useAuthStore } from '../stores/authStore';
+
+/**
+ * Custom hook to access auth state and methods
+ * This is a convenience wrapper around useAuthStore
+ */
+export const useAuth = () => {
+    const { user, isLoading, initialize, signIn, signUp, signOut } = useAuthStore();
+
+    return {
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        initialize,
+        signIn,
+        signUp,
+        signOut,
+    };
+};
+
+
+=== hooks/useBusinesses.ts ===
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
+import { Business } from '../stores/businessStore';
+
+export const useBusinesses = (localityId?: string) => {
+    return useQuery({
+        queryKey: ['businesses', localityId],
+        queryFn: async (): Promise<Business[]> => {
+            if (!localityId) return [];
+
+            const { data, error } = await supabase
+                .from('businesses')
+                .select('*')
+                .eq('locality_id', localityId)
+                .order('is_open', { ascending: false }); // Open first
+
+            if (error) throw error;
+            return data as Business[];
+        },
+        enabled: !!localityId,
+    });
+};
+
+export const useBusinessDetail = (slugOrId: string) => {
+    return useQuery({
+        queryKey: ['business', slugOrId],
+        queryFn: async (): Promise<Business> => {
+            // Try fetch by slug first (assuming we might change routing later, but for now ID is primary ID but slug is passed)
+            // Or if slugOrId looks like UUID
+            let query = supabase.from('businesses').select('*').single();
+
+            // For now simple check, assuming we use ID mainly or slug
+            const { data, error } = await supabase
+                .from('businesses')
+                .select('*')
+                .or(`id.eq.${slugOrId},slug.eq.${slugOrId}`)
+                .single();
+
+            if (error) throw error;
+            return data as Business;
+        },
+        enabled: !!slugOrId,
+    });
+};
+
+
+=== app/(tabs)/_layout.tsx ===
+// Tabs Layout â€” Responsive: Sidebar on Desktop, Bottom Tabs on Mobile
+import React, { useState, useEffect } from 'react';
+import { Tabs, usePathname, useRouter } from 'expo-router';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, ScrollView, Modal, Pressable } from 'react-native';
+import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+    Home,
+    UtensilsCrossed,
+    Wrench,
+    MessageCircle,
+    User,
+    Settings,
+    HelpCircle,
+    LogOut,
+    Menu,
+    ChevronLeft,
+    ChevronRight,
+    Moon,
+    Sun,
+    ShoppingBag,
+    MapPin,
+    Hotel,
+    Store,
+    Truck,
+    X
+} from 'lucide-react-native';
+import colors from '../../constants/colors';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import { useThemeStore } from '../../stores/themeStore';
+import { useAuthStore } from '../../stores/authStore';
+import { useLocationStore } from '../../stores/locationStore';
+
+const SIDEBAR_WIDTH_EXPANDED = 260; // Slightly narrower for cleaner look
+const SIDEBAR_WIDTH_COLLAPSED = 60; // Narrower for cleaner look
+const DESKTOP_BREAKPOINT = 768;
+
+// Navigation items definition
+const NAV_ITEMS = [
+    { key: 'index', label: 'Inicio', icon: Home, route: '/' },
+    { key: 'marketplace', label: 'Sabor Local', icon: UtensilsCrossed, route: '/(tabs)/marketplace' },
+    { key: 'servicios', label: 'Servicios', icon: Wrench, route: '/(tabs)/servicios' },
+    { key: 'social', label: 'Social', icon: MessageCircle, route: '/(tabs)/social' },
+    { key: 'profile', label: 'Mi Perfil', icon: User, route: '/(tabs)/profile' },
+];
+
+const EXTRA_ITEMS = [
+    { key: 'orders', label: 'Mis Pedidos', icon: ShoppingBag, route: '/orders' },
+    { key: 'alojamiento', label: 'Alojamientos', icon: Hotel, route: '/alojamiento' },
+    { key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business/dashboard' },
+    { key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Truck, route: '/driver' },
+    { key: 'settings', label: 'ConfiguraciÃ³n', icon: Settings, route: '/settings' },
+    { key: 'help', label: 'Ayuda', icon: HelpCircle, route: '/help' },
+];
+
+function DesktopSidebar() {
+    const tc = useThemeColors();
+    const router = useRouter();
+    const pathname = usePathname();
+    const { theme, toggleTheme } = useThemeStore();
+    const { signOut } = useAuthStore();
+    const [collapsed, setCollapsed] = useState(false);
+
+    const isActive = (key: string) => {
+        if (key === 'index') return pathname === '/' || pathname === '/index';
+        return pathname.includes(key);
+    };
+
+    const sidebarWidth = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
+
+    // Choose logo based on theme
+    const logoSource = theme === 'dark'
+        ? require('../../public/logo_unpique-mododark.svg')
+        : require('../../public/logo_unpique-modoclaro.svg');
+
+    return (
+        <View style={[styles.sidebar, { width: sidebarWidth, backgroundColor: tc.tabBarBg, borderRightColor: tc.borderLight }]}>
+            {/* Header / Logo */}
+            <View style={[styles.sidebarHeader, collapsed && { paddingHorizontal: 0, alignItems: 'center' }]}>
+                {collapsed ? (
+                    <TouchableOpacity onPress={() => router.replace('/')} activeOpacity={0.8}>
+                        <View style={[styles.logoBadge, { backgroundColor: tc.primary }]}>
+                            <Text style={styles.logoBadgeText}>UP</Text>
+                        </View>
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity onPress={() => router.replace('/')} activeOpacity={0.8} style={styles.logoWrapper}>
+                        <Image
+                            source={logoSource}
+                            style={{ width: '100%', height: '100%' }}
+                            contentFit="contain"
+                        />
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {/* Toggle Collapse Button - Moved slightly for better ergonomics */}
+            <TouchableOpacity
+                style={[styles.collapseBtn, { borderColor: tc.borderLight, backgroundColor: tc.bgCard }]}
+                onPress={() => setCollapsed(!collapsed)}
+            >
+                {collapsed ? <ChevronRight size={14} color={tc.text} /> : <ChevronLeft size={14} color={tc.text} />}
+            </TouchableOpacity>
+
+            <ScrollView style={styles.sidebarNav} showsVerticalScrollIndicator={false}>
+                {/* Main Nav */}
+                <View style={styles.section}>
+                    {!collapsed && <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>MENÃš</Text>}
+                    {NAV_ITEMS.map((item) => {
+                        const active = isActive(item.key);
+                        const IconComponent = item.icon;
+                        return (
+                            <Pressable
+                                key={item.key}
+                                style={({ pressed }) => [
+                                    styles.sidebarItem,
+                                    collapsed ? styles.sidebarItemCollapsed : styles.sidebarItemExpanded,
+                                    active && { backgroundColor: tc.bgHover },
+                                    pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
+                                ]}
+                                onPress={() => router.push(item.route as any)}
+                            >
+                                <IconComponent
+                                    size={18} // Smaller icons for premium look
+                                    color={active ? tc.primary : tc.icon}
+                                    strokeWidth={active ? 2.2 : 1.8}
+                                />
+                                {!collapsed && (
+                                    <Text style={[
+                                        styles.sidebarItemLabel,
+                                        { color: active ? tc.primary : tc.textSecondary },
+                                        active && { fontWeight: '700' }
+                                    ]}>
+                                        {item.label}
+                                    </Text>
+                                )}
+                                {active && !collapsed && <View style={[styles.activeIndicator, { backgroundColor: tc.primary }]} />}
+                            </Pressable>
+                        );
+                    })}
+                </View>
+
+                {/* Extra Options */}
+                <View style={[styles.section, { marginTop: 12 }]}>
+                    {!collapsed && <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>MAS OPCIONES</Text>}
+                    {EXTRA_ITEMS.map((item) => (
+                        <Pressable
+                            key={item.key}
+                            style={({ pressed }) => [
+                                styles.sidebarItem,
+                                collapsed ? styles.sidebarItemCollapsed : styles.sidebarItemExpanded,
+                                pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
+                            ]}
+                            onPress={() => router.push(item.route as any)}
+                        >
+                            <item.icon size={18} color={tc.textSecondary} strokeWidth={1.8} />
+                            {!collapsed && (
+                                <Text style={[styles.sidebarItemLabel, { color: tc.textSecondary }]}>
+                                    {item.label}
+                                </Text>
+                            )}
+                        </Pressable>
+                    ))}
+                </View>
+            </ScrollView>
+
+            {/* Footer Actions (Theme + Logout) */}
+            <View style={[styles.sidebarFooter, { borderTopColor: tc.borderLight }]}>
+                {/* Theme Toggle */}
+                <TouchableOpacity
+                    style={[styles.footerItem, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
+                    onPress={toggleTheme}
+                >
+                    {theme === 'dark' ? <Moon size={18} color={tc.text} /> : <Sun size={18} color={tc.text} />}
+                    {!collapsed && (
+                        <Text style={[styles.footerItemText, { color: tc.text }]}>
+                            Modo {theme === 'dark' ? 'Oscuro' : 'Claro'}
+                        </Text>
+                    )}
+                </TouchableOpacity>
+
+                {/* Logout */}
+                <TouchableOpacity
+                    style={[styles.footerItem, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
+                    onPress={() => signOut()}
+                >
+                    <LogOut size={18} color={colors.danger} />
+                    {!collapsed && (
+                        <Text style={[styles.footerItemText, { color: colors.danger }]}>Cerrar SesiÃ³n</Text>
+                    )}
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+}
+
+// Mobile side drawer for "MÃ¡s Opciones"
+function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+    const tc = useThemeColors();
+    const router = useRouter();
+    const { theme, toggleTheme } = useThemeStore();
+    const { signOut } = useAuthStore();
+
+    const logoSource = theme === 'dark'
+        ? require('../../public/logo_unpique-mododark.svg')
+        : require('../../public/logo_unpique-modoclaro.svg');
+
+    return (
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+            <View style={styles.drawerOverlay}>
+                <TouchableOpacity style={styles.drawerOverlayBg} activeOpacity={1} onPress={onClose} />
+                <View style={[styles.drawerPanel, { backgroundColor: tc.bgCard }]}>
+                    {/* Logo Area - Maximized */}
+                    <View style={styles.drawerLogoArea}>
+                        <View style={styles.drawerLogoWrapper}>
+                            <Image source={logoSource} style={{ width: '100%', height: '100%' }} contentFit="contain" />
+                        </View>
+                        <TouchableOpacity onPress={onClose} style={styles.drawerCloseBtn}>
+                            <X size={20} color={tc.text} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                        {/* Only show items NOT accessible from bottom tabs */}
+                        <Text style={[styles.drawerSectionTitle, { color: tc.textMuted }]}>ACCESOS RÃPIDOS</Text>
+                        {EXTRA_ITEMS.map((item) => (
+                            <TouchableOpacity
+                                key={item.key}
+                                style={styles.drawerItem}
+                                onPress={() => { onClose(); router.push(item.route as any); }}
+                            >
+                                <item.icon size={18} color={tc.textSecondary} strokeWidth={1.8} />
+                                <Text style={[styles.drawerItemLabel, { color: tc.text }]}>{item.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+
+                    {/* Footer */}
+                    <View style={[styles.drawerFooter, { borderTopColor: tc.borderLight }]}>
+                        <TouchableOpacity style={styles.drawerItem} onPress={toggleTheme}>
+                            {theme === 'dark' ? <Moon size={18} color={tc.text} /> : <Sun size={18} color={tc.text} />}
+                            <Text style={[styles.drawerItemLabel, { color: tc.text }]}>Modo {theme === 'dark' ? 'Oscuro' : 'Claro'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.drawerItem} onPress={() => { onClose(); signOut(); }}>
+                            <LogOut size={18} color={colors.danger} />
+                            <Text style={[styles.drawerItemLabel, { color: colors.danger }]}>Cerrar SesiÃ³n</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+export default function TabsLayout() {
+    const insets = useSafeAreaInsets();
+    const tc = useThemeColors();
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= DESKTOP_BREAKPOINT;
+    const [drawerVisible, setDrawerVisible] = useState(false);
+
+    // Wire up global drawer opener for mobile hamburger
+    useEffect(() => {
+        setOpenDrawerFn(() => setDrawerVisible(true));
+        return () => setOpenDrawerFn(null);
+    }, []);
+
+    return (
+        <View style={[styles.rootContainer, { backgroundColor: tc.bg }]}>
+            {/* Desktop Sidebar */}
+            {isDesktop && <DesktopSidebar />}
+
+            {/* Mobile Side Drawer */}
+            {!isDesktop && <MobileDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />}
+
+            {/* Main Content - Tabs */}
+            <View style={styles.mainContent}>
+                <Tabs
+                    screenOptions={{
+                        tabBarActiveTintColor: colors.primary.DEFAULT,
+                        tabBarInactiveTintColor: tc.textMuted,
+                        tabBarStyle: isDesktop
+                            ? { display: 'none' }
+                            : {
+                                backgroundColor: tc.tabBarBg,
+                                borderTopWidth: 0,
+                                height: Platform.OS === 'ios' ? 76 : 60 + insets.bottom,
+                                paddingBottom: Platform.OS === 'ios' ? 24 : insets.bottom + 6,
+                                paddingTop: 8,
+                                ...(Platform.OS === 'web' ? { boxShadow: '0px -1px 16px rgba(0,0,0,0.08)' } : {}),
+                                elevation: 8,
+                            },
+                        tabBarLabelStyle: styles.tabBarLabel,
+                        tabBarIconStyle: { marginBottom: 0 },
+                        headerShown: false,
+                    }}
+                >
+                    <Tabs.Screen
+                        name="index"
+                        options={{
+                            title: 'Inicio',
+                            tabBarIcon: ({ color }) => <Home size={20} strokeWidth={2} color={color} />,
+                        }}
+                        listeners={{
+                            tabPress: () => { },
+                        }}
+                        initialParams={{ openDrawer: () => setDrawerVisible(true) }}
+                    />
+                    <Tabs.Screen
+                        name="marketplace"
+                        options={{
+                            title: 'Sabor Local',
+                            tabBarIcon: ({ color }) => <UtensilsCrossed size={20} strokeWidth={2} color={color} />,
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="servicios"
+                        options={{
+                            title: 'Servicios',
+                            tabBarIcon: ({ color }) => <Wrench size={20} strokeWidth={2} color={color} />,
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="social"
+                        options={{
+                            title: 'Social',
+                            tabBarIcon: ({ color }) => <MessageCircle size={20} strokeWidth={2} color={color} />,
+                        }}
+                    />
+                    <Tabs.Screen
+                        name="favorites"
+                        options={{ href: null }}
+                    />
+                    <Tabs.Screen
+                        name="profile"
+                        options={{
+                            title: 'Mi Perfil',
+                            tabBarIcon: ({ color }) => <User size={20} strokeWidth={2} color={color} />,
+                        }}
+                    />
+                </Tabs>
+            </View>
+
+
+        </View>
+    );
+}
+
+// Context to allow Home screen to open mobile drawer
+export const MobileMenuContext = React.createContext<(() => void) | null>(null);
+
+// Export a hook that any screen can call
+export function useOpenMobileDrawer() {
+    return React.useContext(MobileMenuContext);
+}
+
+// We also export a simple event-based approach for child screens
+let _openDrawerFn: (() => void) | null = null;
+export function setOpenDrawerFn(fn: (() => void) | null) { _openDrawerFn = fn; }
+export function openMobileDrawer() { _openDrawerFn?.(); }
+
+const styles = StyleSheet.create({
+    rootContainer: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    mainContent: {
+        flex: 1,
+    },
+    // Sidebar
+    sidebar: {
+        borderRightWidth: 1,
+        paddingTop: 12,
+        height: '100%',
+        position: 'relative',
+    },
+    sidebarHeader: {
+        paddingHorizontal: 0,
+        paddingVertical: 0,
+        marginBottom: 8,
+        height: 60, // Reduced height to maximize space
+        justifyContent: 'center',
+    },
+    logoWrapper: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 8, // Minimal padding to let logo breathe
+    },
+    logoBadge: {
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    logoBadgeText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    collapseBtn: {
+        position: 'absolute',
+        top: 28,
+        right: -10,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    sidebarNav: {
+        flex: 1,
+        paddingHorizontal: 8,
+    },
+    section: {
+        marginBottom: 4,
+    },
+    sectionTitle: {
+        fontSize: 10,
+        fontWeight: '700',
+        paddingHorizontal: 12,
+        marginVertical: 4,
+        opacity: 0.5,
+        letterSpacing: 0.5,
+    },
+    sidebarItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderRadius: 10,
+        marginBottom: 1,
+    },
+    sidebarItemExpanded: {
+        paddingHorizontal: 12,
+        gap: 10,
+    },
+    sidebarItemCollapsed: {
+        justifyContent: 'center',
+        paddingHorizontal: 0,
+        width: 44,
+        alignSelf: 'center',
+    },
+    sidebarItemLabel: {
+        fontSize: 13,
+        fontWeight: '500',
+        flex: 1,
+    },
+    activeIndicator: {
+        width: 3,
+        height: 3,
+        borderRadius: 1.5,
+    },
+    sidebarFooter: {
+        padding: 12,
+        borderTopWidth: 1,
+        gap: 2,
+    },
+    footerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        gap: 10,
+        borderRadius: 10,
+    },
+    footerItemText: {
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    // Tab bar
+    tabBarLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        marginTop: 2,
+        letterSpacing: -0.1,
+    },
+    // Mobile Drawer
+    drawerOverlay: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    drawerOverlayBg: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    drawerPanel: {
+        width: '85%',
+        maxWidth: 300,
+        height: '100%',
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        paddingTop: 40,
+    },
+    drawerLogoArea: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingBottom: 20,
+        borderBottomWidth: 0,
+    },
+    drawerLogoWrapper: {
+        width: 150,
+        height: 44,
+    },
+    drawerCloseBtn: {
+        padding: 6,
+    },
+    drawerSectionTitle: {
+        fontSize: 10,
+        fontWeight: '700',
+        paddingHorizontal: 20,
+        marginTop: 12,
+        marginBottom: 6,
+        letterSpacing: 0.5,
+        opacity: 0.5,
+    },
+    drawerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        gap: 12,
+    },
+    drawerItemLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    drawerDivider: {
+        height: 1,
+        marginHorizontal: 20,
+        marginVertical: 4,
+    },
+    drawerFooter: {
+        borderTopWidth: 1,
+        paddingVertical: 6,
+    },
+});
+
+
+=== app/(auth)/login.tsx ===
+// Login Screen - Dark Mode Premium + Glassmorphism
+import React, { useState } from 'react';
+import {
+    View, Text, StyleSheet, TouchableOpacity,
+    KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions,
+} from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Mail, Lock, Eye, EyeOff, Moon, Sun } from 'lucide-react-native';
+import { Button, Input } from '../../components/ui';
+import { useAuthStore } from '../../stores/authStore';
+import { useThemeStore } from '../../stores/themeStore';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import colors from '../../constants/colors';
+
+export default function LoginScreen() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState('');
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 768;
+
+    const { signIn, isLoading } = useAuthStore();
+    const { theme, toggleTheme } = useThemeStore();
+    const tc = useThemeColors();
+
+    const handleLogin = async () => {
+        setError('');
+        if (!email || !password) { setError('Por favor completa todos los campos'); return; }
+        const { error: signInError } = await signIn(email, password);
+        if (signInError) {
+            const msg = signInError.message || '';
+            if (msg.includes('Invalid login credentials')) setError('Email o contraseÃ±a incorrectos.');
+            else if (msg.includes('Email not confirmed')) setError('Tu email no ha sido confirmado. Revisa tu bandeja.');
+            else if (msg.includes('Too many requests') || msg.includes('429')) setError('Demasiados intentos. Espera unos minutos.');
+            else setError(msg || 'Error al iniciar sesiÃ³n.');
+            return;
+        }
+        router.replace('/(tabs)');
+    };
+
+    const iconColor = tc.isDark ? colors.gray[400] : colors.gray[400];
+
+    return (
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: tc.bg }]}>
+            {/* Theme Toggle */}
+            <TouchableOpacity
+                style={[styles.themeToggle, { backgroundColor: tc.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}
+                onPress={toggleTheme}
+            >
+                {theme === 'dark' ? <Sun size={22} color="#FFB800" /> : <Moon size={22} color={colors.primary.DEFAULT} />}
+            </TouchableOpacity>
+
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                <ScrollView
+                    contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* Card â€” Glassmorphism on desktop */}
+                    <View style={[
+                        styles.formCard,
+                        isDesktop && [styles.formCardDesktop, {
+                            backgroundColor: tc.isDark ? 'rgba(35,30,27,0.85)' : 'rgba(255,255,255,0.92)',
+                            borderColor: tc.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                        }],
+                        !isDesktop && { backgroundColor: 'transparent' },
+                    ]}>
+                        {/* Logo */}
+                        <View style={styles.header}>
+                            {Platform.OS === 'web' ? (
+                                <img
+                                    src="/logo-unpique.svg"
+                                    alt="Un Pique"
+                                    style={{ width: 80, height: 96, objectFit: 'contain', marginBottom: 16 }}
+                                />
+                            ) : (
+                                <ExpoImage
+                                    source={require('../../assets/logo-unpique.svg')}
+                                    style={{ width: 80, height: 96, marginBottom: 16 }}
+                                    contentFit="contain"
+                                />
+                            )}
+                            <Text style={[styles.title, { color: tc.text }]}>IniciÃ¡ sesiÃ³n</Text>
+                            <Text style={[styles.subtitle, { color: tc.textSecondary }]}>Bienvenido de vuelta</Text>
+                        </View>
+
+                        {/* Form */}
+                        <View style={styles.form}>
+                            {error ? (
+                                <View style={[styles.errorContainer, { backgroundColor: tc.isDark ? 'rgba(239,68,68,0.12)' : colors.danger + '12' }]}>
+                                    <Text style={styles.errorText}>{error}</Text>
+                                </View>
+                            ) : null}
+
+                            <Input
+                                label="Email"
+                                placeholder="tu@email.com"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                leftIcon={<Mail size={20} color={iconColor} />}
+                            />
+
+                            <Input
+                                label="ContraseÃ±a"
+                                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry={!showPassword}
+                                leftIcon={<Lock size={20} color={iconColor} />}
+                                rightIcon={
+                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                        {showPassword ? <EyeOff size={20} color={iconColor} /> : <Eye size={20} color={iconColor} />}
+                                    </TouchableOpacity>
+                                }
+                            />
+
+                            <TouchableOpacity style={styles.forgotPassword}>
+                                <Text style={[styles.forgotPasswordText, { color: colors.primary.DEFAULT }]}>OlvidÃ© mi contraseÃ±a</Text>
+                            </TouchableOpacity>
+
+                            <Button title="Iniciar SesiÃ³n" onPress={handleLogin} loading={isLoading} fullWidth />
+                        </View>
+
+                        {/* Footer */}
+                        <View style={styles.footer}>
+                            <Text style={[styles.footerText, { color: tc.textSecondary }]}>Â¿No tienes cuenta?</Text>
+                            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+                                <Text style={[styles.registerLink, { color: colors.primary.DEFAULT }]}> RegÃ­strate</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
+    );
+}
+
+const styles = StyleSheet.create({
+    safeArea: { flex: 1 },
+    scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 24 },
+    scrollContentDesktop: { justifyContent: 'center', alignItems: 'center', paddingTop: 60 },
+    formCard: { width: '100%' },
+    formCardDesktop: {
+        width: 440, maxWidth: '100%', borderRadius: 24, padding: 40,
+        borderWidth: 1, alignSelf: 'center',
+        boxShadow: '0px 8px 32px rgba(0,0,0,0.12)',
+        ...(Platform.OS === 'web' ? { backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } as any : {}),
+    },
+    header: { alignItems: 'center', marginBottom: 36 },
+    title: { fontSize: 30, fontWeight: '900', letterSpacing: -0.5 },
+    subtitle: { fontSize: 16, marginTop: 6 },
+    form: { marginBottom: 24 },
+    errorContainer: { padding: 12, borderRadius: 12, marginBottom: 16 },
+    errorText: { color: colors.danger, fontSize: 14, textAlign: 'center', fontWeight: '500' },
+    forgotPassword: { alignSelf: 'flex-end', marginBottom: 24 },
+    forgotPasswordText: { fontSize: 14, fontWeight: '600' },
+    footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+    footerText: { fontSize: 15 },
+    registerLink: { fontSize: 15, fontWeight: '700' },
+    themeToggle: {
+        position: 'absolute', top: Platform.OS === 'web' ? 20 : 50, right: 20, zIndex: 10,
+        width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center',
+    },
+});
+
+
+=== app/(tabs)/index.tsx ===
+// Home Screen â€” Header con bÃºsqueda inline, hamburger mobile, pin premium y DM modal
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import {
+    StyleSheet, ScrollView, View, RefreshControl, useWindowDimensions,
+    TextInput, TouchableOpacity, Text, Modal, FlatList, Image, Animated, Platform
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search, Bell, ShoppingCart, MessageCircle, MapPin, X, Send, Menu, ChevronDown } from 'lucide-react-native';
+import { StoriesRail, CategoriesGrid, BusinessFeed } from '../../components/home';
+import { AdBanner } from '../../components/features/ads/AdBanner';
+import { FeaturedSection } from '../../components/features/home/FeaturedSection';
+import { NewInTown } from '../../components/features/home/NewInTown';
+import { SocialPreview } from '../../components/features/home/SocialPreview';
+import colors from '../../constants/colors';
+import { useLocationStore, Locality } from '../../stores/locationStore';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import { useRouter } from 'expo-router';
+import { showAlert } from '../../utils/alert';
+import { openMobileDrawer } from './_layout';
+
+// Mock search data
+const SEARCH_DATA = [
+    { id: '1', name: 'Burger King', type: 'Restaurante', image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=80&q=60' },
+    { id: '2', name: 'PizzerÃ­a La Mamma', type: 'Restaurante', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=80&q=60' },
+    { id: '3', name: 'Sushi Go', type: 'Restaurante', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=80&q=60' },
+    { id: '4', name: 'PlomerÃ­a Express', type: 'Servicio', image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=80&q=60' },
+    { id: '5', name: 'Belleza & Spa', type: 'Servicio', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=80&q=60' },
+    { id: '6', name: 'Hotel ParaÃ­so', type: 'Alojamiento', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=80&q=60' },
+    { id: '7', name: 'CafÃ© Central', type: 'Restaurante', image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=80&q=60' },
+    { id: '8', name: 'Electricista Juan', type: 'Servicio', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=80&q=60' },
+];
+
+// Mock DM data
+const MOCK_CHATS = [
+    { id: '1', name: 'Burger King', avatar: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=80&q=60', lastMsg: 'Tu pedido estÃ¡ listo', time: '12:30' },
+    { id: '2', name: 'Ana GarcÃ­a', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', lastMsg: 'Â¡Hola! Â¿CÃ³mo estÃ¡s?', time: '11:15' },
+    { id: '3', name: 'PlomerÃ­a Express', avatar: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=80&q=60', lastMsg: 'Puedo ir maÃ±ana a las 10', time: 'Ayer' },
+];
+
+export default function HomeScreen() {
+    const tc = useThemeColors();
+    const router = useRouter();
+    const { currentLocality, availableLocalities, setCurrentLocality } = useLocationStore();
+    const [refreshing, setRefreshing] = useState(false);
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 768;
+
+    // Search
+    const [searchText, setSearchText] = useState('');
+    const [showSearchResults, setShowSearchResults] = useState(false);
+    const searchRef = useRef<TextInput>(null);
+
+    // Scroll Animation
+    const scrollY = useRef(new Animated.Value(0)).current;
+
+    // DM Drawer
+    const [dmVisible, setDmVisible] = useState(false);
+
+    // Location picker
+    const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        setTimeout(() => setRefreshing(false), 2000);
+    }, []);
+
+    const filteredResults = searchText.trim().length > 0
+        ? SEARCH_DATA.filter(item =>
+            item.name.toLowerCase().includes(searchText.toLowerCase()) ||
+            item.type.toLowerCase().includes(searchText.toLowerCase())
+        )
+        : [];
+
+    const handleSearchSelect = (item: typeof SEARCH_DATA[0]) => {
+        setSearchText('');
+        setShowSearchResults(false);
+        showAlert(item.name, `Navegando a ${item.name} (${item.type}). Conectar con datos reales prÃ³ximamente.`);
+    };
+
+    const handleSearchSubmit = () => {
+        if (searchText.trim()) {
+            setShowSearchResults(false);
+            router.push(`/search?q=${encodeURIComponent(searchText.trim())}` as any);
+            setSearchText('');
+        }
+    };
+
+    const handleSelectLocality = (locality: Locality) => {
+        setCurrentLocality(locality);
+        setLocationPickerVisible(false);
+    };
+
+    const headerShadowOpacity = scrollY.interpolate({
+        inputRange: [0, 50],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+    });
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
+            {/* Header */}
+            <Animated.View style={[styles.header, {
+                backgroundColor: tc.bg,
+                borderBottomColor: tc.borderLight,
+                borderBottomWidth: headerShadowOpacity.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 1]
+                }),
+                ...(Platform.OS === 'web' ? {
+                    boxShadow: headerShadowOpacity.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0px 0px 0px rgba(0,0,0,0)', '0px 4px 12px rgba(0,0,0,0.08)']
+                    }) as any
+                } : {
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: headerShadowOpacity.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 0.1]
+                    }),
+                    shadowRadius: headerShadowOpacity.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 12]
+                    }),
+                    elevation: headerShadowOpacity.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 8]
+                    }),
+                })
+            }]}>
+                {/* Mobile: Hamburger + Pin | Desktop: just Pin */}
+                <View style={styles.headerLeft}>
+                    {/* Hamburger on mobile */}
+                    {!isDesktop && (
+                        <TouchableOpacity
+                            style={[styles.hamburgerBtn, { backgroundColor: tc.bgCard }]}
+                            onPress={() => openMobileDrawer()}
+                            activeOpacity={0.7}
+                        >
+                            <Menu size={20} color={tc.text} />
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Premium Pin */}
+                    <TouchableOpacity
+                        style={styles.pinTouchable}
+                        onPress={() => setLocationPickerVisible(true)}
+                        activeOpacity={0.8}
+                    >
+                        <View style={styles.pinOuter}>
+                            <View style={styles.pinInner}>
+                                <MapPin size={20} color="#fff" />
+                            </View>
+                        </View>
+                        <View>
+                            <Text style={[styles.headerSubtitle, { color: tc.textMuted }]}>Explorando en</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Text style={[styles.headerTitle, { color: tc.text }]}>{currentLocality?.name || 'Cargando...'}</Text>
+                                <ChevronDown size={14} color={tc.textMuted} />
+                            </View>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Search con dropdown */}
+                <View style={styles.searchWrapper}>
+                    <View style={[styles.headerSearchBar, { backgroundColor: tc.bgInput }]}>
+                        <Search size={16} color={tc.textMuted} />
+                        <TextInput
+                            ref={searchRef}
+                            style={[styles.headerSearchInput, { color: tc.text }]}
+                            placeholder="Buscar negocios, servicios..."
+                            placeholderTextColor={tc.textMuted}
+                            value={searchText}
+                            onChangeText={(t) => { setSearchText(t); setShowSearchResults(t.length > 0); }}
+                            onSubmitEditing={handleSearchSubmit}
+                            onFocus={() => searchText.length > 0 && setShowSearchResults(true)}
+                            returnKeyType="search"
+                        />
+                        {searchText.length > 0 && (
+                            <TouchableOpacity onPress={() => { setSearchText(''); setShowSearchResults(false); }}>
+                                <X size={16} color={tc.textMuted} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {/* Dropdown de resultados inline */}
+                    {showSearchResults && (
+                        <View style={[styles.searchDropdown, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                            {filteredResults.length > 0 ? (
+                                filteredResults.slice(0, 6).map((item) => (
+                                    <TouchableOpacity key={item.id} style={styles.searchItem} onPress={() => handleSearchSelect(item)}>
+                                        <Image source={{ uri: item.image }} style={styles.searchItemImg} />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.searchItemName, { color: tc.text }]}>{item.name}</Text>
+                                            <Text style={[styles.searchItemType, { color: tc.textMuted }]}>{item.type}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))
+                            ) : (
+                                <View style={styles.noResultsRow}>
+                                    <Text style={[styles.noResultsText, { color: tc.textMuted }]}>No hay coincidencias para "{searchText}"</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+                </View>
+
+                <View style={styles.headerActions}>
+                    <TouchableOpacity style={[styles.headerIconBtn, { backgroundColor: tc.bgCard }]} onPress={() => setDmVisible(true)}>
+                        <MessageCircle size={20} color={tc.text} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.headerIconBtn, { backgroundColor: tc.bgCard }]} onPress={() => showAlert('Notificaciones', 'No tenÃ©s nuevas notificaciones.')}>
+                        <Bell size={20} color={tc.text} />
+                        <View style={[styles.headerBadge, { borderColor: tc.bg }]} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.headerIconBtn, { backgroundColor: tc.bgCard }]} onPress={() => router.push('/cart' as any)}>
+                        <ShoppingCart size={20} color={tc.text} />
+                    </TouchableOpacity>
+                </View>
+            </Animated.View>
+
+            {/* Overlay para cerrar search dropdown */}
+            {showSearchResults && (
+                <TouchableOpacity style={styles.searchOverlay} activeOpacity={1} onPress={() => setShowSearchResults(false)} />
+            )}
+
+            <Animated.ScrollView
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tc.primary} />}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false } // box-shadow / border changes cannot use true native driver
+                )}
+                scrollEventThrottle={16}
+            >
+                <View style={[styles.maxContainer, isDesktop && { maxWidth: 1200 }]}>
+                    <View style={styles.sectionSpacer}><StoriesRail /></View>
+                    <AdBanner />
+                    <CategoriesGrid />
+                    <FeaturedSection />
+                    <NewInTown />
+                    <SocialPreview />
+                    <BusinessFeed />
+                </View>
+            </Animated.ScrollView>
+
+            {/* DM DRAWER MODAL */}
+            <Modal visible={dmVisible} transparent animationType="fade" onRequestClose={() => setDmVisible(false)}>
+                <View style={styles.dmOverlay}>
+                    <TouchableOpacity style={styles.dmOverlayBg} activeOpacity={1} onPress={() => setDmVisible(false)} />
+                    <View style={[styles.dmPanel, { backgroundColor: tc.bgCard }, isDesktop && { width: 380 }]}>
+                        <View style={[styles.dmHeader, { borderBottomColor: tc.borderLight }]}>
+                            <Text style={[styles.dmTitle, { color: tc.text }]}>Mensajes</Text>
+                            <TouchableOpacity onPress={() => setDmVisible(false)}>
+                                <X size={22} color={tc.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView contentContainerStyle={styles.dmList}>
+                            {MOCK_CHATS.map((chat) => (
+                                <TouchableOpacity key={chat.id} style={[styles.dmItem, { borderBottomColor: tc.borderLight }]}
+                                    onPress={() => { setDmVisible(false); showAlert(chat.name, chat.lastMsg); }}
+                                >
+                                    <Image source={{ uri: chat.avatar }} style={styles.dmAvatar} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.dmName, { color: tc.text }]}>{chat.name}</Text>
+                                        <Text style={[styles.dmLastMsg, { color: tc.textMuted }]} numberOfLines={1}>{chat.lastMsg}</Text>
+                                    </View>
+                                    <Text style={[styles.dmTime, { color: tc.textMuted }]}>{chat.time}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* LOCATION PICKER MODAL */}
+            <Modal visible={locationPickerVisible} transparent animationType="fade" onRequestClose={() => setLocationPickerVisible(false)}>
+                <View style={styles.locationModalOverlay}>
+                    <TouchableOpacity style={styles.locationModalBg} activeOpacity={1} onPress={() => setLocationPickerVisible(false)} />
+                    <View style={[styles.locationPanel, { backgroundColor: tc.bgCard }]}>
+                        <View style={[styles.locationHeader, { borderBottomColor: tc.borderLight }]}>
+                            <Text style={[styles.locationTitle, { color: tc.text }]}>ElegÃ­ tu ubicaciÃ³n</Text>
+                            <TouchableOpacity onPress={() => setLocationPickerVisible(false)}>
+                                <X size={22} color={tc.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView style={{ maxHeight: 400 }}>
+                            {availableLocalities.map((loc) => (
+                                <TouchableOpacity
+                                    key={loc.id}
+                                    style={[
+                                        styles.locationItem,
+                                        currentLocality?.id === loc.id && { backgroundColor: tc.bgHover },
+                                    ]}
+                                    onPress={() => handleSelectLocality(loc)}
+                                >
+                                    <MapPin size={18} color={currentLocality?.id === loc.id ? colors.primary.DEFAULT : tc.textSecondary} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.locationName, { color: tc.text }, currentLocality?.id === loc.id && { color: colors.primary.DEFAULT, fontWeight: '700' }]}>{loc.name}</Text>
+                                        <Text style={[styles.locationSub, { color: tc.textMuted }]}>{loc.province}</Text>
+                                    </View>
+                                    {currentLocality?.id === loc.id && (
+                                        <View style={[styles.locationCheck, { backgroundColor: colors.primary.DEFAULT }]}>
+                                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>âœ“</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                            {availableLocalities.length === 0 && (
+                                <View style={{ padding: 30, alignItems: 'center' }}>
+                                    <Text style={[{ color: tc.textMuted, fontSize: 14 }]}>No hay localidades disponibles</Text>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        </SafeAreaView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 10, zIndex: 100 },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    hamburgerBtn: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
+    // Premium Pin
+    pinTouchable: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    pinOuter: {
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: 'rgba(255, 107, 53, 0.15)',
+        justifyContent: 'center', alignItems: 'center',
+        ...(Platform.OS === 'web' ? { boxShadow: '0 2px 10px rgba(255,107,53,0.3), inset 0 1px 2px rgba(255,255,255,0.15)' } : {}),
+    },
+    pinInner: {
+        width: 34, height: 34, borderRadius: 17,
+        backgroundColor: colors.primary.DEFAULT,
+        justifyContent: 'center', alignItems: 'center',
+        ...(Platform.OS === 'web' ? { boxShadow: '0 2px 8px rgba(255,107,53,0.45)' } : {}),
+    },
+    headerSubtitle: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+    headerTitle: { fontSize: 15, fontWeight: '800' },
+    // Search
+    searchWrapper: { flex: 1, position: 'relative', zIndex: 200 },
+    headerSearchBar: { flexDirection: 'row', alignItems: 'center', height: 36, borderRadius: 18, paddingHorizontal: 12, gap: 6, overflow: 'hidden' },
+    headerSearchInput: { flex: 1, fontSize: 13, height: '100%', paddingVertical: 0, minWidth: 0 },
+    searchDropdown: {
+        position: 'absolute', top: 42, left: 0, right: 0, borderRadius: 14, borderWidth: 1, maxHeight: 320, overflow: 'hidden',
+        ...(Platform.OS === 'web' ? { boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' } : {}),
+    },
+    searchItem: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
+    searchItemImg: { width: 40, height: 40, borderRadius: 10 },
+    searchItemName: { fontSize: 14, fontWeight: '600' },
+    searchItemType: { fontSize: 11, marginTop: 1 },
+    noResultsRow: { padding: 20, alignItems: 'center' },
+    noResultsText: { fontSize: 13 },
+    searchOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
+    // Actions
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    headerIconBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', position: 'relative' },
+    headerBadge: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger, borderWidth: 1.5 },
+    // Content
+    content: { flex: 1 },
+    scrollContent: { paddingBottom: 100, alignItems: 'center' },
+    maxContainer: { width: '100%', maxWidth: 1024 },
+    sectionSpacer: { marginTop: 8 },
+    // DM
+    dmOverlay: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end' },
+    dmOverlayBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+    dmPanel: { width: '85%', maxWidth: 360, height: '100%' },
+    dmHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
+    dmTitle: { fontSize: 18, fontWeight: '800' },
+    dmList: { padding: 0 },
+    dmItem: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12, borderBottomWidth: 0.5 },
+    dmAvatar: { width: 48, height: 48, borderRadius: 24 },
+    dmName: { fontSize: 15, fontWeight: '700' },
+    dmLastMsg: { fontSize: 13, marginTop: 2 },
+    dmTime: { fontSize: 11 },
+    // Location Picker
+    locationModalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    locationModalBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' },
+    locationPanel: { width: '90%', maxWidth: 420, borderRadius: 20, overflow: 'hidden' },
+    locationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1 },
+    locationTitle: { fontSize: 18, fontWeight: '800' },
+    locationItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+    locationName: { fontSize: 15, fontWeight: '500' },
+    locationSub: { fontSize: 12, marginTop: 1 },
+    locationCheck: { width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+});
+

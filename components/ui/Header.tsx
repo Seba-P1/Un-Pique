@@ -6,6 +6,7 @@ import colors from '../../constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
+import { glassStyle } from '../../utils/glass';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -130,9 +131,8 @@ export const HeaderTypeA = ({
     return (
         <View style={[styles.container, {
             paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 0),
-            backgroundColor: tc.bgCard,
             borderBottomColor: tc.borderLight,
-        }]}>
+        }, glassStyle(tc.bgCard, 0.75, 16)]}>
             <QuickAccessMenu />
 
             <View style={styles.content}>
@@ -234,9 +234,8 @@ export const HeaderTypeB = ({
     return (
         <View style={[styles.container, {
             paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 0),
-            backgroundColor: tc.bgCard,
             borderBottomColor: tc.borderLight,
-        }]}>
+        }, glassStyle(tc.bgCard, 0.75, 16)]}>
             <View style={styles.content}>
                 <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                     <ArrowLeft size={24} color={tc.text} />
@@ -254,10 +253,10 @@ export const HeaderTypeB = ({
 
 const styles = StyleSheet.create({
     container: {
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         paddingBottom: 16,
         paddingHorizontal: 16,
-        ...(Platform.OS === 'web' ? { zIndex: 100, boxShadow: '0px 4px 12px rgba(0,0,0,0.05)' } : { zIndex: 100, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }),
+        ...(Platform.OS === 'web' ? { zIndex: 100, boxShadow: '0px 2px 8px rgba(0,0,0,0.03)' } : { zIndex: 100, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }),
     },
     content: {
         flexDirection: 'row',

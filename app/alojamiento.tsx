@@ -1,6 +1,6 @@
 // Alojamiento — Responsive: Desktop horizontal cards + sidebar, Mobile vertical cards
 // Photo gallery modal, bigger calendar modal, functional WhatsApp/email/phone via Linking
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView, Image,
     useWindowDimensions, Modal, TextInput, Linking, Platform, FlatList
@@ -11,13 +11,15 @@ import {
     ArrowLeft, Star, MapPin, Calendar, X, Mail, Phone, ChevronLeft, ChevronRight,
     Wifi, Car, Coffee, Tv, Snowflake, Users, MessageCircle, Home,
     UtensilsCrossed, Wrench, User, Settings, HelpCircle, LogOut, Moon, Sun,
-    ShoppingBag, FileText, ExternalLink, ZoomIn, ImageIcon
+    ShoppingBag, FileText, ExternalLink, ZoomIn, ImageIcon, Plus
 } from 'lucide-react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
 import colors from '../constants/colors';
 import { showAlert } from '../utils/alert';
+import { useListingStore } from '../stores/listingStore';
+import type { Listing } from '../stores/listingStore';
 
 const renderIcon = (Icon: any, size: number, color: string) => <Icon size={size} color={color} />;
 
@@ -289,6 +291,43 @@ export default function AlojamientoScreen() {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
     const isLargeDesktop = width >= 1100;
+    const { user } = useAuthStore();
+
+    // Datos reales de Supabase
+    const { accommodations, fetchAccommodations } = useListingStore();
+
+    useEffect(() => { fetchAccommodations(); }, []);
+
+    // Mapear listings de Supabase al formato Accom, con mock como fallback
+    const displayData = useMemo(() => {
+        if (accommodations.length > 0) {
+            return accommodations.map((l: Listing): Accom => ({
+                id: l.id,
+                name: l.title,
+                type: l.accommodation_type || l.category || 'Otro',
+                images: l.images.length > 0 ? l.images : ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'],
+                rating: l.rating,
+                reviews: l.reviews_count,
+                address: l.address || '',
+                description: l.description,
+                amenities: l.amenities,
+                phone: l.phone,
+                email: l.email || '',
+                checkIn: l.check_in || '14:00',
+                checkOut: l.check_out || '10:00',
+                guests: l.max_guests ? `1-${l.max_guests} personas` : 'Consultar',
+            }));
+        }
+        return MOCK_ACCOMMODATIONS;
+    }, [accommodations]);
+
+    const handlePublishAccommodation = () => {
+        if (!user) {
+            showAlert('Iniciá sesión', 'Necesitás una cuenta para publicar tu alojamiento.');
+            return;
+        }
+        router.push('/publish/accommodation' as any);
+    };
 
     // Selection & modals
     const [selectedAccom, setSelectedAccom] = useState<Accom | null>(null);
@@ -582,7 +621,6 @@ export default function AlojamientoScreen() {
                     <View style={{ width: isDesktop ? 0 : 40 }} />
                 </View>
 
-                {/* Content */}
                 <ScrollView
                     contentContainerStyle={[
                         s.scrollContent,
@@ -590,10 +628,30 @@ export default function AlojamientoScreen() {
                     ]}
                     showsVerticalScrollIndicator={false}
                 >
-                    {MOCK_ACCOMMODATIONS.map(accom => renderCard(accom))}
+                    {/* Botón de publicación movido aquí para no solapar la UI */}
+                    <TouchableOpacity
+                        style={[
+                            s.publishBanner, 
+                            { backgroundColor: tc.primary + '15', borderColor: tc.primary }
+                        ]}
+                        onPress={handlePublishAccommodation}
+                        activeOpacity={0.8}
+                    >
+                        <View style={[s.publishIconWrapper, { backgroundColor: tc.primary }]}>
+                            <Plus size={20} color="#fff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[s.publishTitle, { color: tc.text }]}>¿Tenés un alojamiento?</Text>
+                            <Text style={[s.publishSub, { color: tc.textMuted }]}>Publicalo gratis y recibí consultas por WhatsApp al instante.</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    {displayData.map(accom => renderCard(accom))}
                     <View style={{ height: 60 }} />
                 </ScrollView>
             </SafeAreaView>
+
+            {/* FAB Removed */}
 
             {/* DETAIL MODAL */}
             {renderDetail()}
@@ -768,4 +826,15 @@ const s = StyleSheet.create({
     galleryNavBtn: { position: 'absolute', top: '45%', width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', zIndex: 5 },
     galleryThumbStrip: { gap: 8, paddingHorizontal: 20, paddingVertical: 12 },
     galleryThumbSm: { width: 64, height: 48, borderRadius: 8 },
+
+    // Banner de Publicación
+    publishBanner: {
+        flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, 
+        borderWidth: 1, marginHorizontal: 20, marginBottom: 20, gap: 16
+    },
+    publishIconWrapper: {
+        width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center'
+    },
+    publishTitle: { fontSize: 16, fontWeight: '800', marginBottom: 2 },
+    publishSub: { fontSize: 13 },
 });

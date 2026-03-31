@@ -1,75 +1,57 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useWindowDimensions, Animated, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useWindowDimensions, Animated, Platform, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useThemeColors } from '../../../../hooks/useThemeColors';
 import colors from '../../../../constants/colors';
-import { ArrowLeft, Star, Clock, Truck, Share2, Heart, Plus, Minus, ArrowRight, Search } from 'lucide-react-native';
+import { ArrowLeft, Star, Clock, Truck, Share2, Heart, Plus, Minus, ArrowRight, Search, Package } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Mock Data based on Stitch HTML
-const CATEGORIES = ['Entradas', 'Platos Principales', 'Postres', 'Bebidas'];
-
-const MENU_ITEMS = [
-    {
-        id: '1',
-        category: 'Entradas',
-        name: 'Empanadas de Carne Cortada a Cuchillo',
-        description: 'Carne de lomo cortada a cuchillo, cebolla de verdeo, huevo duro y especias tradicionales.',
-        price: 4.50,
-        image: 'https://images.unsplash.com/photo-1541745537411-b8096dc29c4e?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-        id: '2',
-        category: 'Entradas',
-        name: 'Provoleta Parrillera',
-        description: 'Queso provolone fundido a la parrilla con orégano, aceite de oliva y un toque de pimentón.',
-        price: 12.00,
-        image: 'https://images.unsplash.com/photo-1626804475297-411d863b5203?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-        id: '3',
-        category: 'Platos Principales',
-        name: 'Ojo de Bife Premium (400g)',
-        description: 'Corte seleccionado de novillo, madurado 21 días. Servido con papas rústicas y chimichurri casero.',
-        price: 28.00,
-        image: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-        id: '4',
-        category: 'Platos Principales',
-        name: 'Salmón Rosado a las Brasas',
-        description: 'Filet de salmón fresco grillado con vegetales asados y salsa de limón y eneldo.',
-        price: 32.00,
-        image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a3a2b7b?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-        id: '5',
-        category: 'Platos Principales',
-        name: 'Matambre a la Pizza',
-        description: 'Tierno matambre de ternera con salsa de tomate, mozzarella, y orégano.',
-        price: 24.00,
-        image: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?q=80&w=600&auto=format&fit=crop'
-    }
-];
+import { useProductStore } from '../../../../stores/productStore';
+import { useBusinessStore } from '../../../../stores/businessStore';
 
 export default function RestaurantDetailScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const tc = useThemeColors();
     const { width } = useWindowDimensions();
-    const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0]);
     const scrollY = useRef(new Animated.Value(0)).current;
 
     const isLargeScreen = width >= 1280; // xl in tailwind
 
+    // Stores
+    const { fetchBusinessBySlug, selectedBusiness, loading: businessLoading } = useBusinessStore();
+    const { fetchProducts, products, loading: productsLoading } = useProductStore();
+
+    useEffect(() => {
+        if (id) {
+            // First fetch business to get its DB ID (since id parameter could be a slug)
+            fetchBusinessBySlug(id as string);
+        }
+    }, [id]);
+
+    useEffect(() => {
+        if (selectedBusiness) {
+            fetchProducts(selectedBusiness.id);
+        }
+    }, [selectedBusiness]);
+
+    // Derived Categories from real products
+    const categories = Array.from(new Set(products.map(p => p.category_id || 'Otros'))).sort();
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
+
+    useEffect(() => {
+        if (categories.length > 0 && !selectedCategory) {
+            setSelectedCategory(categories[0]);
+        }
+    }, [categories]);
+
     // Filter items
-    const filteredItems = MENU_ITEMS.filter(item => item.category === selectedCategory);
+    const filteredItems = products.filter(item => (item.category_id || 'Otros') === selectedCategory);
 
     const renderHeader = () => (
         <View style={styles.headerContainer}>
             <Animated.Image
-                source={{ uri: 'https://images.unsplash.com/photo-1544025162-d76690b6860b?q=80&w=2000&auto=format&fit=crop' }}
+                source={{ uri: selectedBusiness?.cover_url || 'https://images.unsplash.com/photo-1544025162-d76690b6860b?q=80&w=2000&auto=format&fit=crop' }}
                 style={[styles.heroImage, {
                     transform: [{
                         scale: scrollY.interpolate({
@@ -105,25 +87,23 @@ export default function RestaurantDetailScreen() {
             <View style={styles.restaurantInfo}>
                 <View style={[styles.logoContainer, { backgroundColor: tc.bgCard }]}>
                     <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop' }}
+                        source={{ uri: selectedBusiness?.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop' }}
                         style={styles.logo}
                     />
                 </View>
                 <View style={styles.infoContent}>
-                    <Text style={styles.restaurantName}>La Parrilla Gourmet</Text>
+                    <Text style={styles.restaurantName}>{selectedBusiness?.name || 'Cargando...'}</Text>
                     <View style={styles.badgesRow}>
                         <View style={styles.badge}>
                             <Star size={14} color={colors.primary.DEFAULT} fill={colors.primary.DEFAULT} />
-                            <Text style={styles.badgeText}>4.9 (1.2k)</Text>
+                            <Text style={styles.badgeText}>{selectedBusiness?.rating || '0.0'}</Text>
                         </View>
-                        <View style={styles.badge}>
-                            <Clock size={14} color={colors.gray[300]} />
-                            <Text style={styles.badgeText}>25-35 min</Text>
-                        </View>
-                        <View style={styles.badge}>
-                            <Truck size={14} color={colors.gray[300]} />
-                            <Text style={styles.badgeText}>Envío Gratis</Text>
-                        </View>
+                        {selectedBusiness?.delivery_fee !== undefined && (
+                            <View style={styles.badge}>
+                                <Truck size={14} color={colors.gray[300]} />
+                                <Text style={styles.badgeText}>Envío: ${selectedBusiness?.delivery_fee || 0}</Text>
+                            </View>
+                        )}
                     </View>
                 </View>
             </View>
@@ -135,7 +115,7 @@ export default function RestaurantDetailScreen() {
             {/* Categories */}
             <View style={[styles.categoriesContainer, { backgroundColor: tc.bg, borderBottomColor: tc.borderLight }]}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
-                    {CATEGORIES.map(cat => (
+                    {categories.map(cat => (
                         <TouchableOpacity
                             key={cat}
                             style={[
@@ -162,27 +142,45 @@ export default function RestaurantDetailScreen() {
 
             {/* Grid Items */}
             <View style={styles.itemsGrid}>
-                {filteredItems.map(item => (
-                    <TouchableOpacity
-                        key={item.id}
-                        style={[styles.menuItem, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}
-                        activeOpacity={0.9}
-                    >
-                        <Image source={{ uri: item.image }} style={styles.itemImage} />
-                        <View style={styles.itemContent}>
-                            <View>
-                                <Text style={[styles.itemName, { color: tc.text }]}>{item.name}</Text>
-                                <Text style={[styles.itemDesc, { color: tc.textMuted }]} numberOfLines={2}>{item.description}</Text>
+                {productsLoading ? (
+                    <View style={{ padding: 40, alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+                        <Text style={{ color: tc.textMuted, marginTop: 10 }}>Cargando menú...</Text>
+                    </View>
+                ) : filteredItems.length === 0 ? (
+                    <View style={{ padding: 40, alignItems: 'center' }}>
+                        <Package size={48} color={tc.textMuted} />
+                        <Text style={{ color: tc.textMuted, marginTop: 10 }}>No hay productos en esta categoría</Text>
+                    </View>
+                ) : (
+                    filteredItems.map(item => (
+                        <TouchableOpacity
+                            key={item.id}
+                            style={[styles.menuItem, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}
+                            activeOpacity={0.9}
+                        >
+                            {item.image_url ? (
+                                <Image source={{ uri: item.image_url }} style={styles.itemImage} />
+                            ) : (
+                                <View style={[styles.itemImage, { backgroundColor: tc.border, justifyContent: 'center', alignItems: 'center' }]}>
+                                    <Package color={tc.textMuted} />
+                                </View>
+                            )}
+                            <View style={styles.itemContent}>
+                                <View>
+                                    <Text style={[styles.itemName, { color: tc.text }]}>{item.name}</Text>
+                                    <Text style={[styles.itemDesc, { color: tc.textMuted }]} numberOfLines={2}>{item.description}</Text>
+                                </View>
+                                <View style={styles.itemFooter}>
+                                    <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                                    <TouchableOpacity style={styles.addButton}>
+                                        <Plus size={16} color={colors.primary.DEFAULT} />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                            <View style={styles.itemFooter}>
-                                <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
-                                <TouchableOpacity style={styles.addButton}>
-                                    <Plus size={16} color={colors.primary.DEFAULT} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                ))}
+                        </TouchableOpacity>
+                    ))
+                )}
             </View>
         </View>
     );

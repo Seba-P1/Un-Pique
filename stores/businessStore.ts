@@ -38,6 +38,7 @@ interface BusinessState {
     saving: boolean;
     fetchBusinesses: (localityId?: string) => Promise<void>;
     fetchBusinessBySlug: (slug: string) => Promise<void>;
+    fetchBusinessByOwner: (ownerId: string) => Promise<void>;
     updateBusiness: (id: string, data: Partial<Business>) => Promise<boolean>;
     updateBusinessImage: (id: string, imageUri: string, type: 'logo' | 'cover') => Promise<boolean>;
     setSelectedBusiness: (business: Business | null) => void;
@@ -89,6 +90,30 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
             set({ selectedBusiness: formatBusiness(data) });
         } catch (error) {
             console.error('Error al obtener negocio:', error);
+            set({ selectedBusiness: null });
+        } finally {
+            set({ loading: false });
+        }
+    },
+
+    fetchBusinessByOwner: async (ownerId) => {
+        set({ loading: true });
+        try {
+            const { data, error } = await supabase
+                .from('businesses')
+                .select('*')
+                .eq('owner_id', ownerId)
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error; // Ignorar error si no encuentra filas exactas
+            
+            if (data) {
+                set({ selectedBusiness: formatBusiness(data) });
+            } else {
+                set({ selectedBusiness: null });
+            }
+        } catch (error) {
+            console.error('Error al obtener negocio por owner_id:', error);
             set({ selectedBusiness: null });
         } finally {
             set({ loading: false });

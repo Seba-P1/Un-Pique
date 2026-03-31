@@ -2,6 +2,7 @@
   "expo": {
     "name": "Un Pique",
     "slug": "un-pique",
+    "owner": "seba-p1",
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
@@ -30,7 +31,14 @@
           }
         }
       ],
-      "expo-router"
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#FF6B35"
+        }
+      ]
     ],
     "scheme": "unpique",
     "newArchEnabled": false,
@@ -51,6 +59,11 @@
       "package": "com.unpique.app",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e714e944-b2a1-49a0-b417-997fe1fd9d34"
+      }
     },
     "experiments": {
       "typedRoutes": true

@@ -81,7 +81,7 @@ function DesktopSidebar() {
         : require('../../public/logo_unpique-modoclaro.svg');
 
     return (
-        <View style={[styles.sidebar, { width: sidebarWidth, borderRightColor: tc.borderLight }, glassStyle(tc.tabBarBg, 0.85, 20)]}>
+        <View style={[styles.sidebar, { width: sidebarWidth, borderRightColor: tc.borderLight }, glassStyle(tc.bgSecondary, 0.7, 20)]}>
             {/* Header / Logo */}
             <View style={[styles.sidebarHeader, collapsed && { paddingHorizontal: 0, alignItems: 'center' }]}>
                 {collapsed ? (

@@ -5,12 +5,23 @@ import { Slot, Stack, useRouter } from 'expo-router';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import BusinessSidebar from '../../components/business/BusinessSidebar';
 import { Menu } from 'lucide-react-native';
+import { useAuthStore } from '../../stores/authStore';
+import { useBusinessStore } from '../../stores/businessStore';
 
 export default function BusinessLayout() {
     const tc = useThemeColors();
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
     const router = useRouter();
+
+    const { user } = useAuthStore();
+    const { fetchBusinessByOwner, selectedBusiness, loading } = useBusinessStore();
+
+    React.useEffect(() => {
+        if (user) {
+            fetchBusinessByOwner(user.id);
+        }
+    }, [user]);
 
     if (isDesktop) {
         return (

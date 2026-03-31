@@ -1,30 +1,40 @@
-// Seller Product Management Screen - Based on Stitch gestión_de_productos design
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image } from 'react-native';
+// Seller Product Management Screen
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Search, Plus, MoreVertical, ArrowLeft, Package } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import colors from '../../constants/colors';
 import { showAlert } from '../../utils/alert';
-
-// Mock products
-const MOCK_PRODUCTS = [
-    { id: '1', name: 'Croissant de Mantequilla', price: 2.50, stock: 25, image: 'https://images.unsplash.com/photo-1555507036-ab1f4038024a?q=80&w=400' },
-    { id: '2', name: 'Pan de Masa Madre', price: 5.00, stock: 15, image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=400' },
-    { id: '3', name: 'Tarta de Manzana', price: 12.75, stock: 8, image: 'https://images.unsplash.com/photo-1568571780765-9276ac8b75a2?q=80&w=400' },
-    { id: '4', name: 'Galleta con Chispas', price: 1.50, stock: 50, image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?q=80&w=400' },
-    { id: '5', name: 'Brownie de Chocolate', price: 3.00, stock: 30, image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?q=80&w=400' },
-];
+import { useProductStore } from '../../stores/productStore';
+import { useBusinessStore } from '../../stores/businessStore';
 
 export default function ProductsScreen() {
     const tc = useThemeColors();
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
+    
+    const { products, loading, fetchProducts, deleteProduct } = useProductStore();
+    const { selectedBusiness } = useBusinessStore();
 
-    const filtered = MOCK_PRODUCTS.filter(p =>
+    useEffect(() => {
+        if (selectedBusiness) {
+            fetchProducts(selectedBusiness.id);
+        }
+    }, [selectedBusiness]);
+
+    const filtered = products.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const handleDelete = (id: string, name: string) => {
+        // En un entorno real se usaría Alert.alert, pero para web/móvil cruzado:
+        deleteProduct(id)
+            .then(success => {
+                if(success) showAlert('Éxito', `Producto ${name} eliminado`);
+            });
+    };
 
     const renderProduct = ({ item }: any) => (
         <TouchableOpacity
@@ -32,14 +42,21 @@ export default function ProductsScreen() {
             activeOpacity={0.8}
             onPress={() => router.push(`/business/products/add?id=${item.id}` as any)}
         >
-            <Image source={{ uri: item.image }} style={styles.productImage} />
+            {item.image_url ? (
+                <Image source={{ uri: item.image_url }} style={styles.productImage} />
+            ) : (
+                <View style={[styles.productImage, { backgroundColor: tc.border, justifyContent: 'center', alignItems: 'center' }]}>
+                    <Package color={tc.textMuted} />
+                </View>
+            )}
             <View style={styles.productInfo}>
                 <Text style={[styles.productName, { color: tc.text }]}>{item.name}</Text>
                 <Text style={[styles.productPrice, { color: tc.textSecondary }]}>${item.price.toFixed(2)}</Text>
-                <Text style={[styles.productStock, { color: tc.textMuted }]}>Stock: {item.stock}</Text>
+                <Text style={[styles.productStock, { color: tc.textMuted }]}>Stock: {item.stock_quantity}</Text>
             </View>
-            <TouchableOpacity style={styles.moreButton} onPress={() => showAlert('Opciones', 'Editar / Eliminar')}>
-                <MoreVertical size={24} color={tc.textMuted} />
+            <TouchableOpacity style={styles.moreButton} onPress={() => handleDelete(item.id, item.name)}>
+                {/* Lo ideal sería un ActionSheet, pero mantendré un comportamiento simple */}
+                <Text style={{color: 'red', fontSize: 12}}>Eliminar</Text>
             </TouchableOpacity>
         </TouchableOpacity>
     );
@@ -72,19 +89,25 @@ export default function ProductsScreen() {
             </SafeAreaView>
 
             {/* Product List */}
-            <FlatList
-                data={filtered}
-                renderItem={renderProduct}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyState}>
-                        <Package size={64} color={tc.textMuted} />
-                        <Text style={[styles.emptyText, { color: tc.textMuted }]}>No hay productos</Text>
-                    </View>
-                }
-            />
+            {loading ? (
+                <ActivityIndicator size="large" color={colors.primary.DEFAULT} style={{ marginTop: 40 }} />
+            ) : (
+                <FlatList
+                    data={filtered}
+                    renderItem={renderProduct}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <Package size={64} color={tc.textMuted} />
+                            <Text style={[styles.emptyText, { color: tc.textMuted }]}>
+                                {selectedBusiness ? "No hay productos en tu negocio" : "Cargando negocio..."}
+                            </Text>
+                        </View>
+                    }
+                />
+            )}
 
             {/* FAB - Add Product */}
             <TouchableOpacity
