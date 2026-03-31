@@ -27,6 +27,7 @@ import { es } from 'date-fns/locale';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { supabase } from '../../lib/supabase';
 import { showAlert } from '../../utils/alert';
+import { glassStyle } from '../../utils/glass';
 
 // =============================================
 // HELPER: Menú de opciones de un post
@@ -126,7 +127,7 @@ function SocialHeader({ tc, router, insets, onOpenDM, shadowOpacity }: any) {
 
     return (
         <View style={{ position: 'relative', zIndex: 100 }}>
-            <View style={[styles.header, { borderBottomColor: 'transparent' }, Platform.OS === 'web' ? { backgroundColor: tc.bg + 'CC', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } as any : { backgroundColor: tc.bg }]}>
+            <View style={[styles.header, { borderBottomColor: 'transparent' }, glassStyle(tc.bg, 0.88, 14)]}>
                 {/* Lado Izquierdo — Logo / Título (más grande, menos gap) */}
                 <View style={styles.headerLeft}>
                     <View style={[styles.headerBrandIcon, { backgroundColor: colors.primary.DEFAULT }]}>

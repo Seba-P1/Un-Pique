@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useOpenMobileDrawer } from './_layout';
 import { formatDistanceToNow, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { glassStyle } from '../../utils/glass';
 
 type ProfileView = 'wall' | 'settings';
 
@@ -72,12 +73,11 @@ export default function ProfileScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: tc.bg }]}>
-            {/* Header */}
             <View style={[
                 styles.header,
                 { borderBottomColor: tc.borderLight },
                 scrolledY > 10
-                    ? [styles.headerScrolled, Platform.OS === 'web' ? { backgroundColor: tc.bgCard + 'E6', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } as any : { backgroundColor: tc.bgCard }]
+                    ? [styles.headerScrolled, glassStyle(tc.bgCard, 0.92, 14)]
                     : { backgroundColor: 'transparent' }
             ]}>
                 <View style={styles.headerLeft}>

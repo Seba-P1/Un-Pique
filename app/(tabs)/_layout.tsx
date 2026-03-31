@@ -30,6 +30,7 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { useThemeStore } from '../../stores/themeStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useLocationStore } from '../../stores/locationStore';
+import { glassStyle } from '../../utils/glass';
 
 const SIDEBAR_WIDTH_EXPANDED = 260; // Slightly narrower for cleaner look
 const SIDEBAR_WIDTH_COLLAPSED = 60; // Narrower for cleaner look
@@ -80,7 +81,7 @@ function DesktopSidebar() {
         : require('../../public/logo_unpique-modoclaro.svg');
 
     return (
-        <View style={[styles.sidebar, { width: sidebarWidth, borderRightColor: tc.borderLight }, Platform.OS === 'web' ? { backgroundColor: (tc.tabBarBg || tc.bgCard) + 'E6', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' } as any : { backgroundColor: tc.tabBarBg }]}>
+        <View style={[styles.sidebar, { width: sidebarWidth, borderRightColor: tc.borderLight }, glassStyle(tc.tabBarBg, 0.85, 20)]}>
             {/* Header / Logo */}
             <View style={[styles.sidebarHeader, collapsed && { paddingHorizontal: 0, alignItems: 'center' }]}>
                 {collapsed ? (
