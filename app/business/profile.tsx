@@ -1,7 +1,8 @@
 // Perfil del Vendedor — Con datos reales de Supabase y upload de imágenes
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Switch, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppToggle } from '../../components/ui/AppToggle';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Camera, Store, User, Mail, MapPin, Clock } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -133,11 +134,9 @@ export default function SellerProfileScreen() {
                             <Text style={[styles.toggleLabel, { color: tc.text }]}>Tienda Abierta</Text>
                             <Text style={[styles.toggleSub, { color: tc.textMuted }]}>Los clientes pueden hacer pedidos</Text>
                         </View>
-                        <Switch
+                        <AppToggle
                             value={isOpen}
                             onValueChange={setIsOpen}
-                            trackColor={{ false: tc.bgInput, true: colors.primary.DEFAULT }}
-                            thumbColor="white"
                         />
                     </View>
                 </View>

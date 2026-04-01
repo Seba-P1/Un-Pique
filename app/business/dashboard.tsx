@@ -1,37 +1,173 @@
 // Dashboard del Vendedor — UI Premium Compacta
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, useWindowDimensions } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-    ArrowUp, ShoppingBag, DollarSign, Package, Menu, Bell, Home, User, ListOrdered
+    ArrowUp, ShoppingBag, DollarSign, Package, Menu, Bell, Home, User, ListOrdered, PackageOpen
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
+import { useBusinessStore } from '../../stores/businessStore';
+import { supabase } from '../../lib/supabase';
 import colors from '../../constants/colors';
 import { showAlert } from '../../utils/alert';
 import { useOpenMobileDrawer } from '../(tabs)/_layout'; // Import from tabs layout
-
-const KPI_DATA = [
-    { label: 'Nuevos Pedidos', value: '12', change: '+5%', icon: ShoppingBag },
-    { label: 'Ingresos de Hoy', value: '$345.60', change: '+12%', icon: DollarSign },
-    { label: 'Ítems a Preparar', value: '28', change: '+8%', icon: Package },
-];
-
-const INCOMING_ORDERS = [
-    { id: '#5821', customer: 'David Miller', items: '2x Pizza Margarita, 1x Coca-Cola', count: 3, time: 'Hace 5 min', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200' },
-    { id: '#5820', customer: 'Sarah Chen', items: '1x Hamburguesa Clásica, 1x Papas Fritas', count: 2, time: 'Hace 8 min', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200' },
-    { id: '#5819', customer: 'Mike Johnson', items: '1x Ensalada César, 2x Té Helado', count: 3, time: 'Hace 12 min', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200' },
-];
 
 export default function BusinessDashboard() {
     const router = useRouter();
     const tc = useThemeColors();
     const { profile } = useAuthStore();
+    const { myBusinessId } = useBusinessStore();
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
     const openDrawer = useOpenMobileDrawer();
     const insets = useSafeAreaInsets();
+
+    const [metrics, setMetrics] = useState({
+        newOrders: 0,
+        revenue: 0,
+        itemsToPrepare: 0
+    });
+    const [hourlyData, setHourlyData] = useState<number[]>(new Array(12).fill(0));
+    const [incomingOrders, setIncomingOrders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!myBusinessId) {
+            setLoading(false);
+            return;
+        }
+
+        async function fetchDashboardData() {
+            setLoading(true);
+            try {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayIso = today.toISOString();
+
+                // 1. Nuevos pedidos hoy
+                const { count: newOrdersCount, error: err1 } = await supabase
+                    .from('orders')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('business_id', myBusinessId)
+                    .gte('created_at', todayIso)
+                    .eq('status', 'pending');
+                if (err1) throw err1;
+
+                // 2. Ingresos de hoy
+                const { data: revenueData, error: err2 } = await supabase
+                    .from('orders')
+                    .select('total_amount')
+                    .eq('business_id', myBusinessId)
+                    .gte('created_at', todayIso)
+                    .in('status', ['completed', 'delivered']);
+                if (err2) throw err2;
+                const totalRevenue = revenueData ? revenueData.reduce((acc, order) => acc + (Number(order.total_amount) || 0), 0) : 0;
+
+                // 3. Ítems a preparar
+                const { count: itemsCount, error: err3 } = await supabase
+                    .from('orders')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('business_id', myBusinessId)
+                    .eq('status', 'accepted');
+                if (err3) throw err3;
+
+                setMetrics({
+                    newOrders: newOrdersCount || 0,
+                    revenue: totalRevenue,
+                    itemsToPrepare: itemsCount || 0
+                });
+
+                // 4. Gráfico rendimientos (Orders by hour today)
+                const { data: todayOrders, error: err4 } = await supabase
+                    .from('orders')
+                    .select('created_at')
+                    .eq('business_id', myBusinessId)
+                    .gte('created_at', todayIso);
+                if (err4) throw err4;
+
+                const hoursConfig = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+                const newHourlyData = new Array(12).fill(0);
+                if (todayOrders) {
+                    todayOrders.forEach(order => {
+                        const h = new Date(order.created_at).getHours();
+                        const index = hoursConfig.indexOf(h);
+                        if (index !== -1) {
+                            newHourlyData[index] += 1;
+                        }
+                    });
+                }
+                setHourlyData(newHourlyData);
+
+                // 5. Pedidos entrantes
+                const { data: pendingData, error: err5 } = await supabase
+                    .from('orders')
+                    .select(`
+                        id,
+                        total_amount,
+                        created_at,
+                        profiles ( full_name, avatar_url ),
+                        order_items ( quantity, product:products(name) )
+                    `)
+                    .eq('business_id', myBusinessId)
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
+                if (err5) throw err5;
+
+                if (pendingData) {
+                    const formattedPending = pendingData.map(order => {
+                        const profileArray = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
+                        const fullName = profileArray?.full_name || 'Cliente anónimo';
+                        const avatarUrl = profileArray?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}`;
+                        
+                        let itemsStr = '';
+                        let count = 0;
+                        if (order.order_items && Array.isArray(order.order_items)) {
+                            count = order.order_items.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0);
+                            itemsStr = order.order_items.map((item: any) => {
+                                const prodQuery = Array.isArray(item.product) ? item.product[0] : item.product;
+                                return `${item.quantity}x ${prodQuery?.name || 'Item'}`;
+                            }).join(', ');
+                        }
+
+                        const diffMs = new Date().getTime() - new Date(order.created_at).getTime();
+                        const diffMins = Math.floor(diffMs / 60000);
+                        const timeStr = diffMins === 0 ? 'Justo ahora' : `Hace ${diffMins} min`;
+
+                        return {
+                            id: `#${order.id.slice(0, 4)}`,
+                            rawId: order.id,
+                            customer: fullName,
+                            avatar: avatarUrl,
+                            items: itemsStr,
+                            count,
+                            time: timeStr
+                        };
+                    });
+                    setIncomingOrders(formattedPending);
+                } else {
+                    setIncomingOrders([]);
+                }
+            } catch (error) {
+                console.error("[BusinessDashboard] Error en fetch de métricas:", error);
+                // Si falla por RLS mostramos 0, logueamos exacto y evitamos crashear.
+                setMetrics({ newOrders: 0, revenue: 0, itemsToPrepare: 0 });
+                setHourlyData(new Array(12).fill(0));
+                setIncomingOrders([]);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchDashboardData();
+    }, [myBusinessId]);
+
+    const KPI_DATA = [
+        { label: 'Nuevos Pedidos', value: metrics.newOrders.toString(), change: 'Hoy', icon: ShoppingBag },
+        { label: 'Ingresos de Hoy', value: `$${metrics.revenue.toFixed(2)}`, change: 'Hoy', icon: DollarSign },
+        { label: 'Ítems a Preparar', value: metrics.itemsToPrepare.toString(), change: 'Pendientes', icon: Package },
+    ];
 
     return (
         <View style={[styles.container, { backgroundColor: tc.bg }]}>
@@ -90,28 +226,53 @@ export default function BusinessDashboard() {
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: tc.text }]}>Rendimiento de Hoy</Text>
                     <View style={[styles.chartCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                        <View style={styles.chartBars}>
-                            {[35, 55, 40, 70, 65, 85, 50, 60, 75, 45, 80, 55].map((h, i) => (
-                                <View key={i} style={styles.barColumn}>
-                                    <View
-                                        style={[
-                                            styles.bar,
-                                            { height: `${h}%`, backgroundColor: i === 9 ? colors.primary.DEFAULT : `${colors.primary.DEFAULT}30` }
-                                        ]}
-                                    />
-                                    <Text style={[styles.barLabel, { color: tc.textMuted }]}>
-                                        {['8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'][i]}
-                                    </Text>
-                                </View>
-                            ))}
-                        </View>
+                        {(() => {
+                            const maxOrders = Math.max(...hourlyData);
+                            const hasData = maxOrders > 0;
+                            return (
+                                <>
+                                    <View style={styles.chartBars}>
+                                        {hourlyData.map((val, i) => {
+                                            const heightPercentage = hasData ? Math.max((val / maxOrders) * 100, 2) : 0;
+                                            return (
+                                                <View key={i} style={styles.barColumn}>
+                                                    <View
+                                                        style={[
+                                                            styles.bar,
+                                                            { height: `${heightPercentage}%`, backgroundColor: val > 0 ? colors.primary.DEFAULT : `${colors.primary.DEFAULT}30` }
+                                                        ]}
+                                                    />
+                                                    <Text style={[styles.barLabel, { color: tc.textMuted }]}>
+                                                        {['8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'][i]}
+                                                    </Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                    {!hasData && (
+                                        <Text style={[styles.noDataText, { color: tc.textMuted }]}>
+                                            Aún no hay pedidos hoy
+                                        </Text>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </View>
                 </View>
 
                 {/* Pedidos entrantes */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: tc.text }]}>Pedidos Entrantes</Text>
-                    {INCOMING_ORDERS.map((order, i) => (
+                    {loading ? (
+                        <ActivityIndicator style={{ padding: 20 }} color={colors.primary.DEFAULT} />
+                    ) : incomingOrders.length === 0 ? (
+                        <View style={[styles.emptyOrdersCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                            <PackageOpen size={32} color={tc.textMuted} style={{ marginBottom: 8 }} />
+                            <Text style={[styles.emptyOrdersTitle, { color: tc.text }]}>No hay pedidos pendientes</Text>
+                            <Text style={[styles.emptyOrdersSub, { color: tc.textMuted }]}>Cuando recibas un nuevo pedido, aparecerá aquí.</Text>
+                        </View>
+                    ) : (
+                        incomingOrders.map((order, i) => (
                         <TouchableOpacity
                             key={i}
                             style={[styles.orderCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}
@@ -151,7 +312,8 @@ export default function BusinessDashboard() {
                                 </TouchableOpacity>
                             </View>
                         </TouchableOpacity>
-                    ))}
+                        ))
+                    )}
                 </View>
 
                 <View style={{ height: isDesktop ? 24 : 80 }} />
@@ -237,6 +399,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#22C55E',
     },
     acceptBtnText: { fontSize: 12, fontWeight: '700', color: 'white', fontFamily: 'Nunito Sans' },
+
+    // Empty orders
+    emptyOrdersCard: {
+        borderRadius: 14, padding: 32, gap: 4, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed'
+    },
+    emptyOrdersTitle: { fontSize: 15, fontWeight: '700', fontFamily: 'Nunito Sans' },
+    emptyOrdersSub: { fontSize: 12, fontFamily: 'Nunito Sans', textAlign: 'center', paddingHorizontal: 16 },
+    noDataText: { position: 'absolute', bottom: 40, width: '100%', textAlign: 'center', fontSize: 12, fontFamily: 'Nunito Sans' },
 
     // Bottom Nav
     bottomNav: {

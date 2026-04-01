@@ -28,8 +28,9 @@ export interface Business {
     website?: string;
     schedule?: any;
     accepts_delivery?: boolean;
+    has_pickup?: boolean;
     accepts_cash?: boolean;
-    accepts_card?: boolean;
+    accepts_mercadopago?: boolean;
     delivery_radius?: number;
 }
 
@@ -54,8 +55,8 @@ const formatBusiness = (b: any): Business => ({
     description: b.description || '',
     address: b.address || '',
     rating: b.rating || 0,
-    delivery_time: b.delivery_time || '30-45 min',
-    min_order: b.min_order || 0,
+    delivery_time: '30-45 min',
+    min_order: b.min_order_amount || 0,
     delivery_fee: b.delivery_fee || 0,
     image: b.cover_url || b.logo_url || 'https://via.placeholder.com/300',
     tags: b.tags || [],
@@ -66,11 +67,12 @@ const formatBusiness = (b: any): Business => ({
     cover_url: b.cover_url,
     phone: b.phone,
     website: b.website,
-    schedule: normalizeSchedule(b.schedule),
-    accepts_delivery: b.accepts_delivery,
-    accepts_cash: b.accepts_cash,
-    accepts_card: b.accepts_card,
-    delivery_radius: b.delivery_radius,
+    schedule: normalizeSchedule(b.business_hours),
+    accepts_delivery: b.has_delivery,
+    has_pickup: b.has_pickup,
+    accepts_cash: Array.isArray(b.payment_methods) ? b.payment_methods.includes('cash') : false,
+    accepts_mercadopago: Array.isArray(b.payment_methods) ? b.payment_methods.includes('mercadopago') : false,
+    delivery_radius: b.delivery_radius_km,
 });
 
 export const useBusinessStore = create<BusinessState>((set, get) => ({
@@ -87,7 +89,7 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user?.id) throw new Error('No user session');
-            
+
             const { data, error } = await supabase
                 .from('businesses')
                 .select('*')
@@ -95,8 +97,8 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
                 .limit(1)
                 .single();
 
-            if (error && error.code !== 'PGRST116') throw error; 
-            
+            if (error && error.code !== 'PGRST116') throw error;
+
             if (data) {
                 set({ selectedBusiness: formatBusiness(data), myBusinessId: data.id });
             } else {
@@ -113,11 +115,23 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
     fetchBusinessBySlug: async (slugOrId) => {
         set({ loading: true });
         try {
+            // Primero intentar por slug
             let { data, error } = await supabase
                 .from('businesses')
                 .select('*')
-                .or(`slug.eq.${slugOrId},id.eq.${slugOrId}`)
+                .eq('slug', slugOrId)
                 .single();
+
+            // Si no hay data y tiene pinta de UUID, buscamos por id
+            if (!data && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId)) {
+                const res = await supabase
+                    .from('businesses')
+                    .select('*')
+                    .eq('id', slugOrId)
+                    .single();
+                data = res.data;
+                error = res.error;
+            }
 
             if (error) throw error;
             set({ selectedBusiness: formatBusiness(data) });
@@ -139,7 +153,7 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
                 .single();
 
             if (error && error.code !== 'PGRST116') throw error; // Ignorar error si no encuentra filas exactas
-            
+
             if (data) {
                 set({ selectedBusiness: formatBusiness(data) });
             } else {
@@ -176,25 +190,38 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
     updateBusiness: async (id, data) => {
         set({ saving: true });
         try {
-            const updatePayload: any = {};
+            const supabasePayload: any = {};
 
-            // Solo enviar campos que existen en la tabla
-            const allowedFields = [
-                'name', 'description', 'address', 'phone', 'website',
-                'is_open', 'schedule', 'delivery_fee', 'min_order',
-                'delivery_time', 'accepts_delivery', 'accepts_cash',
-                'accepts_card', 'delivery_radius', 'tags', 'category',
-            ];
+            if (data.name !== undefined) supabasePayload.name = data.name;
+            if (data.description !== undefined) supabasePayload.description = data.description;
+            if (data.address !== undefined) supabasePayload.address = data.address;
+            if (data.phone !== undefined) supabasePayload.phone = data.phone;
+            if (data.website !== undefined) supabasePayload.website = data.website;
+            if (data.is_open !== undefined) supabasePayload.is_open = data.is_open;
+            if (data.schedule !== undefined) supabasePayload.business_hours = data.schedule;
+            if (data.accepts_delivery !== undefined) supabasePayload.has_delivery = data.accepts_delivery;
+            if (data.delivery_radius !== undefined) supabasePayload.delivery_radius_km = data.delivery_radius;
+            if (data.delivery_fee !== undefined) supabasePayload.delivery_fee = data.delivery_fee;
+            if (data.min_order !== undefined) supabasePayload.min_order_amount = data.min_order;
 
-            for (const key of allowedFields) {
-                if ((data as any)[key] !== undefined) {
-                    updatePayload[key] = (data as any)[key];
+            if (data.accepts_cash !== undefined || data.accepts_mercadopago !== undefined) {
+                const isCash = data.accepts_cash !== undefined ? data.accepts_cash : (get().selectedBusiness?.accepts_cash || false);
+                const isMP = data.accepts_mercadopago !== undefined ? data.accepts_mercadopago : (get().selectedBusiness?.accepts_mercadopago || false);
+                const payment_methods = [];
+                if (isCash) payment_methods.push('cash');
+                if (isMP) {
+                    payment_methods.push('mercadopago');
                 }
+                supabasePayload.payment_methods = payment_methods;
             }
+
+            if (data.slug !== undefined) supabasePayload.slug = data.slug;
+            if (data.tags !== undefined) supabasePayload.tags = data.tags;
+            if (data.category !== undefined) supabasePayload.category = data.category;
 
             const { error } = await supabase
                 .from('businesses')
-                .update(updatePayload)
+                .update(supabasePayload)
                 .eq('id', id);
 
             if (error) throw error;

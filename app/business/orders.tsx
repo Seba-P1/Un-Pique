@@ -46,6 +46,15 @@ export default function BusinessOrdersScreen() {
         setRefreshing(false);
     };
 
+    const handleRejectOrder = async (order: Order) => {
+        const success = await updateOrderStatus(order.id, 'cancelled');
+        if (success) {
+            showAlert('Rechazado', `Pedido #${order.id.slice(0, 8)} ha sido rechazado.`);
+        } else {
+            showAlert('Error', 'No se pudo rechazar el pedido');
+        }
+    };
+
     const handleStatusChange = async (order: Order) => {
         const nextStatus = getNextStatus(order.status);
         if (!nextStatus) return;
@@ -89,17 +98,18 @@ export default function BusinessOrdersScreen() {
     };
 
     const OrderCard = ({ order }: { order: Order }) => {
-        const config = STATUS_CONFIG[order.status];
-        const Icon = config.icon;
-        const nextStatus = getNextStatus(order.status);
-        const actionLabel = nextStatus ? STATUS_CONFIG[nextStatus].action : null;
+        const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
+        const Icon = config.icon || Package;
+
+        const simplifiedItems = order.order_items
+            ? order.order_items.map(item => `${item.quantity}x ${item.product?.name || 'Producto'}`).join(', ')
+            : 'Sin items';
 
         return (
             <View style={[styles.orderCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
                 <View style={styles.orderHeader}>
                     <View style={styles.orderInfo}>
                         <Text style={[styles.orderId, { color: tc.text }]}>Pedido #{order.id.slice(0, 8)}</Text>
-                        <Text style={[styles.orderTime, { color: tc.textMuted }]}>{formatTime(order.created_at)}</Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: config.color + '20' }]}>
                         <Icon size={16} color={config.color} />
@@ -108,32 +118,67 @@ export default function BusinessOrdersScreen() {
                 </View>
 
                 <View style={styles.orderDetails}>
-                    <Text style={[styles.customerName, { color: tc.text }]}>{order.user?.full_name || order.user?.email || 'Cliente'}</Text>
-                    <Text style={[styles.orderAddress, { color: tc.textSecondary }]}>{order.address}</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={[styles.customerName, { color: tc.text }]}>{order.user?.full_name || order.user?.email || 'Cliente'}</Text>
+                        <Text style={[styles.orderTime, { color: tc.textMuted }]}>{formatTime(order.created_at)}</Text>
+                    </View>
                 </View>
 
                 <View style={styles.orderItems}>
-                    {order.order_items?.slice(0, 2).map((item, index) => (
-                        <Text key={index} style={styles.itemText}>
-                            {item.quantity}x {item.product?.name || 'Producto'}
-                        </Text>
-                    ))}
-                    {order.order_items && order.order_items.length > 2 && (
-                        <Text style={styles.moreItems}>+{order.order_items.length - 2} más</Text>
-                    )}
+                    <Text style={[styles.itemText, { color: tc.textSecondary }]} numberOfLines={2}>
+                        {simplifiedItems}
+                    </Text>
                 </View>
 
-                <View style={styles.orderFooter}>
-                    <Text style={[styles.orderTotal, { color: tc.text }]}>${order.total_amount.toLocaleString()}</Text>
-                    {actionLabel && (
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: config.color }]}
-                            onPress={() => handleStatusChange(order)}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.actionButtonText}>{actionLabel}</Text>
-                        </TouchableOpacity>
-                    )}
+                <View style={[styles.orderFooter, { borderTopColor: tc.borderLight }]}>
+                    <Text style={[styles.orderTotal, { color: tc.text }]}>${(order.total_amount || 0).toLocaleString()}</Text>
+                    <View style={styles.actionButtonsRow}>
+                        {order.status === 'pending' && (
+                            <>
+                                <TouchableOpacity
+                                    style={[styles.actionButton, styles.rejectButton]}
+                                    onPress={() => handleRejectOrder(order)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.rejectButtonText}>Rechazar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.actionButton, { backgroundColor: colors.success }]}
+                                    onPress={() => handleStatusChange(order)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.actionButtonText}>Aceptar</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                        {order.status === 'preparing' && (
+                            <TouchableOpacity
+                                style={[styles.actionButton, { backgroundColor: colors.success }]}
+                                onPress={() => handleStatusChange(order)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.actionButtonText}>Listo</Text>
+                            </TouchableOpacity>
+                        )}
+                        {order.status === 'ready' && (
+                            <TouchableOpacity
+                                style={[styles.actionButton, { backgroundColor: colors.primary.DEFAULT }]}
+                                onPress={() => handleStatusChange(order)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.actionButtonText}>En Camino</Text>
+                            </TouchableOpacity>
+                        )}
+                        {order.status === 'in_delivery' && (
+                            <TouchableOpacity
+                                style={[styles.actionButton, { backgroundColor: colors.success }]}
+                                onPress={() => handleStatusChange(order)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.actionButtonText}>Entregar</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
             </View>
         );
@@ -176,37 +221,48 @@ export default function BusinessOrdersScreen() {
                 style={[styles.tabsContainer, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight }]}
                 contentContainerStyle={styles.tabsContent}
             >
+                {/* Todos */}
                 <TouchableOpacity
-                    style={[styles.tab, selectedTab === 'all' && styles.tabActive]}
+                    style={[styles.tab, { backgroundColor: selectedTab === 'all' ? colors.primary.DEFAULT : tc.bgInput }]}
                     onPress={() => setSelectedTab('all')}
                 >
-                    <Text style={[styles.tabText, selectedTab === 'all' && styles.tabTextActive]}>
-                        Todos ({orders.length})
-                    </Text>
+                    <Text style={[styles.tabText, { color: selectedTab === 'all' ? 'white' : tc.textMuted }]}>Todos</Text>
+                    <View style={[styles.badge, { backgroundColor: selectedTab === 'all' ? 'rgba(255,255,255,0.2)' : tc.borderLight }]}>
+                        <Text style={[styles.badgeText, { color: selectedTab === 'all' ? 'white' : tc.textMuted }]}>{orders.length}</Text>
+                    </View>
                 </TouchableOpacity>
+
+                {/* Pendientes */}
                 <TouchableOpacity
-                    style={[styles.tab, selectedTab === 'pending' && styles.tabActive]}
+                    style={[styles.tab, { backgroundColor: selectedTab === 'pending' ? colors.primary.DEFAULT : tc.bgInput }]}
                     onPress={() => setSelectedTab('pending')}
                 >
-                    <Text style={[styles.tabText, selectedTab === 'pending' && styles.tabTextActive]}>
-                        Pendientes ({stats?.pending || 0})
-                    </Text>
+                    <Text style={[styles.tabText, { color: selectedTab === 'pending' ? 'white' : tc.textMuted }]}>Pendientes</Text>
+                    <View style={[styles.badge, { backgroundColor: selectedTab === 'pending' ? 'rgba(255,255,255,0.2)' : tc.borderLight }]}>
+                        <Text style={[styles.badgeText, { color: selectedTab === 'pending' ? 'white' : tc.textMuted }]}>{stats?.pending || 0}</Text>
+                    </View>
                 </TouchableOpacity>
+
+                {/* Preparando */}
                 <TouchableOpacity
-                    style={[styles.tab, selectedTab === 'preparing' && styles.tabActive]}
+                    style={[styles.tab, { backgroundColor: selectedTab === 'preparing' ? colors.primary.DEFAULT : tc.bgInput }]}
                     onPress={() => setSelectedTab('preparing')}
                 >
-                    <Text style={[styles.tabText, selectedTab === 'preparing' && styles.tabTextActive]}>
-                        Preparando ({stats?.preparing || 0})
-                    </Text>
+                    <Text style={[styles.tabText, { color: selectedTab === 'preparing' ? 'white' : tc.textMuted }]}>Preparando</Text>
+                    <View style={[styles.badge, { backgroundColor: selectedTab === 'preparing' ? 'rgba(255,255,255,0.2)' : tc.borderLight }]}>
+                        <Text style={[styles.badgeText, { color: selectedTab === 'preparing' ? 'white' : tc.textMuted }]}>{stats?.preparing || 0}</Text>
+                    </View>
                 </TouchableOpacity>
+
+                {/* Listos */}
                 <TouchableOpacity
-                    style={[styles.tab, selectedTab === 'ready' && styles.tabActive]}
+                    style={[styles.tab, { backgroundColor: selectedTab === 'ready' ? colors.primary.DEFAULT : tc.bgInput }]}
                     onPress={() => setSelectedTab('ready')}
                 >
-                    <Text style={[styles.tabText, selectedTab === 'ready' && styles.tabTextActive]}>
-                        Listos ({stats?.ready || 0})
-                    </Text>
+                    <Text style={[styles.tabText, { color: selectedTab === 'ready' ? 'white' : tc.textMuted }]}>Listos</Text>
+                    <View style={[styles.badge, { backgroundColor: selectedTab === 'ready' ? 'rgba(255,255,255,0.2)' : tc.borderLight }]}>
+                        <Text style={[styles.badgeText, { color: selectedTab === 'ready' ? 'white' : tc.textMuted }]}>{stats?.ready || 0}</Text>
+                    </View>
                 </TouchableOpacity>
             </ScrollView>
 
@@ -218,8 +274,8 @@ export default function BusinessOrdersScreen() {
             >
                 {filteredOrders.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Package size={64} color={colors.gray[300]} />
-                        <Text style={styles.emptyText}>No hay pedidos</Text>
+                        <Package size={64} color={tc.borderLight || colors.gray[300]} />
+                        <Text style={[styles.emptyText, { color: tc.textMuted || colors.gray[400] }]}>No hay pedidos en este estado</Text>
                     </View>
                 ) : (
                     filteredOrders.map(order => <OrderCard key={order.id} order={order} />)
@@ -289,22 +345,30 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     tab: {
-        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: colors.gray[50],
-    },
-    tabActive: {
-        backgroundColor: colors.primary.DEFAULT,
+        gap: 6,
     },
     tabText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
-        color: colors.gray[600],
         fontFamily: 'Nunito Sans',
     },
-    tabTextActive: {
-        color: colors.white,
+    badge: {
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 6,
+    },
+    badgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        fontFamily: 'Nunito Sans',
     },
     content: {
         flex: 1,
@@ -393,18 +457,32 @@ const styles = StyleSheet.create({
     orderTotal: {
         fontSize: 18,
         fontWeight: '700',
-        color: colors.gray[900],
         fontFamily: 'Nunito Sans',
+    },
+    actionButtonsRow: {
+        flexDirection: 'row',
+        gap: 8,
     },
     actionButton: {
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     actionButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 13,
+        fontWeight: '700',
         color: colors.white,
+        fontFamily: 'Nunito Sans',
+    },
+    rejectButton: {
+        backgroundColor: 'rgba(239,68,68,0.1)',
+    },
+    rejectButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#EF4444',
         fontFamily: 'Nunito Sans',
     },
     emptyState: {

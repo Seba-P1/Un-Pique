@@ -58,7 +58,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
                 name: p.name,
                 description: p.description || '',
                 price: p.price,
-                stock: p.stock || 0,
+                stock: p.stock_quantity || 0,
                 image_url: p.image_url,
                 category_id: p.category_id || '',
                 is_available: p.is_available !== false,
@@ -78,28 +78,34 @@ export const useProductStore = create<ProductState>((set, get) => ({
         try {
             let image_url: string | null = null;
 
-            // Subir imagen si se proporcionó
             if (imageUri) {
                 const result = await uploadImage(imageUri, 'products', businessId);
                 image_url = result.url;
             }
 
+            const productPayload: any = {
+                business_id: businessId,
+                name: data.name,
+                description: data.description || '',
+                price: data.price,
+                stock_quantity: data.stock || 0,
+                image_url,
+                is_available: data.is_available !== false,
+            };
+
+            if (data.category_id && data.category_id !== 'general') {
+                productPayload.category_id = data.category_id;
+            }
+
             const { error } = await supabase
                 .from('products')
-                .insert({
-                    business_id: businessId,
-                    name: data.name,
-                    description: data.description || '',
-                    price: data.price,
-                    stock: data.stock || 0,
-                    image_url,
-                    category_id: data.category_id || 'general',
-                    is_available: data.is_available !== false,
-                });
+                .insert(productPayload);
 
-            if (error) throw error;
+            if (error) {
+                console.error('[DEBUG] Error completo al crear producto:', error);
+                throw error;
+            }
 
-            // Refrescar lista
             await get().fetchProducts(businessId);
             return true;
         } catch (error) {
@@ -121,6 +127,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
                 updateData.image_url = result.url;
             }
 
+            if (updateData.stock !== undefined) {
+                updateData.stock_quantity = updateData.stock;
+                delete updateData.stock;
+            }
+
             const { error } = await supabase
                 .from('products')
                 .update(updateData)
@@ -128,10 +139,9 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
             if (error) throw error;
 
-            // Actualizar localmente
             set(state => ({
                 products: state.products.map(p =>
-                    p.id === id ? { ...p, ...updateData } : p
+                    p.id === id ? { ...p, ...data } : p
                 ),
             }));
 

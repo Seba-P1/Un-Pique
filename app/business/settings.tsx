@@ -1,7 +1,8 @@
 // Configuración Centralizada del Vendedor — UI Premium
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Switch, Image, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppToggle } from '../../components/ui/AppToggle';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Camera, Store, User, MapPin, Clock, Phone, Globe, CreditCard, Truck, Bell, Power, Plus, Trash2, Info } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -49,12 +50,12 @@ export default function CentralizedSettingsScreen() {
     const [manualOverride, setManualOverride] = useState(false);
 
     // Schedule State
-    const [schedule, setSchedule] = useState<WeekScheduleType>(() => normalizeSchedule(selectedBusiness?.schedule)!);
+    const [schedule, setSchedule] = useState<WeekScheduleType>(() => normalizeSchedule(selectedBusiness?.schedule || {})!);
 
     // Delivery & Payments State
     const [acceptsDelivery, setAcceptsDelivery] = useState(selectedBusiness?.accepts_delivery ?? true);
     const [acceptsCash, setAcceptsCash] = useState(selectedBusiness?.accepts_cash ?? true);
-    const [acceptsCard, setAcceptsCard] = useState(selectedBusiness?.accepts_card ?? true);
+    const [acceptsMercadoPago, setAcceptsMercadoPago] = useState(selectedBusiness?.accepts_mercadopago ?? false);
     const [deliveryRadius, setDeliveryRadius] = useState(String(selectedBusiness?.delivery_radius || '5'));
     const [deliveryFee, setDeliveryFee] = useState(String(selectedBusiness?.delivery_fee || '150'));
     const [minOrder, setMinOrder] = useState(String(selectedBusiness?.min_order || '500'));
@@ -71,7 +72,7 @@ export default function CentralizedSettingsScreen() {
             setPhone(selectedBusiness.phone || '');
             setStoreWebsite(selectedBusiness.website || '');
             setIsOpen(selectedBusiness.is_open ?? true);
-            if (selectedBusiness.schedule) setSchedule(normalizeSchedule(selectedBusiness.schedule)!);
+            setSchedule(normalizeSchedule(selectedBusiness.schedule || {})!);
         }
     }, [selectedBusiness]);
 
@@ -126,21 +127,30 @@ export default function CentralizedSettingsScreen() {
             return;
         }
 
-        const success = await updateBusiness(selectedBusiness.id, {
+        const payload: any = {
             name: storeName.trim(),
             description: description.trim(),
             address: address.trim(),
             phone: phone.trim(),
             website: storeWebsite.trim(),
             is_open: isOpen,
-            schedule: schedule as any,
+            schedule: schedule,
             accepts_delivery: acceptsDelivery,
             accepts_cash: acceptsCash,
-            accepts_card: acceptsCard,
+            accepts_mercadopago: acceptsMercadoPago,
             delivery_radius: parseFloat(deliveryRadius) || 5,
             delivery_fee: parseFloat(deliveryFee) || 0,
             min_order: parseFloat(minOrder) || 0,
-        });
+        };
+
+        // El slug se mantiene estático tras la creación.
+        if (selectedBusiness.slug) {
+            payload.slug = selectedBusiness.slug;
+        }
+
+        console.log('[DEBUG] Payload auth update businesses:', JSON.stringify(payload, null, 2));
+
+        const success = await updateBusiness(selectedBusiness.id, payload);
 
         if (success) {
             showAlert('Guardado', 'Los cambios se guardaron correctamente.');
@@ -270,11 +280,9 @@ export default function CentralizedSettingsScreen() {
                                         {manualOverride ? 'Forzado manualmente' : 'Automático según horario'}
                                     </Text>
                                 </View>
-                                <Switch
+                                <AppToggle
                                     value={isOpen}
                                     onValueChange={(v) => { setIsOpen(v); setManualOverride(true); }}
-                                    trackColor={{ false: '#EF4444', true: '#FF6B35' }}
-                                    thumbColor="white"
                                 />
                             </View>
                             {manualOverride && (
@@ -310,15 +318,14 @@ export default function CentralizedSettingsScreen() {
 
                         <SectionCard title="Días de Operación" tc={tc}>
                             {DAYS_OF_WEEK.map(day => {
-                                const ds = schedule[day.key];
+                                const ds = schedule?.[day.key];
+                                if (!ds) return null;
                                 return (
                                     <View key={day.key} style={[sectionStyles.dayRow, { borderBottomColor: tc.borderLight }]}>
                                         <View style={sectionStyles.dayLeft}>
-                                            <Switch
+                                            <AppToggle
                                                 value={!ds.is_closed}
                                                 onValueChange={(v) => updateDaySchedule(day.key, 'is_closed', !v)}
-                                                trackColor={{ false: tc.bgInput, true: colors.primary.DEFAULT }}
-                                                thumbColor="white"
                                                 style={{ transform: [{ scale: 0.8 }] }}
                                             />
                                             <Text style={[sectionStyles.dayLabel, { color: !ds.is_closed ? tc.text : tc.textMuted }]}>{day.label}</Text>
@@ -410,8 +417,15 @@ export default function CentralizedSettingsScreen() {
                         </SectionCard>
 
                         <SectionCard title="Métodos de Pago" tc={tc}>
-                            <ToggleRow label="Transferencia / MercadoPago" value={acceptsCard} onChange={setAcceptsCard} tc={tc} />
                             <ToggleRow label="Efectivo al recibir" value={acceptsCash} onChange={setAcceptsCash} tc={tc} />
+                            <ToggleRow label="MercadoPago" value={acceptsMercadoPago} onChange={setAcceptsMercadoPago} tc={tc} />
+                            <TouchableOpacity
+                                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, backgroundColor: '#009EE3', borderRadius: 12, marginTop: 8 }}
+                                onPress={() => showAlert('Próximamente', 'La integración con MercadoPago estará disponible pronto.')}
+                            >
+                                <CreditCard size={18} color="white" />
+                                <Text style={{ color: 'white', fontWeight: 'bold', fontFamily: 'Nunito Sans' }}>Conectar MercadoPago</Text>
+                            </TouchableOpacity>
                         </SectionCard>
                     </View>
                 )}
@@ -473,11 +487,9 @@ function ToggleRow({ label, value, onChange, tc }: any) {
     return (
         <View style={sectionStyles.toggleRow}>
             <Text style={[sectionStyles.toggleLabel, { color: tc.text }]}>{label}</Text>
-            <Switch
+            <AppToggle
                 value={value}
                 onValueChange={onChange}
-                trackColor={{ false: tc.bgInput, true: colors.primary.DEFAULT }}
-                thumbColor="white"
                 style={{ transform: [{ scale: 0.85 }] }}
             />
         </View>

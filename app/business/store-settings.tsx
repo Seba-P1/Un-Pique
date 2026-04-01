@@ -1,7 +1,8 @@
 // Configuración de la Tienda — Persistencia real en Supabase + UI compact premium
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppToggle } from '../../components/ui/AppToggle';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Store, MapPin, Clock, Phone, Globe, CreditCard, Truck, Bell, Power } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -50,7 +51,7 @@ export default function StoreSettingsScreen() {
 
     const [acceptsDelivery, setAcceptsDelivery] = useState(selectedBusiness?.accepts_delivery ?? true);
     const [acceptsCash, setAcceptsCash] = useState(selectedBusiness?.accepts_cash ?? true);
-    const [acceptsCard, setAcceptsCard] = useState(selectedBusiness?.accepts_card ?? true);
+    const [acceptsMercadoPago, setAcceptsMercadoPago] = useState(selectedBusiness?.accepts_mercadopago ?? false);
     const [deliveryRadius, setDeliveryRadius] = useState(String(selectedBusiness?.delivery_radius || '5'));
     const [deliveryFee, setDeliveryFee] = useState(String(selectedBusiness?.delivery_fee || '150'));
     const [minOrder, setMinOrder] = useState(String(selectedBusiness?.min_order || '500'));
@@ -88,7 +89,7 @@ export default function StoreSettingsScreen() {
             schedule: schedule as any,
             accepts_delivery: acceptsDelivery,
             accepts_cash: acceptsCash,
-            accepts_card: acceptsCard,
+            accepts_mercadopago: acceptsMercadoPago,
             delivery_radius: parseFloat(deliveryRadius) || 5,
             delivery_fee: parseFloat(deliveryFee) || 0,
             min_order: parseFloat(minOrder) || 0,
@@ -136,11 +137,9 @@ export default function StoreSettingsScreen() {
                                 {manualOverride ? 'Control manual activo' : 'Siguiendo horario automático'}
                             </Text>
                         </View>
-                        <Switch
+                        <AppToggle
                             value={isManuallyOpen}
                             onValueChange={handleManualToggle}
-                            trackColor={{ false: '#EF4444', true: '#FF6B35' }}
-                            thumbColor="white"
                         />
                     </View>
                     {manualOverride && (
@@ -169,11 +168,9 @@ export default function StoreSettingsScreen() {
                         return (
                             <View key={day.key} style={[sectionStyles.dayRow, { borderBottomColor: tc.borderLight }]}>
                                 <View style={sectionStyles.dayLeft}>
-                                    <Switch
+                                    <AppToggle
                                         value={ds.enabled}
                                         onValueChange={(v) => updateDaySchedule(day.key, 'enabled', v)}
-                                        trackColor={{ false: tc.bgInput, true: colors.primary.DEFAULT }}
-                                        thumbColor="white"
                                         style={{ transform: [{ scale: 0.7 }] }}
                                     />
                                     <Text style={[sectionStyles.dayLabel, { color: ds.enabled ? tc.text : tc.textMuted }]}>{day.label}</Text>
@@ -219,7 +216,7 @@ export default function StoreSettingsScreen() {
                 {/* Pagos */}
                 <SectionCard title="Métodos de Pago" tc={tc}>
                     <ToggleRow label="Efectivo" value={acceptsCash} onChange={setAcceptsCash} tc={tc} />
-                    <ToggleRow label="Tarjeta / MercadoPago" value={acceptsCard} onChange={setAcceptsCard} tc={tc} />
+                    <ToggleRow label="MercadoPago" value={acceptsMercadoPago} onChange={setAcceptsMercadoPago} tc={tc} />
                 </SectionCard>
 
                 {/* Notificaciones */}
@@ -285,11 +282,9 @@ function ToggleRow({ label, value, onChange, tc }: any) {
     return (
         <View style={sectionStyles.toggleRow}>
             <Text style={[sectionStyles.toggleLabel, { color: tc.text }]}>{label}</Text>
-            <Switch
+            <AppToggle
                 value={value}
                 onValueChange={onChange}
-                trackColor={{ false: tc.bgInput, true: colors.primary.DEFAULT }}
-                thumbColor="white"
             />
         </View>
     );

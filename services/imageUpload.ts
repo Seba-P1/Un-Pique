@@ -81,25 +81,6 @@ export async function pickMultipleImages(options?: {
 }
 
 /**
- * Converts a URI to an ArrayBuffer for upload (works on Web and Native)
- */
-async function uriToArrayBuffer(uri: string): Promise<{ buffer: ArrayBuffer; mimeType: string }> {
-    if (Platform.OS === 'web') {
-        // On web, the URI is a blob URL or data URL
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        const buffer = await blob.arrayBuffer();
-        return { buffer, mimeType: blob.type || 'image/jpeg' };
-    } else {
-        // On native, fetch the URI
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        const buffer = await new Response(blob).arrayBuffer();
-        return { buffer, mimeType: 'image/jpeg' };
-    }
-}
-
-/**
  * Sube una imagen a Supabase Storage
  * Funciona correctamente en Web, iOS y Android
  */
@@ -109,17 +90,32 @@ export async function uploadImage(
     folder?: string
 ): Promise<UploadResult> {
     try {
-        const { buffer, mimeType } = await uriToArrayBuffer(uri);
+        const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        let uploadData: any;
+        let finalMimeType = 'image/jpeg';
+        let ext = 'jpg';
 
-        // Generate unique filename
-        const ext = mimeType === 'image/png' ? 'png' : 'jpg';
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        if (Platform.OS === 'web') {
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            finalMimeType = blob.type || 'image/jpeg';
+            ext = finalMimeType === 'image/png' ? 'png' : 'jpg';
+            uploadData = new File([blob], `imagen-${uniqueId}.${ext}`, { type: finalMimeType });
+        } else {
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            uploadData = await new Response(blob).arrayBuffer();
+            finalMimeType = 'image/jpeg';
+            ext = 'jpg';
+        }
+
+        const fileName = `imagen-${uniqueId}.${ext}`;
         const filePath = folder ? `${folder}/${fileName}` : fileName;
 
         const { error: uploadError } = await supabase.storage
             .from(bucket)
-            .upload(filePath, buffer, {
-                contentType: mimeType,
+            .upload(filePath, uploadData, {
+                contentType: finalMimeType,
                 upsert: true,
             });
 

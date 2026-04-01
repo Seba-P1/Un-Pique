@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Star, Clock } from 'lucide-react-native';
-import { checkIsBusinessOpen } from '../../utils/schedule';
-import colors from '../../constants/colors';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { useLocationStore } from '../../stores/locationStore';
 import { useBusinessStore, Business } from '../../stores/businessStore';
 import { useBusinesses } from '../../hooks/useBusinesses';
-import { Card } from '../ui';
 import { BusinessCardSkeleton } from '../ui/Skeleton';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { BusinessCard } from '../delivery/BusinessCard';
 
 export const BusinessFeed = () => {
     const tc = useThemeColors();
-    const router = useRouter();
     const { currentLocality } = useLocationStore();
-    const { data: businesses = [], isLoading: loading, refetch, isRefetching } = useBusinesses(currentLocality?.id);
+    const { data: businesses = [], isLoading: loading } = useBusinesses(currentLocality?.id);
     const [refreshing, setRefreshing] = useState(false);
     const { width } = useWindowDimensions();
+    
     const isDesktop = width >= 768;
     const numColumns = isDesktop ? 3 : 1;
     const gap = 16;
@@ -31,46 +27,6 @@ export const BusinessFeed = () => {
         ? (effectiveWidth - (gap * (numColumns - 1))) / numColumns
         : '100%';
 
-    const renderItem = ({ item }: { item: Business }) => {
-        const isOpen = item.is_open && checkIsBusinessOpen(item.schedule);
-        return (
-        <Card variant="elevated" style={StyleSheet.flatten([styles.card, { backgroundColor: tc.bgCard }])} onPress={() => router.push(`/shop/${item.slug || item.id}` as any)}>
-            <View style={[styles.imageContainer, { backgroundColor: tc.bgInput }]}>
-                <Image
-                    source={{ uri: item.cover_url || item.logo_url || 'https://via.placeholder.com/300' }}
-                    style={styles.banner}
-                />
-                {!isOpen && (
-                    <View style={styles.closedBadge}>
-                        <Text style={styles.closedText}>Cerrado</Text>
-                    </View>
-                )}
-                <View style={styles.ratingBadge}>
-                    <Star size={12} color={colors.white} fill={colors.white} />
-                    <Text style={styles.ratingText}>{item.rating}</Text>
-                </View>
-            </View>
-
-            <View style={styles.info}>
-                <View style={styles.header}>
-                    <Text style={[styles.name, { color: tc.text }]}>{item.name}</Text>
-                </View>
-                <Text style={[styles.category, { color: tc.textSecondary }]}>{item.category}</Text>
-
-                <View style={styles.metaRow}>
-                    <View style={[styles.metaItem, { backgroundColor: tc.bgHover }]}>
-                        <Clock size={14} color={tc.textMuted} />
-                        <Text style={[styles.metaText, { color: tc.textSecondary }]}>{item.delivery_time}</Text>
-                    </View>
-                    <View style={[styles.metaItem, { backgroundColor: tc.bgHover }]}>
-                        <Text style={styles.deliveryFee}>Envío ${item.delivery_fee}</Text>
-                    </View>
-                </View>
-            </View>
-        </Card>
-        );
-    };
-
     return (
         <View style={styles.container}>
             <View style={styles.feedHeader}>
@@ -79,15 +35,21 @@ export const BusinessFeed = () => {
 
             {(loading && !refreshing && businesses.length === 0) ? (
                 <View style={[styles.list, { gap }]}>
-                    <BusinessCardSkeleton />
-                    <BusinessCardSkeleton />
-                    <BusinessCardSkeleton />
+                    <View style={{ width: itemWidth as any, marginBottom: 16 }}>
+                        <BusinessCardSkeleton />
+                    </View>
+                    <View style={{ width: itemWidth as any, marginBottom: 16 }}>
+                        <BusinessCardSkeleton />
+                    </View>
+                    <View style={{ width: itemWidth as any, marginBottom: 16 }}>
+                        <BusinessCardSkeleton />
+                    </View>
                 </View>
             ) : (
                 <View style={[styles.list, { gap }]}>
                     {businesses.map((b) => (
-                        <View key={b.id} style={[styles.wrapper, { width: itemWidth as any }]}>
-                            {renderItem({ item: b })}
+                        <View key={b.id} style={{ width: itemWidth as any, marginBottom: 16 }}>
+                            <BusinessCard business={b} />
                         </View>
                     ))}
                 </View>
@@ -115,93 +77,5 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 16,
-    },
-    wrapper: {
-        marginBottom: 16,
-    },
-    card: {
-        padding: 0,
-        overflow: 'hidden',
-        borderRadius: 16,
-    },
-    imageContainer: {
-        height: 140,
-        position: 'relative',
-    },
-    banner: {
-        width: '100%',
-        height: '100%',
-    },
-    closedBadge: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    closedText: {
-        color: colors.white,
-        fontWeight: '700',
-        fontSize: 16,
-        textTransform: 'uppercase',
-    },
-    ratingBadge: {
-        position: 'absolute',
-        bottom: 12,
-        right: 12,
-        backgroundColor: colors.success,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        gap: 4,
-    },
-    ratingText: {
-        color: colors.white,
-        fontWeight: '600',
-        fontSize: 12,
-    },
-    info: {
-        padding: 16,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    name: {
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    category: {
-        fontSize: 14,
-        marginTop: 4,
-    },
-    metaRow: {
-        flexDirection: 'row',
-        marginTop: 12,
-        gap: 16,
-    },
-    metaItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    metaText: {
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    deliveryFee: {
-        fontSize: 12,
-        color: colors.success,
-        fontWeight: '600',
     },
 });
