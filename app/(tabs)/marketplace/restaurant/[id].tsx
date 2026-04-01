@@ -84,7 +84,7 @@ export default function RestaurantDetailScreen() {
                 </View>
             </SafeAreaView>
 
-            <View style={styles.restaurantInfo}>
+            <View style={[styles.restaurantInfo, isLargeScreen && styles.restaurantInfoDesktop]}>
                 <View style={[styles.logoContainer, { backgroundColor: tc.bgCard }]}>
                     <Image
                         source={{ uri: selectedBusiness?.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop' }}
@@ -92,7 +92,7 @@ export default function RestaurantDetailScreen() {
                     />
                 </View>
                 <View style={styles.infoContent}>
-                    <Text style={styles.restaurantName}>{selectedBusiness?.name || 'Cargando...'}</Text>
+                    <Text style={[styles.restaurantName, isLargeScreen && { fontSize: 38 }]}>{selectedBusiness?.name || 'Cargando...'}</Text>
                     <View style={styles.badgesRow}>
                         <View style={styles.badge}>
                             <Star size={14} color={colors.primary.DEFAULT} fill={colors.primary.DEFAULT} />
@@ -194,9 +194,14 @@ export default function RestaurantDetailScreen() {
                     { useNativeDriver: false }
                 )}
                 scrollEventThrottle={16}
+                // Añadido para Desktop:
+                contentContainerStyle={isLargeScreen ? { alignItems: 'center', paddingVertical: 24 } : {}}
             >
-                <View style={isLargeScreen ? styles.layoutRow : {}}>
-                    <View style={styles.mainContent}>
+                <View style={[
+                    isLargeScreen ? styles.layoutRow : {}, 
+                    isLargeScreen && { maxWidth: 1200, width: '100%' }
+                ]}>
+                    <View style={[styles.mainContent, isLargeScreen && { flex: 1, paddingRight: 24 }]}>
                         {renderHeader()}
                         {renderMenu()}
                         <View style={{ height: 100 }} />
@@ -204,7 +209,7 @@ export default function RestaurantDetailScreen() {
 
                     {/* Sidebar Cart for XL Screens */}
                     {isLargeScreen && (
-                        <View style={[styles.sidebarCart, { backgroundColor: tc.bgCard, borderLeftColor: tc.borderLight }]}>
+                        <View style={[styles.sidebarCart, { backgroundColor: tc.bgCard, borderLeftColor: tc.borderLight, borderColor: tc.borderLight }]}>
                             <View style={[styles.cartHeader, { borderBottomColor: tc.borderLight }]}>
                                 <Text style={[styles.cartTitle, { color: tc.text }]}>Tu Pedido</Text>
                                 <Text style={[styles.cartSubtitle, { color: tc.textMuted }]}>La Parrilla Gourmet</Text>
@@ -281,15 +286,20 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     sidebarCart: {
-        width: 380,
-        height: 800, // Should be 100vh in web but 800 for Scrollview context
-        borderLeftWidth: 1,
-        // position: 'sticky', // Web only - removed for TS strictness if needed, but react native web supports it via style usually or needs View style
-        top: 0
+        width: 350, // slightly thinner list
+        height: 'min-content', 
+        maxHeight: 700, // Limit height
+        borderWidth: 1,
+        borderRadius: 16,
+        overflow: 'hidden',
+        ...(Platform.OS === 'web' ? { position: 'sticky', top: 24 } : { top: 0 })
     },
     headerContainer: {
-        height: 360,
+        height: 320,
         position: 'relative',
+        borderRadius: 24,
+        overflow: 'hidden',
+        ...(Platform.OS === 'web' ? { zIndex: 1 } : {}),
     },
     heroImage: {
         width: '100%',
@@ -304,7 +314,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         paddingHorizontal: 20,
-        paddingTop: 10,
+        paddingTop: 16,
         flexDirection: 'row',
         justifyContent: 'space-between',
         zIndex: 10,
@@ -337,17 +347,22 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        padding: 32,
+        padding: 24,
+        paddingBottom: 48, // Dejar espacio para el border-radius del menú
         flexDirection: 'row',
         alignItems: 'flex-end',
-        gap: 24,
+        gap: 20,
+    },
+    restaurantInfoDesktop: {
+        padding: 40,
+        paddingBottom: 56,
     },
     logoContainer: {
-        width: 96,
-        height: 96,
-        borderRadius: 16,
+        width: 104,
+        height: 104,
+        borderRadius: 20,
         padding: 4,
-        
+        ...(Platform.OS === 'web' ? { boxShadow: '0px 8px 24px rgba(0,0,0,0.15)' } : { elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 }),
     },
     logo: {
         width: '100%',
@@ -388,6 +403,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         marginTop: -32,
+        // En desktop no es necesario que solape si ya hay margen visual, pero lo mantenemos sutil.
         paddingTop: 32,
         paddingHorizontal: 24,
     },
@@ -563,12 +579,15 @@ const styles = StyleSheet.create({
     cartItemHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-start',
         marginBottom: 4,
+        gap: 8,
     },
     cartItemName: {
         fontSize: 14,
         fontWeight: 'bold',
         flex: 1,
+        lineHeight: 18,
     },
     cartItemPrice: {
         fontSize: 14,

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, Image, ScrollView, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, Image, ScrollView, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { X, Minus, Plus } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { Button } from '../ui';
 import { useCartStore } from '../../stores/cartStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
 
-const { height } = Dimensions.get('window');
 
 interface Product {
     id: string;
@@ -28,6 +27,8 @@ export const ProductModal = ({ visible, onClose, product, businessId, businessNa
     const [quantity, setQuantity] = useState(1);
     const { addItem } = useCartStore();
     const tc = useThemeColors();
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 1024;
 
     if (!product) return null;
 
@@ -56,21 +57,26 @@ export const ProductModal = ({ visible, onClose, product, businessId, businessNa
             visible={visible}
             onRequestClose={onClose}
         >
-            <View style={styles.overlay}>
-                <View style={[styles.container, { backgroundColor: tc.bg }]}>
+            <View style={[styles.overlay, isDesktop && { padding: 40, justifyContent: 'center' }]}>
+                <View style={[
+                    styles.container, 
+                    { backgroundColor: tc.bg },
+                    isDesktop && { maxWidth: 900, alignSelf: 'center', height: 'auto', maxHeight: '90%', borderRadius: 24, width: '100%' }
+                ]}>
                     {/* Close Button */}
                     <TouchableOpacity style={[styles.closeButton, { backgroundColor: tc.bgCard, ...(Platform.OS === 'web' ? { boxShadow: tc.isDark ? '0 4px 12px rgba(0,0,0,0.5)' : '0 4px 12px rgba(0,0,0,0.1)' } : { elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: tc.isDark ? 0.5 : 0.1, shadowRadius: 10 }) }]} onPress={onClose}>
                         <X size={20} color={tc.text} />
                     </TouchableOpacity>
 
                     <ScrollView style={styles.scrollContent} bounces={false}>
-                        {/* Header Image */}
-                        {product.image_url && (
-                            <Image source={{ uri: product.image_url }} style={styles.image} />
-                        )}
+                        <View style={isDesktop ? { flexDirection: 'row' } : {}}>
+                            {/* Header Image */}
+                            {product.image_url && (
+                                <Image source={{ uri: product.image_url }} style={[styles.image, isDesktop && { flex: 1, height: '100%', minHeight: 400, borderTopRightRadius: 0, borderBottomLeftRadius: 0 }]} />
+                            )}
 
-                        <View style={styles.content}>
-                            <Text style={[styles.name, { color: tc.text }]}>{product.name}</Text>
+                            <View style={[styles.content, isDesktop && { flex: 1 }]}>
+                                <Text style={[styles.name, { color: tc.text }]}>{product.name}</Text>
                             <Text style={[styles.price, { color: colors.primary.DEFAULT }]}>${product.price.toLocaleString()}</Text>
                             <Text style={[styles.description, { color: tc.textSecondary }]}>{product.description}</Text>
 
@@ -93,6 +99,7 @@ export const ProductModal = ({ visible, onClose, product, businessId, businessNa
                             <Text style={[styles.sectionTitle, { color: tc.text }]}>Aclaraciones</Text>
                             <View style={[styles.inputPlaceholder, { backgroundColor: tc.bgInput }]}>
                                 <Text style={[styles.placeholderText, { color: tc.textMuted }]}>Escribí acá si tenés alguna indicación...</Text>
+                            </View>
                             </View>
                         </View>
                     </ScrollView>
