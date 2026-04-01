@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, Animated, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Clock, Star, MapPin, Heart } from 'lucide-react-native';
+import { checkIsBusinessOpen } from '../../utils/schedule';
 import { colors } from '../../constants/colors';
 import { useFavoritesStore } from '../../stores/favoritesStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -19,6 +20,7 @@ interface BusinessCardProps {
         delivery_fee: number;
         min_order: number;
         is_open: boolean;
+        schedule?: any;
     };
 }
 
@@ -27,6 +29,9 @@ export function BusinessCard({ business }: BusinessCardProps) {
     const router = useRouter();
     const { isFavorite, toggleFavorite } = useFavoritesStore();
     const [isTogglingFavorite, setIsTogglingFavorite] = React.useState(false);
+
+    const liked = isFavorite(business.id);
+    const isOpen = business.is_open && checkIsBusinessOpen(business.schedule);
 
     // Shared animated value for scale and shadow
     const scale = useRef(new Animated.Value(1)).current;
@@ -85,8 +90,6 @@ export function BusinessCard({ business }: BusinessCardProps) {
         }
     };
 
-    const liked = isFavorite(business.id);
-
     return (
         <Pressable
             onPress={handlePress}
@@ -142,7 +145,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
                             fill={liked ? primaryColor : 'transparent'}
                         />
                     </Pressable>
-                    {!business.is_open && (
+                    {!isOpen && (
                         <View style={styles.closedBadge}>
                             <Text style={styles.closedText}>Cerrado</Text>
                         </View>

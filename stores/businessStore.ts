@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { uploadImage } from '../services/imageUpload';
 
+import { normalizeSchedule } from '../utils/schedule';
+
 export interface Business {
     id: string;
     name: string;
@@ -34,11 +36,13 @@ export interface Business {
 interface BusinessState {
     businesses: Business[];
     selectedBusiness: Business | null;
+    myBusinessId: string | null;
     loading: boolean;
     saving: boolean;
     fetchBusinesses: (localityId?: string) => Promise<void>;
     fetchBusinessBySlug: (slug: string) => Promise<void>;
     fetchBusinessByOwner: (ownerId: string) => Promise<void>;
+    fetchMyBusiness: () => Promise<void>;
     updateBusiness: (id: string, data: Partial<Business>) => Promise<boolean>;
     updateBusinessImage: (id: string, imageUri: string, type: 'logo' | 'cover') => Promise<boolean>;
     setSelectedBusiness: (business: Business | null) => void;
@@ -62,7 +66,7 @@ const formatBusiness = (b: any): Business => ({
     cover_url: b.cover_url,
     phone: b.phone,
     website: b.website,
-    schedule: b.schedule,
+    schedule: normalizeSchedule(b.schedule),
     accepts_delivery: b.accepts_delivery,
     accepts_cash: b.accepts_cash,
     accepts_card: b.accepts_card,
@@ -72,10 +76,39 @@ const formatBusiness = (b: any): Business => ({
 export const useBusinessStore = create<BusinessState>((set, get) => ({
     businesses: [],
     selectedBusiness: null,
+    myBusinessId: null,
     loading: false,
     saving: false,
 
     setSelectedBusiness: (business) => set({ selectedBusiness: business }),
+
+    fetchMyBusiness: async () => {
+        set({ loading: true });
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user?.id) throw new Error('No user session');
+            
+            const { data, error } = await supabase
+                .from('businesses')
+                .select('*')
+                .eq('owner_id', session.user.id)
+                .limit(1)
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error; 
+            
+            if (data) {
+                set({ selectedBusiness: formatBusiness(data), myBusinessId: data.id });
+            } else {
+                set({ selectedBusiness: null, myBusinessId: null });
+            }
+        } catch (error) {
+            console.error('Error al obtener mi negocio:', error);
+            set({ selectedBusiness: null, myBusinessId: null });
+        } finally {
+            set({ loading: false });
+        }
+    },
 
     fetchBusinessBySlug: async (slugOrId) => {
         set({ loading: true });

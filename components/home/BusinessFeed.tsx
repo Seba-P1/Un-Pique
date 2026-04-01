@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Star, Clock } from 'lucide-react-native';
+import { checkIsBusinessOpen } from '../../utils/schedule';
 import colors from '../../constants/colors';
 import { useLocationStore } from '../../stores/locationStore';
 import { useBusinessStore, Business } from '../../stores/businessStore';
@@ -30,14 +31,16 @@ export const BusinessFeed = () => {
         ? (effectiveWidth - (gap * (numColumns - 1))) / numColumns
         : '100%';
 
-    const renderItem = ({ item }: { item: Business }) => (
+    const renderItem = ({ item }: { item: Business }) => {
+        const isOpen = item.is_open && checkIsBusinessOpen(item.schedule);
+        return (
         <Card variant="elevated" style={StyleSheet.flatten([styles.card, { backgroundColor: tc.bgCard }])} onPress={() => router.push(`/shop/${item.slug || item.id}` as any)}>
             <View style={[styles.imageContainer, { backgroundColor: tc.bgInput }]}>
                 <Image
                     source={{ uri: item.cover_url || item.logo_url || 'https://via.placeholder.com/300' }}
                     style={styles.banner}
                 />
-                {!item.is_open && (
+                {!isOpen && (
                     <View style={styles.closedBadge}>
                         <Text style={styles.closedText}>Cerrado</Text>
                     </View>
@@ -65,7 +68,8 @@ export const BusinessFeed = () => {
                 </View>
             </View>
         </Card>
-    );
+        );
+    };
 
     return (
         <View style={styles.container}>

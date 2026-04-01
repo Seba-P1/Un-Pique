@@ -1,6 +1,6 @@
 // Layout del negocio — Sidebar persistente en desktop, Stack en móvil
 import React from 'react';
-import { View, StyleSheet, useWindowDimensions, Platform, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Platform, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
 import { Slot, Stack, useRouter } from 'expo-router';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import BusinessSidebar from '../../components/business/BusinessSidebar';
@@ -15,13 +15,36 @@ export default function BusinessLayout() {
     const router = useRouter();
 
     const { user } = useAuthStore();
-    const { fetchBusinessByOwner, selectedBusiness, loading } = useBusinessStore();
+    const { fetchMyBusiness, selectedBusiness, loading } = useBusinessStore();
 
     React.useEffect(() => {
         if (user) {
-            fetchBusinessByOwner(user.id);
+            fetchMyBusiness();
         }
     }, [user]);
+
+    if (loading) {
+        return (
+            <View style={{ flex: 1, backgroundColor: tc.bg, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#FF6B35" />
+                <Text style={{ marginTop: 12, color: tc.textSecondary }}>Cargando datos de tu negocio...</Text>
+            </View>
+        );
+    }
+
+    if (!selectedBusiness) {
+        return (
+            <View style={{ flex: 1, backgroundColor: tc.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: tc.text, marginBottom: 8 }}>Crea tu Negocio</Text>
+                <Text style={{ fontSize: 16, color: tc.textSecondary, textAlign: 'center', marginBottom: 24 }}>
+                    Aún no tienes un negocio registrado como vendedor. Inicia el proceso de creación.
+                </Text>
+                <TouchableOpacity style={{ backgroundColor: '#FF6B35', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
+                    <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Crear Negocio Ahora</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     if (isDesktop) {
         return (

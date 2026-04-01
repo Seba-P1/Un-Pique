@@ -13,6 +13,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { useBusinessDetail } from '../../hooks/useBusinesses';
 import BusinessMap from '../../components/shop/BusinessMap';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { checkIsBusinessOpen, getFormattedScheduleList } from '../../utils/schedule';
 
 const HEADER_HEIGHT = 280;
 
@@ -45,6 +46,8 @@ export default function BusinessDetailScreen() {
     const business = remoteBusiness || MOCK_BUSINESSES[id as string] || MOCK_BUSINESSES['default'];
     const products = remoteProducts.length > 0 ? remoteProducts : MOCK_PRODUCTS;
     const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+    const isOpen = business.is_open && checkIsBusinessOpen(business.schedule);
+    const scheduleList = getFormattedScheduleList(business.schedule);
 
     useEffect(() => {
         if (remoteBusiness?.id) fetchProducts(remoteBusiness.id);
@@ -222,12 +225,22 @@ export default function BusinessDetailScreen() {
                                     </View>
                                 </View>
                                 <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
-                                <Text style={[styles.sectionTitle, { color: tc.text }]}>Horarios</Text>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                    <Text style={[styles.sectionTitle, { color: tc.text, marginHorizontal: 0, marginTop: 0 }]}>Horarios</Text>
+                                    <View style={[styles.openBadge, { backgroundColor: isOpen ? colors.success : colors.danger }]}>
+                                        <Text style={styles.openBadgeText}>{isOpen ? 'Abierto Ahora' : 'Cerrado Ahora'}</Text>
+                                    </View>
+                                </View>
                                 <View style={styles.addressRow}>
                                     <Clock size={22} color={tc.textSecondary} />
                                     <View>
-                                        <Text style={[styles.scheduleText, { color: tc.text }]}>Lunes a Viernes: 09:00 - 23:00</Text>
-                                        <Text style={[styles.scheduleText, { color: tc.text }]}>Sábados y Domingos: 11:00 - 01:00</Text>
+                                        {scheduleList.length > 0 ? scheduleList.map((sched, i) => (
+                                            <Text key={i} style={[styles.scheduleText, { color: tc.text }]}>
+                                                <Text style={{ fontWeight: '700' }}>{sched.label}:</Text> {sched.text}
+                                            </Text>
+                                        )) : (
+                                            <Text style={[styles.scheduleText, { color: tc.textSecondary }]}>No hay horarios disponibles.</Text>
+                                        )}
                                     </View>
                                 </View>
                             </View>
@@ -299,6 +312,8 @@ const styles = StyleSheet.create({
     addressValue: { fontFamily: 'Nunito Sans', fontSize: 14, marginTop: 2 },
     divider: { height: 1, marginHorizontal: 16, marginVertical: 16 },
     scheduleText: { fontFamily: 'Nunito Sans', fontSize: 14, marginBottom: 4 },
+    openBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    openBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800', fontFamily: 'Nunito Sans', textTransform: 'uppercase' },
     floatingCartWrapper: { position: 'absolute', bottom: Platform.OS === 'ios' ? 32 : 24, left: 16, right: 16, alignItems: 'center', zIndex: 100 },
     floatingCartPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 50, borderRadius: 25, width: '100%', maxWidth: 400, boxShadow: '0px 4px 12px rgba(0,0,0,0.1)', /* shadowColor:  */ },
     floatingPillText: { fontFamily: 'Nunito Sans', fontSize: 16, fontWeight: '700', color: '#fff' },

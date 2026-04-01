@@ -16,13 +16,13 @@ export default function ProductsScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     
     const { products, loading, fetchProducts, deleteProduct } = useProductStore();
-    const { selectedBusiness } = useBusinessStore();
+    const { myBusinessId } = useBusinessStore();
 
     useEffect(() => {
-        if (selectedBusiness) {
-            fetchProducts(selectedBusiness.id);
+        if (myBusinessId) {
+            fetchProducts(myBusinessId);
         }
-    }, [selectedBusiness]);
+    }, [myBusinessId]);
 
     const filtered = products.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -102,7 +102,7 @@ export default function ProductsScreen() {
                         <View style={styles.emptyState}>
                             <Package size={64} color={tc.textMuted} />
                             <Text style={[styles.emptyText, { color: tc.textMuted }]}>
-                                {selectedBusiness ? "No hay productos en tu negocio" : "Cargando negocio..."}
+                                {myBusinessId ? "No hay productos en tu negocio" : "Cargando negocio..."}
                             </Text>
                         </View>
                     }

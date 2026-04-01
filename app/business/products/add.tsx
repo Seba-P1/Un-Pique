@@ -15,7 +15,7 @@ export default function AddProductScreen() {
     const tc = useThemeColors();
     const router = useRouter();
     const { createProduct, saving } = useProductStore();
-    const { selectedBusiness } = useBusinessStore();
+    const { myBusinessId } = useBusinessStore();
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -41,13 +41,13 @@ export default function AddProductScreen() {
             showAlert('Error', 'Ingresá un precio válido');
             return;
         }
-        if (!selectedBusiness) {
+        if (!myBusinessId) {
             showAlert('Error', 'No se encontró información del negocio');
             return;
         }
 
         const success = await createProduct(
-            selectedBusiness.id,
+            myBusinessId,
             {
                 name: name.trim(),
                 description: description.trim(),

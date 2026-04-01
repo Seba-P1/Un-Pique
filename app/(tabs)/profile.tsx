@@ -41,8 +41,8 @@ export default function ProfileScreen() {
     const isMobile = width < 768;
     const contentMaxWidth = 960;
 
-    const hasBusinessRole = profile?.roles?.includes('business_owner');
-    const hasDriverRole = profile?.roles?.includes('delivery_driver');
+    const hasBusinessRole = profile?.roles?.includes('business_owner') || profile?.roles?.includes('seller' as any);
+    const hasDriverRole = profile?.roles?.includes('delivery_driver') || profile?.roles?.includes('driver' as any);
     const showRolesSection = hasBusinessRole || hasDriverRole;
     const hasListings = userListings.length > 0;
 
@@ -327,6 +327,15 @@ function SettingsView({ tc, router, hasListings, showRolesSection, hasBusinessRo
             {/* Account Links */}
             <View style={[settingsStyles.card, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
                 <Text style={[settingsStyles.cardLabel, { color: tc.textMuted }]}>CUENTA</Text>
+                {hasBusinessRole && (
+                    <NavPacket 
+                        icon={Store} 
+                        label="Panel de Vendedor" 
+                        tc={tc} 
+                        highlight
+                        onPress={() => router.push('/business/dashboard' as any)} 
+                    />
+                )}
                 <NavPacket icon={ShoppingBag} label="Mis Pedidos" tc={tc} onPress={() => router.push('/orders' as any)} />
                 {hasListings && <NavPacket icon={Briefcase} label="Mis Publicaciones" tc={tc} onPress={() => router.push('/my-listings' as any)} />}
                 <NavPacket icon={Bell} label="Notificaciones" tc={tc} onPress={() => router.push('/notifications' as any)} />

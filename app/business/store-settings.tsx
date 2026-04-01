@@ -139,7 +139,7 @@ export default function StoreSettingsScreen() {
                         <Switch
                             value={isManuallyOpen}
                             onValueChange={handleManualToggle}
-                            trackColor={{ false: '#EF4444', true: '#22C55E' }}
+                            trackColor={{ false: '#EF4444', true: '#FF6B35' }}
                             thumbColor="white"
                         />
                     </View>

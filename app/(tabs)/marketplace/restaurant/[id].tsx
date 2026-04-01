@@ -85,7 +85,13 @@ export default function RestaurantDetailScreen() {
             </SafeAreaView>
 
             <View style={[styles.restaurantInfo, isLargeScreen && styles.restaurantInfoDesktop]}>
-                <View style={[styles.logoContainer, { backgroundColor: tc.bgCard }]}>
+                <View style={[
+                    styles.logoContainer, 
+                    { backgroundColor: tc.bgCard },
+                    Platform.OS === 'web' 
+                        ? { boxShadow: '0px 8px 24px rgba(0,0,0,0.15)' } as any 
+                        : { elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 }
+                ]}>
                     <Image
                         source={{ uri: selectedBusiness?.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop' }}
                         style={styles.logo}
@@ -209,7 +215,11 @@ export default function RestaurantDetailScreen() {
 
                     {/* Sidebar Cart for XL Screens */}
                     {isLargeScreen && (
-                        <View style={[styles.sidebarCart, { backgroundColor: tc.bgCard, borderLeftColor: tc.borderLight, borderColor: tc.borderLight }]}>
+                        <View style={[
+                            styles.sidebarCart, 
+                            { backgroundColor: tc.bgCard, borderLeftColor: tc.borderLight, borderColor: tc.borderLight },
+                            Platform.OS === 'web' ? { position: 'sticky', top: 24 } as any : { top: 0 }
+                        ]}>
                             <View style={[styles.cartHeader, { borderBottomColor: tc.borderLight }]}>
                                 <Text style={[styles.cartTitle, { color: tc.text }]}>Tu Pedido</Text>
                                 <Text style={[styles.cartSubtitle, { color: tc.textMuted }]}>La Parrilla Gourmet</Text>
@@ -287,12 +297,11 @@ const styles = StyleSheet.create({
     },
     sidebarCart: {
         width: 350, // slightly thinner list
-        height: 'min-content', 
+        height: 'auto', 
         maxHeight: 700, // Limit height
         borderWidth: 1,
         borderRadius: 16,
         overflow: 'hidden',
-        ...(Platform.OS === 'web' ? { position: 'sticky', top: 24 } : { top: 0 })
     },
     headerContainer: {
         height: 320,
@@ -362,7 +371,6 @@ const styles = StyleSheet.create({
         height: 104,
         borderRadius: 20,
         padding: 4,
-        ...(Platform.OS === 'web' ? { boxShadow: '0px 8px 24px rgba(0,0,0,0.15)' } : { elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 }),
     },
     logo: {
         width: '100%',
