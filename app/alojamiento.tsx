@@ -20,6 +20,7 @@ import colors from '../constants/colors';
 import { showAlert } from '../utils/alert';
 import { useListingStore } from '../stores/listingStore';
 import type { Listing } from '../stores/listingStore';
+import { AppHeader } from '../components/ui/AppHeader';
 
 const renderIcon = (Icon: any, size: number, color: string) => <Icon size={size} color={color} />;
 
@@ -610,16 +611,10 @@ export default function AlojamientoScreen() {
             {isDesktop && <DesktopSidebar tc={tc} />}
 
             <SafeAreaView style={s.mainArea} edges={isDesktop ? [] : ['top']}>
-                {/* Header */}
-                <View style={[s.header, { borderBottomColor: tc.borderLight, backgroundColor: tc.bg }]}>
-                    {!isDesktop && (
-                        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-                            <ArrowLeft size={24} color={tc.text} />
-                        </TouchableOpacity>
-                    )}
-                    <Text style={[s.headerTitle, { color: tc.text }]}>Alojamientos</Text>
-                    <View style={{ width: isDesktop ? 0 : 40 }} />
-                </View>
+                <AppHeader
+                    title="Alojamientos"
+                    leftIcon="back"
+                />
 
                 <ScrollView
                     contentContainerStyle={[

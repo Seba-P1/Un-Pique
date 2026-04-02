@@ -46,7 +46,10 @@ const NAV_ITEMS = [
 ];
 
 const EXTRA_ITEMS_BASE = [
+    { key: 'pedidos', label: 'Mis Pedidos', icon: ShoppingBag, route: '/pedidos' },
+    { key: 'direcciones', label: 'Mis Direcciones', icon: MapPin, route: '/direcciones' },
     { key: 'alojamiento', label: 'Alojamientos', icon: Hotel, route: '/alojamiento' },
+    { key: 'configuracion', label: 'Configuración', icon: Settings, route: '/configuracion' },
 ];
 
 function getExtraItems(roles: string[] = []) {
@@ -205,18 +208,25 @@ function DesktopSidebar() {
 function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => void }) {
     const tc = useThemeColors();
     const router = useRouter();
+    const pathname = usePathname();
     const { theme, toggleTheme } = useThemeStore();
     const { signOut, profile } = useAuthStore();
+    const insets = useSafeAreaInsets();
 
     const logoSource = theme === 'dark'
         ? require('../../public/logo_unpique-mododark.svg')
         : require('../../public/logo_unpique-modoclaro.svg');
 
+    const isActive = (key: string) => {
+        if (key === 'index') return pathname === '/' || pathname === '/index';
+        return pathname.includes(key);
+    };
+
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
             <View style={styles.drawerOverlay}>
                 <TouchableOpacity style={styles.drawerOverlayBg} activeOpacity={1} onPress={onClose} />
-                <View style={[styles.drawerPanel, { backgroundColor: tc.bgCard }]}>
+                <View style={[styles.drawerPanel, { backgroundColor: tc.bgCard, paddingBottom: Math.max(insets.bottom, 16) }]}>
                     {/* Logo Area - Maximized */}
                     <View style={styles.drawerLogoArea}>
                         <View style={styles.drawerLogoWrapper}>
@@ -228,18 +238,53 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
                     </View>
 
                     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-                        {/* Only show items NOT accessible from bottom tabs */}
-                        <Text style={[styles.drawerSectionTitle, { color: tc.textMuted }]}>ACCESOS RÁPIDOS</Text>
-                        {getExtraItems(profile?.roles).map((item) => (
-                            <TouchableOpacity
-                                key={item.key}
-                                style={styles.drawerItem}
-                                onPress={() => { onClose(); router.push(item.route as any); }}
-                            >
-                                <item.icon size={18} color={tc.textSecondary} strokeWidth={1.8} />
-                                <Text style={[styles.drawerItemLabel, { color: tc.text }]}>{item.label}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {/* Menú Section */}
+                        <Text style={[styles.drawerSectionTitle, { color: tc.textMuted }]}>MENÚ</Text>
+                        {NAV_ITEMS.map((item) => {
+                            const active = isActive(item.key);
+                            return (
+                                <TouchableOpacity
+                                    key={item.key}
+                                    style={[
+                                        styles.drawerItem,
+                                        active && { backgroundColor: tc.bgHover }
+                                    ]}
+                                    onPress={() => { onClose(); router.push(item.route as any); }}
+                                >
+                                    <item.icon size={18} color={active ? tc.primary : tc.textSecondary} strokeWidth={active ? 2.2 : 1.8} />
+                                    <Text style={[
+                                        styles.drawerItemLabel, 
+                                        { color: active ? tc.primary : tc.text },
+                                        active && { fontWeight: '700' }
+                                    ]}>{item.label}</Text>
+                                    {active && <View style={[styles.activeIndicator, { backgroundColor: tc.primary, marginLeft: 'auto' }]} />}
+                                </TouchableOpacity>
+                            );
+                        })}
+
+                        {/* Extra Items Section */}
+                        <Text style={[styles.drawerSectionTitle, { color: tc.textMuted, marginTop: 16 }]}>MÁS OPCIONES</Text>
+                        {getExtraItems(profile?.roles).map((item) => {
+                            const active = isActive(item.key);
+                            return (
+                                <TouchableOpacity
+                                    key={item.key}
+                                    style={[
+                                        styles.drawerItem,
+                                        active && { backgroundColor: tc.bgHover }
+                                    ]}
+                                    onPress={() => { onClose(); router.push(item.route as any); }}
+                                >
+                                    <item.icon size={18} color={active ? tc.primary : tc.textSecondary} strokeWidth={active ? 2.2 : 1.8} />
+                                    <Text style={[
+                                        styles.drawerItemLabel, 
+                                        { color: active ? tc.primary : tc.text },
+                                        active && { fontWeight: '700' }
+                                    ]}>{item.label}</Text>
+                                    {active && <View style={[styles.activeIndicator, { backgroundColor: tc.primary, marginLeft: 'auto' }]} />}
+                                </TouchableOpacity>
+                            );
+                        })}
                     </ScrollView>
 
                     {/* Footer */}
@@ -291,13 +336,24 @@ export default function TabsLayout() {
                             : {
                                 backgroundColor: tc.tabBarBg,
                                 borderTopWidth: 0,
-                                height: Platform.OS === 'ios' ? 76 : 60 + insets.bottom,
-                                paddingBottom: Platform.OS === 'ios' ? 24 : insets.bottom + 6,
-                                paddingTop: 8,
+                                height: 52 + Math.max(insets.bottom, 0),
+                                paddingBottom: Math.max(insets.bottom, 0),
+                                paddingTop: 0,
                                 ...(Platform.OS === 'web' ? { boxShadow: '0px -1px 16px rgba(0,0,0,0.08)' } : {}),
                                 elevation: 8,
                             },
-                        tabBarLabelStyle: styles.tabBarLabel,
+                        tabBarItemStyle: {
+                            paddingTop: 6,
+                            paddingBottom: 4,
+                            height: 52,
+                            justifyContent: 'center',
+                        },
+                        tabBarLabelStyle: {
+                            fontSize: 9,
+                            fontWeight: '700',
+                            marginTop: 2,
+                            letterSpacing: -0.1,
+                        },
                         tabBarIconStyle: { marginBottom: 0 },
                         headerShown: false,
                     }}

@@ -4,7 +4,9 @@ import { X, Minus, Plus } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { Button } from '../ui';
 import { useCartStore } from '../../stores/cartStore';
+import { useBusinessStore } from '../../stores/businessStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { TextInput } from 'react-native';
 
 
 interface Product {
@@ -25,6 +27,7 @@ interface ProductModalProps {
 
 export const ProductModal = ({ visible, onClose, product, businessId, businessName }: ProductModalProps) => {
     const [quantity, setQuantity] = useState(1);
+    const [note, setNote] = useState('');
     const { addItem } = useCartStore();
     const tc = useThemeColors();
     const { width } = useWindowDimensions();
@@ -43,9 +46,11 @@ export const ProductModal = ({ visible, onClose, product, businessId, businessNa
             businessName,
             quantity,
             unitPrice: product.price,
-            options: {}, // Placeholder for future options
-        });
+            note: note.trim() || undefined,
+        }, useBusinessStore.getState().selectedBusiness?.delivery_fee || 0);
+        
         setQuantity(1);
+        setNote('');
         onClose();
         alert(`${product.name} agregado al carrito`);
     };
@@ -82,24 +87,17 @@ export const ProductModal = ({ visible, onClose, product, businessId, businessNa
 
                             <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
 
-                            {/* Section: Options Simulator */}
-                            <Text style={[styles.sectionTitle, { color: tc.text }]}>Opciones (Simulado)</Text>
-                            <View style={styles.optionRow}>
-                                <Text style={[styles.optionText, { color: tc.textSecondary }]}>Salsa extra</Text>
-                                <View style={[styles.radio, { borderColor: tc.textMuted }]} />
-                            </View>
-                            <View style={styles.optionRow}>
-                                <Text style={[styles.optionText, { color: tc.textSecondary }]}>Sin cebolla</Text>
-                                <View style={[styles.checkbox, { borderColor: tc.textMuted }]} />
-                            </View>
-
-                            <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
-
                             {/* Section: Clarifications */}
                             <Text style={[styles.sectionTitle, { color: tc.text }]}>Aclaraciones</Text>
-                            <View style={[styles.inputPlaceholder, { backgroundColor: tc.bgInput }]}>
-                                <Text style={[styles.placeholderText, { color: tc.textMuted }]}>Escribí acá si tenés alguna indicación...</Text>
-                            </View>
+                            <TextInput
+                                style={[styles.inputPlaceholder, { backgroundColor: tc.bgInput, color: tc.text, textAlignVertical: 'top' }]}
+                                placeholder="Escribí acá si tenés alguna indicación..."
+                                placeholderTextColor={tc.textMuted}
+                                value={note}
+                                onChangeText={setNote}
+                                multiline
+                                numberOfLines={3}
+                            />
                             </View>
                         </View>
                     </ScrollView>
@@ -204,36 +202,13 @@ const styles = StyleSheet.create({
         color: colors.gray[900],
         marginBottom: 16,
     },
-    optionRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    optionText: {
-        fontFamily: 'Nunito Sans',
-        fontSize: 16,
-        color: colors.gray[700],
-    },
-    radio: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        borderWidth: 2,
-        borderColor: colors.gray[400],
-    },
-    checkbox: {
-        width: 20,
-        height: 20,
-        borderRadius: 4,
-        borderWidth: 2,
-        borderColor: colors.gray[400],
-    },
     inputPlaceholder: {
         backgroundColor: colors.gray[50],
         padding: 16,
         borderRadius: 12,
-        height: 80,
+        minHeight: 80,
+        fontFamily: 'Nunito Sans',
+        fontSize: 15,
     },
     placeholderText: {
         fontFamily: 'Nunito Sans',

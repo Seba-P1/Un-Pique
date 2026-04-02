@@ -10,48 +10,43 @@ import { useCartStore } from '../../stores/cartStore';
 import { useBusinessStore } from '../../stores/businessStore';
 import { useProductStore } from '../../stores/productStore';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { useBusinessDetail } from '../../hooks/useBusinesses';
 import BusinessMap from '../../components/shop/BusinessMap';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { checkIsBusinessOpen, getFormattedScheduleList } from '../../utils/schedule';
 
 const HEADER_HEIGHT = 280;
 
-const MOCK_BUSINESSES: Record<string, any> = {
-    '1': { id: '1', name: 'Café Central', slug: 'cafe-central', description: 'El mejor café de la ciudad con ambiente acogedor y granos seleccionados de origen local.', logo_url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=200&q=60', cover_url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=900&q=80', category: 'Café', rating: 4.7, reviews_count: 124, delivery_time: '20-30 min', is_open: true, address: 'Plaza 25 de Mayo' },
-    '2': { id: '2', name: 'Heladería Fri', slug: 'heladeria-fri', description: 'Helado artesanal con sabores únicos hechos con ingredientes naturales.', logo_url: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=200&q=60', cover_url: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=900&q=80', category: 'Heladería', rating: 4.9, reviews_count: 89, delivery_time: '15-25 min', is_open: true, address: 'Av. Libertador 220' },
-    default: { id: '0', name: 'Comercio Demo', slug: 'demo', description: 'Este es un comercio de demostración para explorar la plataforma.', logo_url: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&q=60', cover_url: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=900&q=80', category: 'General', rating: 4.5, reviews_count: 45, delivery_time: '25-40 min', is_open: true, address: 'Centro' },
-};
-
-const MOCK_PRODUCTS = [
-    { id: 'p1', business_id: '1', category_id: 'general', options: {}, name: 'Producto de ejemplo 1', description: 'Descripción del producto de ejemplo uno', price: 2500, image_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&q=60', is_available: true },
-    { id: 'p2', business_id: '1', category_id: 'general', options: {}, name: 'Producto de ejemplo 2', description: 'Descripción del producto de ejemplo dos', price: 3200, image_url: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=300&q=60', is_available: true },
-    { id: 'p3', business_id: '1', category_id: 'general', options: {}, name: 'Producto de ejemplo 3', description: 'Descripción del producto de ejemplo tres', price: 1800, image_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=60', is_available: true },
-];
-
 export default function BusinessDetailScreen() {
-    const { id } = useLocalSearchParams();
+    const { slug } = useLocalSearchParams();
     const router = useRouter();
     const tc = useThemeColors();
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
-    const { data: remoteBusiness, isLoading: loading } = useBusinessDetail(id as string);
-    const { products: remoteProducts, fetchProducts } = useProductStore();
+    
+    const { selectedBusiness: business, loading: loadingBusiness, fetchBusinessBySlug } = useBusinessStore();
+    const { products, fetchProducts } = useProductStore();
+    
     const [activeTab, setActiveTab] = useState('menu');
     const scrollY = useRef(new Animated.Value(0)).current;
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const { items } = useCartStore();
 
-    const business = remoteBusiness || MOCK_BUSINESSES[id as string] || MOCK_BUSINESSES['default'];
-    const products = remoteProducts.length > 0 ? remoteProducts : MOCK_PRODUCTS;
-    const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
-    const isOpen = business.is_open && checkIsBusinessOpen(business.schedule);
-    const scheduleList = getFormattedScheduleList(business.schedule);
+    useEffect(() => {
+        if (slug) {
+            fetchBusinessBySlug(slug as string);
+        }
+    }, [slug]);
 
     useEffect(() => {
-        if (remoteBusiness?.id) fetchProducts(remoteBusiness.id);
-    }, [remoteBusiness]);
+        if (business?.id) {
+            fetchProducts(business.id);
+        }
+    }, [business?.id]);
+
+    const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+    const isOpen = business?.is_open && checkIsBusinessOpen(business?.schedule);
+    const scheduleList = business ? getFormattedScheduleList(business.schedule) : [];
 
     const handleProductPress = (product: any) => {
         setSelectedProduct(product);
@@ -61,6 +56,7 @@ export default function BusinessDetailScreen() {
     const handleSearch = () => Alert.alert('Buscar', 'Función de búsqueda de productos próximamente.');
     const handleFavorite = () => Alert.alert('Favoritos', 'Añadido a tus favoritos (Próximamente).');
     const handleShare = async () => {
+        if (!business) return;
         try {
             await Share.share({ message: `¡Mira este lugar en Un Pique!\n${business.name} - ${business.description}` });
         } catch (error) {
@@ -68,7 +64,7 @@ export default function BusinessDetailScreen() {
         }
     };
 
-    if (loading && !business) {
+    if (loadingBusiness) {
         return (
             <View style={[styles.container, { backgroundColor: tc.bg }]}>
                 <Skeleton height={HEADER_HEIGHT} borderRadius={0} />
@@ -76,6 +72,19 @@ export default function BusinessDetailScreen() {
                     <Skeleton width={200} height={24} style={{ marginBottom: 10 }} />
                     <Skeleton width={120} height={16} />
                 </View>
+            </View>
+        );
+    }
+
+    if (!business) {
+        return (
+            <View style={[styles.container, { backgroundColor: tc.bg, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ fontFamily: 'Nunito Sans', fontSize: 18, fontWeight: 'bold', color: tc.text }}>
+                    Negocio no encontrado
+                </Text>
+                <TouchableOpacity style={{ marginTop: 20, padding: 10, backgroundColor: colors.primary.DEFAULT, borderRadius: 8 }} onPress={() => router.back()}>
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Volver atrás</Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -152,16 +161,12 @@ export default function BusinessDetailScreen() {
                                 <View style={styles.statsRow}>
                                     <View style={[styles.stat, { backgroundColor: tc.bgHover }]}>
                                         <Star size={14} color={colors.warning} fill={colors.warning} />
-                                        <Text style={[styles.statText, { color: tc.text }]}>{business.rating}</Text>
-                                        <Text style={[styles.statCount, { color: tc.textMuted }]}>({business.reviews_count || 0})</Text>
-                                    </View>
-                                    <View style={[styles.stat, { backgroundColor: tc.bgHover }]}>
-                                        <Clock size={14} color={tc.textSecondary} />
-                                        <Text style={[styles.statText, { color: tc.text }]}>{business.delivery_time}</Text>
-                                    </View>
-                                    <View style={[styles.stat, { backgroundColor: tc.bgHover }]}>
-                                        <MapPin size={14} color={colors.primary.DEFAULT} />
-                                        <Text style={[styles.statText, { color: tc.text }]}>1.2 km</Text>
+                                        <Text style={[styles.statText, { color: tc.text }]}>
+                                            {typeof business.rating === 'number' ? business.rating.toFixed(1) : parseFloat(String(business.rating || 0)).toFixed(1)}
+                                        </Text>
+                                        <Text style={[styles.statCount, { color: tc.textMuted }]}>
+                                            ({(business as any).total_reviews || 0})
+                                        </Text>
                                     </View>
                                 </View>
                             </View>
@@ -215,7 +220,7 @@ export default function BusinessDetailScreen() {
                             <View style={{ paddingBottom: 24 }}>
                                 <Text style={[styles.sectionTitle, { color: tc.text }]}>Ubicación</Text>
                                 <View style={[styles.mapContainer, { borderColor: tc.borderLight }]}>
-                                    <BusinessMap latitude={business.latitude} longitude={business.longitude} name={business.name} address={business.address} />
+                                    <BusinessMap latitude={business.latitude || Number(0)} longitude={business.longitude || Number(0)} name={business.name} address={business.address} />
                                 </View>
                                 <View style={styles.addressRow}>
                                     <MapPin size={22} color={colors.primary.DEFAULT} />
@@ -252,7 +257,7 @@ export default function BusinessDetailScreen() {
             </Animated.ScrollView>
 
             {/* Product Modal */}
-            <ProductModal visible={modalVisible} onClose={() => setModalVisible(false)} product={selectedProduct} businessId={(id as string) || '1'} businessName={business.name} />
+            <ProductModal visible={modalVisible} onClose={() => setModalVisible(false)} product={selectedProduct} businessId={(slug as string) || '1'} businessName={business.name} />
 
             {/* Floating Cart Button (PedidosYa Style) */}
             <View style={[styles.floatingCartWrapper, isDesktop && { alignItems: 'center', right: 0 }, { pointerEvents: 'box-none' }]} >
@@ -315,7 +320,7 @@ const styles = StyleSheet.create({
     openBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
     openBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800', fontFamily: 'Nunito Sans', textTransform: 'uppercase' },
     floatingCartWrapper: { position: 'absolute', bottom: Platform.OS === 'ios' ? 32 : 24, left: 16, right: 16, alignItems: 'center', zIndex: 100 },
-    floatingCartPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 50, borderRadius: 25, width: '100%', maxWidth: 400, boxShadow: '0px 4px 12px rgba(0,0,0,0.1)', /* shadowColor:  */ },
+    floatingCartPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 50, borderRadius: 25, width: '100%', maxWidth: 400, boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' },
     floatingPillText: { fontFamily: 'Nunito Sans', fontSize: 16, fontWeight: '700', color: '#fff' },
     floatingBadge: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 12, minWidth: 26, height: 26, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
     floatingBadgeText: { fontFamily: 'Nunito Sans', fontSize: 13, fontWeight: '800', color: '#fff' },

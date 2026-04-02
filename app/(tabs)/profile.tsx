@@ -17,8 +17,8 @@ import { showAlert } from '../../utils/alert';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOpenMobileDrawer } from './_layout';
 import { formatDistanceToNow, format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { glassStyle } from '../../utils/glass';
+import { AppHeader } from '../../components/ui/AppHeader';
 
 type ProfileView = 'wall' | 'settings';
 
@@ -73,32 +73,11 @@ export default function ProfileScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: tc.bg }]}>
-            <View style={[
-                styles.header,
-                { borderBottomColor: tc.borderLight },
-                scrolledY > 10
-                    ? [styles.headerScrolled, glassStyle(tc.bgCard, 0.92, 14)]
-                    : { backgroundColor: 'transparent' }
-            ]}>
-                <View style={styles.headerLeft}>
-                    {!isDesktop && (
-                        <TouchableOpacity style={styles.menuButton} onPress={() => openDrawer?.()}>
-                            <Menu size={22} color={tc.text} />
-                        </TouchableOpacity>
-                    )}
-                    <Text style={[styles.headerTitle, { color: tc.text }]}>Mi Perfil</Text>
-                </View>
-                <View style={styles.headerRight}>
-                    <View style={[styles.premiumBadge, { backgroundColor: 'rgba(249, 115, 22, 0.1)', borderColor: 'rgba(249, 115, 22, 0.2)' }]}>
-                        <View style={[styles.premiumDot, { backgroundColor: colors.primary.DEFAULT }]} />
-                        <Text style={[styles.premiumText, { color: colors.primary.DEFAULT }]}>PREMIUM</Text>
-                    </View>
-                    <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/notifications' as any)}>
-                        <Bell size={22} color={tc.textMuted} />
-                        <View style={styles.notificationDot} />
-                    </TouchableOpacity>
-                </View>
-            </View>
+            <AppHeader
+                title="Mi Perfil"
+                leftIcon="menu"
+                rightButtons={['notifications']}
+            />
 
             <ScrollView
                 showsVerticalScrollIndicator={false}

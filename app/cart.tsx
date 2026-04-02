@@ -23,7 +23,7 @@ export default function CartScreen() {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
 
-    const { items, businessName, subtotal, itemCount, updateQuantity, removeItem, clearCart } = useCartStore();
+    const { items, businessName, subtotal, itemCount, updateQuantity, removeItem, clearCart, businessDeliveryFee } = useCartStore();
     const [step, setStep] = useState<CheckoutStep>('cart');
     const [promoCode, setPromoCode] = useState('');
     const [promoApplied, setPromoApplied] = useState(false);
@@ -32,7 +32,7 @@ export default function CartScreen() {
     const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
     const [orderPlaced, setOrderPlaced] = useState(false);
 
-    const deliveryFee = deliveryType === 'delivery' ? 500 : 0;
+    const deliveryFee = deliveryType === 'delivery' ? businessDeliveryFee : 0;
     const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
     const total = subtotal - discount + deliveryFee;
 
@@ -213,7 +213,7 @@ export default function CartScreen() {
                                     {dt === 'delivery' ? <Truck size={22} color={deliveryType === dt ? colors.primary.DEFAULT : tc.textMuted} /> : <ShoppingCart size={22} color={deliveryType === dt ? colors.primary.DEFAULT : tc.textMuted} />}
                                     <View style={{ flex: 1 }}>
                                         <Text style={[styles.optionTitle, { color: tc.text }]}>{dt === 'delivery' ? 'Delivery' : 'Retiro en local'}</Text>
-                                        <Text style={[styles.optionSub, { color: tc.textMuted }]}>{dt === 'delivery' ? `$${deliveryFee} · 30-45 min` : 'Gratis · 15-20 min'}</Text>
+                                        <Text style={[styles.optionSub, { color: tc.textMuted }]}>{dt === 'delivery' ? `${businessDeliveryFee > 0 ? `$${businessDeliveryFee}` : 'Gratis'} · 30-45 min` : 'Gratis · 15-20 min'}</Text>
                                     </View>
                                     <View style={[styles.radio, { borderColor: deliveryType === dt ? colors.primary.DEFAULT : tc.borderLight }]}>
                                         {deliveryType === dt && <View style={[styles.radioInner, { backgroundColor: colors.primary.DEFAULT }]} />}

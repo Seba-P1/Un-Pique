@@ -12,7 +12,7 @@ import {
     Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, SlidersHorizontal, UtensilsCrossed } from 'lucide-react-native';
+import { Search, SlidersHorizontal, UtensilsCrossed, Heart, Bell, ShoppingCart, X } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
 import { BusinessCard, CategoriesGrid } from '../../../components/delivery';
 import { BusinessFeed } from '../../../components/home/BusinessFeed';
@@ -21,6 +21,9 @@ import { useFavoritesStore } from '../../../stores/favoritesStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { glassStyle } from '../../../utils/glass';
+import { useRouter } from 'expo-router';
+import { useCartStore } from '../../../stores/cartStore';
+import { AppHeader } from '../../../components/ui/AppHeader';
 
 
 export default function DeliveryScreen() {
@@ -29,10 +32,13 @@ export default function DeliveryScreen() {
     const { fetchFavorites } = useFavoritesStore();
     const { user } = useAuthStore();
     const { width } = useWindowDimensions();
+    const router = useRouter();
+    const { itemCount } = useCartStore();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [showFilters, setShowFilters] = useState(false);
+    const [showInlineSearch, setShowInlineSearch] = useState(false);
 
     // Scroll animation for header shadow
     const scrollY = useRef(new Animated.Value(0)).current;
@@ -87,47 +93,14 @@ export default function DeliveryScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={isDesktop ? [] : ['top']}>
-            {/* Animated Header */}
-            <Animated.View style={[
-                styles.headerWrapper,
-                glassStyle(tc.bgCard, 0.75, 16),
-                {
-                    ...(Platform.OS === 'web'
-                        ? {
-                            // Using standard style property for web via cast, or a wrapper technique.
-                            // However, we can simply apply borderBottomColor with opacity instead, or box-shadow via standard style
-                            borderBottomWidth: headerShadowOpacity.interpolate({
-                                inputRange: [0, 0.15],
-                                outputRange: [0, 1]
-                            }),
-                            borderBottomColor: tc.borderLight
-                        }
-                        : {
-                            elevation: headerShadowOpacity.interpolate({
-                                inputRange: [0, 0.15],
-                                outputRange: [0, 5]
-                            }),
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: headerShadowOpacity,
-                            shadowRadius: 10,
-                        })
-                }
-            ]}>
-                <View style={[styles.centeredContent, isDesktop && { maxWidth: 900 }]}>
-                    <View style={styles.header}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <View style={styles.brandIcon}>
-                                <UtensilsCrossed size={18} color="#fff" />
-                            </View>
-                            <View>
-                                <Text style={[styles.headerLabel, { color: tc.textMuted }]}>SABOR LOCAL</Text>
-                                <Text style={[styles.headerTitle, { color: tc.text }]}>Delivery y comida</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-            </Animated.View>
+            <AppHeader
+                subtitle="SABOR LOCAL"
+                title="Delivery y comida"
+                leftIcon="menu"
+                rightButtons={['search', 'cart', 'favorites']}
+                onSearch={setSearchQuery}
+                searchPlaceholder="Buscar restaurantes..."
+            />
 
             {/* Business List */}
             {loading ? (
@@ -156,27 +129,6 @@ export default function DeliveryScreen() {
                     scrollEventThrottle={16}
                     ListHeaderComponent={
                         <View style={[styles.centeredContent, { width: '100%' }, isDesktop && { maxWidth: 900, alignSelf: 'center' }]}>
-                            {/* Search & Filter */}
-                            <View style={styles.searchRow}>
-                                <View style={[styles.searchBar, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}>
-                                    <Search size={20} color={tc.textMuted} />
-                                    <TextInput
-                                        style={[styles.searchInput, { color: tc.text }]}
-                                        placeholder="Buscar restaurantes..."
-                                        placeholderTextColor={tc.textMuted}
-                                        value={searchQuery}
-                                        onChangeText={setSearchQuery}
-                                    />
-                                </View>
-                                <TouchableOpacity
-                                    style={[styles.filterButton, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
-                                    onPress={() => setShowFilters(!showFilters)}
-                                    activeOpacity={0.7}
-                                >
-                                    <SlidersHorizontal size={22} color={tc.icon} />
-                                </TouchableOpacity>
-                            </View>
-
                             {/* Categories */}
                             <CategoriesGrid
                                 selectedCategory={selectedCategory}
@@ -247,6 +199,52 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 16,
         fontWeight: '800',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    headerActionBtn: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+    },
+    cartBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#FF6B35',
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        borderWidth: 1.5,
+        borderColor: '#fff',
+    },
+    cartBadgeText: {
+        color: '#ffffff',
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    inlineSearchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderTopWidth: 1,
+    },
+    inlineSearchInput: {
+        flex: 1,
+        marginLeft: 10,
+        fontSize: 15,
+        fontFamily: 'Nunito Sans',
     },
     searchRow: {
         flexDirection: 'row',

@@ -14,6 +14,7 @@ export interface CartItem {
     quantity: number;
     unitPrice: number;
     options?: Record<string, any>;
+    note?: string;
 }
 
 // Cart state interface
@@ -21,13 +22,14 @@ interface CartState {
     items: CartItem[];
     businessId: string | null;
     businessName: string | null;
+    businessDeliveryFee: number;
 
     // Computed values
     itemCount: number;
     subtotal: number;
 
     // Actions
-    addItem: (item: Omit<CartItem, 'id'>) => void;
+    addItem: (item: Omit<CartItem, 'id'>, deliveryFee?: number) => void;
     removeItem: (itemId: string) => void;
     updateQuantity: (itemId: string, quantity: number) => void;
     clearCart: () => void;
@@ -41,10 +43,11 @@ export const useCartStore = create<CartState>()(
             items: [],
             businessId: null,
             businessName: null,
+            businessDeliveryFee: 0,
             itemCount: 0,
             subtotal: 0,
 
-            addItem: (item) => {
+            addItem: (item, deliveryFee = 0) => {
                 const currentItems = get().items;
                 const currentBusinessId = get().businessId;
 
@@ -54,12 +57,16 @@ export const useCartStore = create<CartState>()(
                         items: [],
                         businessId: item.businessId,
                         businessName: item.businessName,
+                        businessDeliveryFee: deliveryFee,
                     });
+                } else if (!currentBusinessId) {
+                    set({ businessDeliveryFee: deliveryFee });
                 }
 
-                // Check if item already exists (same product + options)
+                // Check if item already exists (same product + options + note)
                 const existingIndex = currentItems.findIndex(
                     (i) => i.productId === item.productId &&
+                        i.note === item.note &&
                         JSON.stringify(i.options) === JSON.stringify(item.options)
                 );
 
@@ -101,6 +108,7 @@ export const useCartStore = create<CartState>()(
                     itemCount,
                     businessId: newItems.length === 0 ? null : get().businessId,
                     businessName: newItems.length === 0 ? null : get().businessName,
+                    businessDeliveryFee: newItems.length === 0 ? 0 : get().businessDeliveryFee,
                 });
             },
 
@@ -124,6 +132,7 @@ export const useCartStore = create<CartState>()(
                     items: [],
                     businessId: null,
                     businessName: null,
+                    businessDeliveryFee: 0,
                     subtotal: 0,
                     itemCount: 0,
                 });

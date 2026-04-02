@@ -17,6 +17,7 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { useRouter } from 'expo-router';
 import { showAlert } from '../../utils/alert';
 import { openMobileDrawer } from './_layout';
+import { AppHeader } from '../../components/ui/AppHeader';
 import { glassStyle } from '../../utils/glass';
 
 // Mock search data
@@ -78,10 +79,11 @@ export default function HomeScreen() {
         showAlert(item.name, `Navegando a ${item.name} (${item.type}). Conectar con datos reales próximamente.`);
     };
 
-    const handleSearchSubmit = () => {
-        if (searchText.trim()) {
+    const handleSearchSubmit = (query?: string) => {
+        const q = query || searchText.trim();
+        if (q) {
             setShowSearchResults(false);
-            router.push(`/search?q=${encodeURIComponent(searchText.trim())}` as any);
+            router.push(`/search?q=${encodeURIComponent(q)}` as any);
             setSearchText('');
         }
     };
@@ -99,126 +101,14 @@ export default function HomeScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
-            {/* Header */}
-            <Animated.View style={[styles.header, glassStyle(tc.bg, 0.8, 14), {
-                borderBottomColor: tc.borderLight,
-                borderBottomWidth: headerShadowOpacity.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 1]
-                }),
-                ...(Platform.OS === 'web' ? {
-                    boxShadow: headerShadowOpacity.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0px 0px 0px rgba(0,0,0,0)', '0px 4px 12px rgba(0,0,0,0.08)']
-                    }) as any
-                } : {
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: headerShadowOpacity.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 0.1]
-                    }),
-                    shadowRadius: headerShadowOpacity.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 12]
-                    }),
-                    elevation: headerShadowOpacity.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 8]
-                    }),
-                })
-            }]}>
-                {/* Mobile: Hamburger + Pin | Desktop: just Pin */}
-                <View style={styles.headerLeft}>
-                    {/* Hamburger on mobile */}
-                    {!isDesktop && (
-                        <TouchableOpacity
-                            style={[styles.hamburgerBtn, { backgroundColor: tc.bgCard }]}
-                            onPress={() => openMobileDrawer()}
-                            activeOpacity={0.7}
-                        >
-                            <Menu size={20} color={tc.text} />
-                        </TouchableOpacity>
-                    )}
-
-                    {/* Premium Pin */}
-                    <TouchableOpacity
-                        style={styles.pinTouchable}
-                        onPress={() => setLocationPickerVisible(true)}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.pinOuter}>
-                            <View style={styles.pinInner}>
-                                <MapPin size={20} color="#fff" />
-                            </View>
-                        </View>
-                        <View>
-                            <Text style={[styles.headerSubtitle, { color: tc.textMuted }]}>Explorando en</Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Text style={[styles.headerTitle, { color: tc.text }]}>{currentLocality?.name || 'Cargando...'}</Text>
-                                <ChevronDown size={14} color={tc.textMuted} />
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Search con dropdown */}
-                <View style={styles.searchWrapper}>
-                    <View style={[styles.headerSearchBar, { backgroundColor: tc.bgInput }]}>
-                        <Search size={16} color={tc.textMuted} />
-                        <TextInput
-                            ref={searchRef}
-                            style={[styles.headerSearchInput, { color: tc.text }]}
-                            placeholder="Buscar negocios, servicios..."
-                            placeholderTextColor={tc.textMuted}
-                            value={searchText}
-                            onChangeText={(t) => { setSearchText(t); setShowSearchResults(t.length > 0); }}
-                            onSubmitEditing={handleSearchSubmit}
-                            onFocus={() => searchText.length > 0 && setShowSearchResults(true)}
-                            returnKeyType="search"
-                        />
-                        {searchText.length > 0 && (
-                            <TouchableOpacity onPress={() => { setSearchText(''); setShowSearchResults(false); }}>
-                                <X size={16} color={tc.textMuted} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-
-                    {/* Dropdown de resultados inline */}
-                    {showSearchResults && (
-                        <View style={[styles.searchDropdown, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                            {filteredResults.length > 0 ? (
-                                filteredResults.slice(0, 6).map((item) => (
-                                    <TouchableOpacity key={item.id} style={styles.searchItem} onPress={() => handleSearchSelect(item)}>
-                                        <Image source={{ uri: item.image }} style={styles.searchItemImg} />
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={[styles.searchItemName, { color: tc.text }]}>{item.name}</Text>
-                                            <Text style={[styles.searchItemType, { color: tc.textMuted }]}>{item.type}</Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))
-                            ) : (
-                                <View style={styles.noResultsRow}>
-                                    <Text style={[styles.noResultsText, { color: tc.textMuted }]}>No hay coincidencias para "{searchText}"</Text>
-                                </View>
-                            )}
-                        </View>
-                    )}
-                </View>
-
-                <View style={styles.headerActions}>
-                    <TouchableOpacity style={[styles.headerIconBtn, { backgroundColor: tc.bgCard }]} onPress={() => setDmVisible(true)}>
-                        <MessageCircle size={20} color={tc.text} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.headerIconBtn, { backgroundColor: tc.bgCard }]} onPress={() => showAlert('Notificaciones', 'No tenés nuevas notificaciones.')}>
-                        <Bell size={20} color={tc.text} />
-                        <View style={[styles.headerBadge, { borderColor: tc.bg }]} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.headerIconBtn, { backgroundColor: tc.bgCard }]} onPress={() => router.push('/cart' as any)}>
-                        <ShoppingCart size={20} color={tc.text} />
-                    </TouchableOpacity>
-                </View>
-            </Animated.View>
+            <AppHeader
+                subtitle="UN PIQUE"
+                title="Explorando"
+                leftIcon="menu"
+                rightButtons={['search', 'notifications']}
+                onSearch={handleSearchSubmit}
+                searchPlaceholder="Buscar negocios, servicios..."
+            />
 
             {/* Overlay para cerrar search dropdown */}
             {showSearchResults && (
