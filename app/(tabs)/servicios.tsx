@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions, TouchableOpacity, Text, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions, TouchableOpacity, Text, Platform, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus } from 'lucide-react-native';
-import { HeaderTypeA } from '../../components/ui/Header';
+import { AppHeader } from '../../components/ui/AppHeader';
 import { ServiceCategories } from '../../components/services/ServiceCategories';
 import { ProfessionalList } from '../../components/services/ProfessionalList';
 import { AdBanner } from '../../components/features/ads/AdBanner';
@@ -10,6 +10,7 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
 import { showAlert } from '../../utils/alert';
 import { useRouter } from 'expo-router';
+import { useRef } from 'react';
 
 export default function ServicesScreen() {
     const tc = useThemeColors();
@@ -17,6 +18,8 @@ export default function ServicesScreen() {
     const isDesktop = width >= 768;
     const { user } = useAuthStore();
     const router = useRouter();
+
+    const scrollY = useRef(new Animated.Value(0)).current;
 
     const handlePublishService = () => {
         if (!user) {
@@ -28,11 +31,24 @@ export default function ServicesScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={isDesktop ? [] : ['top']}>
-            <View style={[styles.centeredHeader, isDesktop && { maxWidth: 900 }]}>
-                <HeaderTypeA title="Servicios" subtitle="Profesionales de tu barrio" />
-            </View>
+            <AppHeader
+                subtitle="SERVICIOS"
+                title="Para tu puerta"
+                leftIcon="menu"
+                rightButtons={['search', 'notifications']}
+                scrollY={scrollY}
+            />
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <Animated.ScrollView 
+                style={styles.content} 
+                showsVerticalScrollIndicator={false} 
+                contentContainerStyle={styles.scrollContent}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false }
+                )}
+                scrollEventThrottle={16}
+            >
                 <View style={[styles.maxContainer, isDesktop && { maxWidth: 900 }]}>
                     <ServiceCategories />
                     
@@ -59,7 +75,7 @@ export default function ServicesScreen() {
                     </View>
                     <ProfessionalList />
                 </View>
-            </ScrollView>
+            </Animated.ScrollView>
 
         </SafeAreaView>
     );

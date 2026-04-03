@@ -28,7 +28,7 @@ const MOCK_PRODUCTS: Record<string, any> = {
             'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80',
             'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=800&q=80',
         ],
-        businessId: 'b1', businessName: 'La Parrilla Gourmet', businessLogo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=100&q=60',
+        businessId: 'b1', businessName: 'La Parrilla Gourmet', businessSlug: 'la-parrilla-gourmet', businessLogo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=100&q=60',
         deliveryFee: 350, deliveryTime: '25-35 min', minOrder: 2000,
         category: 'Hamburguesas', is_available: true,
     },
@@ -39,7 +39,7 @@ const MOCK_PRODUCTS: Record<string, any> = {
             'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80',
             'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80',
         ],
-        businessId: 'b2', businessName: 'Pizzería La Mamma', businessLogo: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=100&q=60',
+        businessId: 'b2', businessName: 'Pizzería La Mamma', businessSlug: 'pizzeria-la-mamma', businessLogo: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=100&q=60',
         deliveryFee: 300, deliveryTime: '30-40 min', minOrder: 1500,
         category: 'Pizzas', is_available: true,
     },
@@ -147,7 +147,7 @@ export default function ProductDetailScreen() {
                     <View style={[styles.infoSection, isDesktop && { flex: 1, paddingLeft: 32 }]}>
                         {/* Business Badge */}
                         <TouchableOpacity style={[styles.businessBadge, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}
-                            onPress={() => router.push(`/shop/${product.businessId}` as any)}>
+                            onPress={() => router.push(`/shop/${product.businessSlug || product.businessId}` as any)}>
                             <Image source={{ uri: product.businessLogo }} style={styles.businessLogo} />
                             <View style={{ flex: 1 }}>
                                 <Text style={[styles.businessName, { color: tc.text }]}>{product.businessName}</Text>

@@ -20,7 +20,7 @@ import {
     Sun,
     ShoppingBag,
     MapPin,
-    Hotel,
+    Building2,
     Store,
     Truck,
     X
@@ -38,7 +38,7 @@ const DESKTOP_BREAKPOINT = 768;
 
 // Navigation items definition
 const NAV_ITEMS = [
-    { key: 'index', label: 'Inicio', icon: Home, route: '/' },
+    { key: 'index', label: 'Inicio', icon: Home, route: '/(tabs)/' },
     { key: 'marketplace', label: 'Sabor Local', icon: UtensilsCrossed, route: '/(tabs)/marketplace' },
     { key: 'servicios', label: 'Servicios', icon: Wrench, route: '/(tabs)/servicios' },
     { key: 'social', label: 'Social', icon: MessageCircle, route: '/(tabs)/social' },
@@ -46,16 +46,16 @@ const NAV_ITEMS = [
 ];
 
 const EXTRA_ITEMS_BASE = [
-    { key: 'pedidos', label: 'Mis Pedidos', icon: ShoppingBag, route: '/pedidos' },
-    { key: 'direcciones', label: 'Mis Direcciones', icon: MapPin, route: '/direcciones' },
-    { key: 'alojamiento', label: 'Alojamientos', icon: Hotel, route: '/alojamiento' },
-    { key: 'configuracion', label: 'Configuración', icon: Settings, route: '/configuracion' },
+    { key: 'pedidos', label: 'Mis Pedidos', icon: ShoppingBag, route: '/orders' },
+    { key: 'direcciones', label: 'Mis Direcciones', icon: MapPin, route: '/addresses' },
+    { key: 'alojamiento', label: 'Alojamientos', icon: Building2, route: '/alojamiento' },
+    { key: 'configuracion', label: 'Configuración', icon: Settings, route: '/settings' },
 ];
 
 function getExtraItems(roles: string[] = []) {
     const items = [...EXTRA_ITEMS_BASE];
     if (roles.includes('business_owner')) {
-        items.push({ key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business/dashboard' });
+        items.push({ key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business' });
     }
     if (roles.includes('delivery_driver')) {
         items.push({ key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Truck, route: '/driver' });

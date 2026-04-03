@@ -6,8 +6,8 @@ import colors from '../../../constants/colors';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 
 const NEW_PLACES = [
-    { id: '1', name: 'Café Central', address: 'Plaza 25 de Mayo', image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=80', isNew: true },
-    { id: '2', name: 'Heladería Fri', address: 'Av. Libertador 220', image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&q=80', isNew: true },
+    { id: '1', name: 'Café Central', slug: 'cafe-central', address: 'Plaza 25 de Mayo', image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=80', isNew: true },
+    { id: '2', name: 'Heladería Fri', slug: 'heladeria-fri', address: 'Av. Libertador 220', image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&q=80', isNew: true },
 ];
 
 export const NewInTown = () => {
@@ -15,7 +15,7 @@ export const NewInTown = () => {
     const router = useRouter();
 
     const handlePress = (item: typeof NEW_PLACES[0]) => {
-        router.push(`/shop/${item.id}` as any);
+        router.push(`/shop/${item.slug || item.id}` as any);
     };
 
     return (

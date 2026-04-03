@@ -6,9 +6,9 @@ import colors from '../../../constants/colors';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 
 const FEATURED = [
-    { id: '1', name: 'Burger King', rating: 4.8, image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=80', category: 'Hamburguesas' },
-    { id: '2', name: 'La Pasiva', rating: 4.5, image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80', category: 'Chivitos' },
-    { id: '3', name: 'Sushi Go', rating: 4.9, image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&q=80', category: 'Japonesa' },
+    { id: '1', name: 'Burger King', slug: 'burger-king', rating: 4.8, image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=80', category: 'Hamburguesas' },
+    { id: '2', name: 'La Pasiva', slug: 'la-pasiva', rating: 4.5, image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80', category: 'Chivitos' },
+    { id: '3', name: 'Sushi Go', slug: 'sushi-go', rating: 4.9, image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&q=80', category: 'Japonesa' },
 ];
 
 export const FeaturedSection = () => {
@@ -17,7 +17,7 @@ export const FeaturedSection = () => {
 
     const handlePress = (item: typeof FEATURED[0]) => {
         // Navigate to the marketplace/restaurant detail page
-        router.push(`/shop/${item.id}` as any);
+        router.push(`/shop/${item.slug || item.id}` as any);
     };
 
     return (

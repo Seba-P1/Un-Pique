@@ -12,7 +12,7 @@ import {
     Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, SlidersHorizontal, UtensilsCrossed, Heart, Bell, ShoppingCart, X } from 'lucide-react-native';
+import { Search, UtensilsCrossed } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
 import { BusinessCard, CategoriesGrid } from '../../../components/delivery';
 import { BusinessFeed } from '../../../components/home/BusinessFeed';
@@ -20,7 +20,6 @@ import { useBusinessStore } from '../../../stores/businessStore';
 import { useFavoritesStore } from '../../../stores/favoritesStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { useThemeColors } from '../../../hooks/useThemeColors';
-import { glassStyle } from '../../../utils/glass';
 import { useRouter } from 'expo-router';
 import { useCartStore } from '../../../stores/cartStore';
 import { AppHeader } from '../../../components/ui/AppHeader';
@@ -37,16 +36,8 @@ export default function DeliveryScreen() {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
-    const [showFilters, setShowFilters] = useState(false);
-    const [showInlineSearch, setShowInlineSearch] = useState(false);
 
-    // Scroll animation for header shadow
     const scrollY = useRef(new Animated.Value(0)).current;
-    const headerShadowOpacity = scrollY.interpolate({
-        inputRange: [0, 50],
-        outputRange: [0, 0.15],
-        extrapolate: 'clamp',
-    });
 
     const isDesktop = width >= 768;
 
@@ -63,8 +54,10 @@ export default function DeliveryScreen() {
 
     // Filter businesses
     const filteredBusinesses = businesses.filter((business) => {
-        const matchesSearch = business.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch = searchQuery.trim() === '' || 
+            business.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             business.description?.toLowerCase().includes(searchQuery.toLowerCase());
+            
         const matchesCategory = selectedCategory === 'all' || business.category === selectedCategory;
         return matchesSearch && matchesCategory;
     });
@@ -79,9 +72,11 @@ export default function DeliveryScreen() {
                 <UtensilsCrossed size={64} color={tc.textMuted} />
             </View>
             <Text style={[styles.emptyTitle, { color: tc.text }]}>
-                {searchQuery || selectedCategory !== 'all'
-                    ? 'No se encontraron negocios'
-                    : 'No hay negocios disponibles'}
+                {searchQuery 
+                    ? 'No encontramos negocios con ese nombre'
+                    : selectedCategory !== 'all'
+                        ? 'No se encontraron negocios'
+                        : 'No hay negocios disponibles'}
             </Text>
             <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
                 {searchQuery || selectedCategory !== 'all'
@@ -94,12 +89,12 @@ export default function DeliveryScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={isDesktop ? [] : ['top']}>
             <AppHeader
-                subtitle="SABOR LOCAL"
-                title="Delivery y comida"
+                title="Sabor Local"
                 leftIcon="menu"
-                rightButtons={['search', 'cart', 'favorites']}
+                rightButtons={['search', 'favorites', 'notifications', 'cart']}
                 onSearch={setSearchQuery}
                 searchPlaceholder="Buscar restaurantes..."
+                scrollY={scrollY}
             />
 
             {/* Business List */}
@@ -129,6 +124,7 @@ export default function DeliveryScreen() {
                     scrollEventThrottle={16}
                     ListHeaderComponent={
                         <View style={[styles.centeredContent, { width: '100%' }, isDesktop && { maxWidth: 900, alignSelf: 'center' }]}>
+                            <Text style={{ fontSize: 16, color: tc.textMuted, marginBottom: 16, paddingHorizontal: 20, marginTop: 4 }}>Delivery y comida</Text>
                             {/* Categories */}
                             <CategoriesGrid
                                 selectedCategory={selectedCategory}

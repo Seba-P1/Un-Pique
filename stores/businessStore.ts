@@ -31,6 +31,7 @@ export interface Business {
     has_pickup?: boolean;
     accepts_cash?: boolean;
     accepts_mercadopago?: boolean;
+    mercadopago_connected?: boolean;
     delivery_radius?: number;
 }
 
@@ -72,6 +73,7 @@ const formatBusiness = (b: any): Business => ({
     has_pickup: b.has_pickup,
     accepts_cash: Array.isArray(b.payment_methods) ? b.payment_methods.includes('cash') : false,
     accepts_mercadopago: Array.isArray(b.payment_methods) ? b.payment_methods.includes('mercadopago') : false,
+    mercadopago_connected: b.mercadopago_connected || false,
     delivery_radius: b.delivery_radius_km,
 });
 

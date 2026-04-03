@@ -22,6 +22,7 @@ import { useLocationStore } from '../../stores/locationStore';
 import { useAuthStore } from '../../stores/authStore';
 import { CreatePostModal } from '../../components/social';
 import { useRouter } from 'expo-router';
+import { AppHeader } from '../../components/ui/AppHeader';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -70,14 +71,15 @@ export default function SocialScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             {/* ================================================
-                HEADER COMPLETO — Buscador, Notificaciones, Carrito, DM
+                HEADER UNIVERSAL — Buscador, Notificaciones, Carrito
                ================================================ */}
-            <SocialHeader
-                tc={tc}
-                router={router}
-                insets={insets}
-                onOpenDM={() => setDmDrawerVisible(true)}
-                shadowOpacity={headerShadowOpacity}
+            <AppHeader
+                subtitle="CONECTA"
+                title="Social"
+                leftIcon="menu"
+                rightButtons={['search', 'notifications', 'cart']}
+                onSearchSubmit={(text) => router.push(`/search?q=${encodeURIComponent(text)}` as any)}
+                scrollY={scrollY}
             />
 
             {/* ================================================
@@ -112,100 +114,6 @@ export default function SocialScreen() {
     );
 }
 
-// =============================================
-// HEADER SOCIAL — Full width con búsqueda, íconos de acción
-// =============================================
-function SocialHeader({ tc, router, insets, onOpenDM, shadowOpacity }: any) {
-    const [searchText, setSearchText] = useState('');
-
-    const handleSearch = () => {
-        if (searchText.trim()) {
-            router.push(`/search?q=${encodeURIComponent(searchText.trim())}` as any);
-            setSearchText('');
-        }
-    };
-
-    return (
-        <View style={{ position: 'relative', zIndex: 100 }}>
-            <View style={[styles.header, { borderBottomColor: 'transparent' }, glassStyle(tc.bg, 0.88, 14)]}>
-                {/* Lado Izquierdo — Logo / Título (más grande, menos gap) */}
-                <View style={styles.headerLeft}>
-                    <View style={[styles.headerBrandIcon, { backgroundColor: colors.primary.DEFAULT }]}>
-                        <MapPin size={20} color="#fff" />
-                    </View>
-                    <View style={{ marginLeft: 2 }}>
-                        <Text style={[styles.headerBrandLabel, { color: tc.textMuted }]}>CONECTA</Text>
-                        <Text style={[styles.headerBrandTitle, { color: tc.text }]}>Social</Text>
-                    </View>
-                </View>
-
-                {/* Centro — Barra de búsqueda */}
-                <View style={[styles.headerSearchBar, { backgroundColor: tc.bgInput }]}>
-                    <Search size={15} color={tc.textMuted} />
-                    <TextInput
-                        style={[styles.headerSearchInput, { color: tc.text }]}
-                        placeholder="Buscar..."
-                        placeholderTextColor={tc.textMuted}
-                        value={searchText}
-                        onChangeText={setSearchText}
-                        onSubmitEditing={handleSearch}
-                        returnKeyType="search"
-                    />
-                </View>
-
-                {/* Lado Derecho — Íconos de acción */}
-                <View style={styles.headerActions}>
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.headerIconBtn,
-                            { backgroundColor: tc.bgCard },
-                            pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-                        ]}
-                        onPress={onOpenDM}
-                        hitSlop={4}
-                    >
-                        <MessageCircle size={18} color={tc.text} />
-                    </Pressable>
-
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.headerIconBtn,
-                            { backgroundColor: tc.bgCard },
-                            pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-                        ]}
-                        onPress={() => router.push('/notifications' as any)}
-                        hitSlop={4}
-                    >
-                        <Bell size={18} color={tc.text} />
-                        <View style={[styles.headerBadge, { borderColor: tc.bg }]} />
-                    </Pressable>
-
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.headerIconBtn,
-                            { backgroundColor: tc.bgCard },
-                            pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-                        ]}
-                        onPress={() => router.push('/cart' as any)}
-                        hitSlop={4}
-                    >
-                        <ShoppingCart size={18} color={tc.text} />
-                    </Pressable>
-                </View>
-            </View>
-            {/* Animated shadow line that appears on scroll */}
-            <RNAnimated.View
-                style={[
-                    styles.headerShadowBar,
-                    {
-                        opacity: shadowOpacity,
-                        backgroundColor: tc.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)',
-                    },
-                ]}
-            />
-        </View>
-    );
-}
 
 // =============================================
 // DRAWER DE MENSAJERÍA DIRECTA (estilo Instagram)

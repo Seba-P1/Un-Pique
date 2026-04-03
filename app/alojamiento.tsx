@@ -8,10 +8,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import {
-    ArrowLeft, Star, MapPin, Calendar, X, Mail, Phone, ChevronLeft, ChevronRight,
+    Star, MapPin, Calendar, X, Mail, Phone, ChevronLeft, ChevronRight,
     Wifi, Car, Coffee, Tv, Snowflake, Users, MessageCircle, Home,
     UtensilsCrossed, Wrench, User, Settings, HelpCircle, LogOut, Moon, Sun,
-    ShoppingBag, FileText, ExternalLink, ZoomIn, ImageIcon, Plus
+    ShoppingBag, ZoomIn, ImageIcon, Plus
 } from 'lucide-react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { useThemeStore } from '../stores/themeStore';
@@ -21,6 +21,7 @@ import { showAlert } from '../utils/alert';
 import { useListingStore } from '../stores/listingStore';
 import type { Listing } from '../stores/listingStore';
 import { AppHeader } from '../components/ui/AppHeader';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const renderIcon = (Icon: any, size: number, color: string) => <Icon size={size} color={color} />;
 
@@ -197,77 +198,6 @@ const calStyles = StyleSheet.create({
     summaryText: { fontSize: 14, fontWeight: '700' },
 });
 
-// ── DESKTOP SIDEBAR (standalone, mirrors tabs layout) ──
-function DesktopSidebar({ tc }: { tc: any }) {
-    const router = useRouter();
-    const pathname = usePathname();
-    const { theme, toggleTheme } = useThemeStore();
-    const { signOut } = useAuthStore();
-
-    const isActive = (key: string) => {
-        if (key === 'index') return pathname === '/' || pathname === '/index';
-        if (key === 'alojamiento') return pathname.includes('alojamiento');
-        return pathname.includes(key);
-    };
-
-    return (
-        <View style={[sidebarStyles.sidebar, { backgroundColor: tc.tabBarBg, borderRightColor: tc.borderLight }]}>
-            <TouchableOpacity style={sidebarStyles.logoArea} onPress={() => router.push('/' as any)}>
-                <Text style={[sidebarStyles.logoText, { color: tc.primary }]}>Un Pique</Text>
-                <Text style={[sidebarStyles.logoSub, { color: tc.textMuted }]}>v1.0</Text>
-            </TouchableOpacity>
-
-            <ScrollView style={sidebarStyles.nav} showsVerticalScrollIndicator={false}>
-                <Text style={[sidebarStyles.sectionTitle, { color: tc.textMuted }]}>MENÚ</Text>
-                {NAV_ITEMS.map(item => {
-                    const active = isActive(item.key);
-                    return (
-                        <TouchableOpacity key={item.key} style={[sidebarStyles.navItem, active && { backgroundColor: tc.bgHover }]} onPress={() => router.push(item.route as any)}>
-                            {renderIcon(item.icon, 20, active ? tc.primary : tc.icon)}
-                            <Text style={[sidebarStyles.navLabel, { color: active ? tc.primary : tc.textSecondary }, active && { fontWeight: '700' }]}>{item.label}</Text>
-                        </TouchableOpacity>
-                    );
-                })}
-
-                <Text style={[sidebarStyles.sectionTitle, { color: tc.textMuted, marginTop: 20 }]}>MAS OPCIONES</Text>
-                {EXTRA_ITEMS.map(item => {
-                    const active = isActive(item.key);
-                    return (
-                        <TouchableOpacity key={item.key} style={[sidebarStyles.navItem, active && { backgroundColor: tc.bgHover }]} onPress={() => router.push(item.route as any)}>
-                            {renderIcon(item.icon, 20, active ? tc.primary : tc.textSecondary)}
-                            <Text style={[sidebarStyles.navLabel, { color: active ? tc.primary : tc.textSecondary }, active && { fontWeight: '700' }]}>{item.label}</Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </ScrollView>
-
-            <View style={[sidebarStyles.footer, { borderTopColor: tc.borderLight }]}>
-                <TouchableOpacity style={sidebarStyles.footerItem} onPress={toggleTheme}>
-                    {theme === 'dark' ? <Moon size={20} color={tc.text} /> : <Sun size={20} color={tc.text} />}
-                    <Text style={[sidebarStyles.footerText, { color: tc.text }]}>Modo {theme === 'dark' ? 'Oscuro' : 'Claro'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={sidebarStyles.footerItem} onPress={() => signOut()}>
-                    <LogOut size={20} color={colors.danger} />
-                    <Text style={[sidebarStyles.footerText, { color: colors.danger }]}>Cerrar Sesión</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-}
-
-const sidebarStyles = StyleSheet.create({
-    sidebar: { width: 250, borderRightWidth: 1, height: '100%' },
-    logoArea: { paddingHorizontal: 24, paddingVertical: 20 },
-    logoText: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
-    logoSub: { fontSize: 11 },
-    nav: { flex: 1, paddingHorizontal: 12 },
-    sectionTitle: { fontSize: 11, fontWeight: '700', paddingHorizontal: 12, marginBottom: 8, opacity: 0.7 },
-    navItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, marginBottom: 2 },
-    navLabel: { fontSize: 14, fontWeight: '500' },
-    footer: { padding: 16, borderTopWidth: 1, gap: 4 },
-    footerItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8 },
-    footerText: { fontSize: 14, fontWeight: '500' },
-});
 
 // ── CONTACT HELPERS (functional!) ──
 function openWhatsApp(phone: string, message: string) {
@@ -448,34 +378,39 @@ export default function AlojamientoScreen() {
         return (
             <TouchableOpacity
                 key={accom.id}
-                style={[s.cardV, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}
+                style={[s.cardV, { backgroundColor: tc.bgCard, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 4, borderRadius: 12, borderWidth: 0 }]}
                 onPress={() => openDetail(accom)}
                 activeOpacity={0.88}
             >
-                <TouchableOpacity onPress={() => openGallery(accom, 0)} activeOpacity={0.9}>
-                    <Image source={{ uri: accom.images[0] }} style={s.cardVImg} />
-                    <View style={s.cardHImgBadge}>
+                <TouchableOpacity onPress={() => openGallery(accom, 0)} activeOpacity={0.9} style={{ position: 'relative' }}>
+                    <Image source={{ uri: accom.images[0] }} style={[s.cardVImg, { height: undefined, aspectRatio: 16 / 9, borderRadius: 12 }]} />
+                    <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.7)']}
+                        style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', borderRadius: 12 }}
+                    />
+                    <View style={{ position: 'absolute', bottom: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 8 }}>
+                        <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', flex: 1, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }} numberOfLines={1}>{accom.name}</Text>
+                        <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Consultar</Text>
+                        </View>
+                    </View>
+                    <View style={[s.cardHImgBadge, { top: 12, bottom: undefined, left: undefined, right: 12, backgroundColor: 'rgba(0,0,0,0.5)' }]}>
                         <ImageIcon size={12} color="#fff" />
                         <Text style={s.cardHImgCount}>{accom.images.length}</Text>
                     </View>
                 </TouchableOpacity>
-                <View style={s.cardVBody}>
-                    <View style={s.cardHTopRow}>
-                        <View style={[s.typeBadge, { backgroundColor: colors.primary.DEFAULT + '18' }]}>
-                            <Text style={[s.typeText, { color: colors.primary.DEFAULT }]}>{accom.type}</Text>
-                        </View>
-                        <View style={s.ratingRow}>
-                            <Star size={14} color="#F59E0B" fill="#F59E0B" />
-                            <Text style={[s.ratingVal, { color: tc.text }]}>{accom.rating}</Text>
-                            <Text style={[s.ratingCount, { color: tc.textMuted }]}>({accom.reviews})</Text>
-                        </View>
+                <View style={[s.cardVBody, { flexDirection: 'row', alignItems: 'center', paddingTop: 10, paddingBottom: 14, gap: 8, flexWrap: 'wrap' }]}>
+                    <Text style={{ color: tc.textMuted, fontSize: 13, fontWeight: '600' }}>{accom.type}</Text>
+                    <Text style={{ color: tc.borderLight, fontSize: 12 }}>•</Text>
+                    <View style={s.ratingRow}>
+                        <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                        <Text style={[s.ratingVal, { color: tc.text, fontSize: 13 }]}>{accom.rating}</Text>
                     </View>
-                    <Text style={[s.cardHName, { color: tc.text }]}>{accom.name}</Text>
-                    <View style={s.addressRow}>
+                    <Text style={{ color: tc.borderLight, fontSize: 12 }}>•</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
                         <MapPin size={12} color={tc.textMuted} />
-                        <Text style={[s.addressText, { color: tc.textMuted }]}>{accom.address}</Text>
+                        <Text style={{ color: tc.textMuted, fontSize: 13 }} numberOfLines={1}>{accom.address}</Text>
                     </View>
-                    <Text style={[s.priceConsultar, { color: tc.primary, marginTop: 6 }]}>Precio: Consultar</Text>
                 </View>
             </TouchableOpacity>
         );
@@ -607,13 +542,12 @@ export default function AlojamientoScreen() {
     // ════════════════ RENDER ════════════════
     return (
         <View style={[s.root, { backgroundColor: tc.bg }]}>
-            {/* DESKTOP SIDEBAR */}
-            {isDesktop && <DesktopSidebar tc={tc} />}
-
             <SafeAreaView style={s.mainArea} edges={isDesktop ? [] : ['top']}>
                 <AppHeader
-                    title="Alojamientos"
+                    subtitle="ALOJAMIENTOS"
+                    title="Dónde quedarse"
                     leftIcon="back"
+                    rightButtons={['search']}
                 />
 
                 <ScrollView
@@ -728,7 +662,7 @@ export default function AlojamientoScreen() {
 
 // ════════════════ STYLES ════════════════
 const s = StyleSheet.create({
-    root: { flex: 1, flexDirection: 'row' },
+    root: { flex: 1 },
     mainArea: { flex: 1 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
     backBtn: { position: 'absolute', left: 16, padding: 4 },

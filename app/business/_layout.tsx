@@ -1,10 +1,10 @@
 // Layout del negocio — Sidebar persistente en desktop, Stack en móvil
 import React from 'react';
-import { View, StyleSheet, useWindowDimensions, Platform, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
-import { Slot, Stack, useRouter } from 'expo-router';
+import { View, StyleSheet, useWindowDimensions, Platform, TouchableOpacity, ActivityIndicator, Text, Modal } from 'react-native';
+import { Slot, Stack, useRouter, usePathname } from 'expo-router';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import BusinessSidebar from '../../components/business/BusinessSidebar';
-import { Menu } from 'lucide-react-native';
+import { Menu, Home, ListOrdered, Settings } from 'lucide-react-native';
 import { useAuthStore } from '../../stores/authStore';
 import { useBusinessStore } from '../../stores/businessStore';
 
@@ -14,7 +14,7 @@ export default function BusinessLayout() {
     const isDesktop = width >= 768;
     const router = useRouter();
 
-    const { user } = useAuthStore();
+    const { user, profile } = useAuthStore();
     const { fetchMyBusiness, selectedBusiness, loading } = useBusinessStore();
 
     React.useEffect(() => {
@@ -22,6 +22,13 @@ export default function BusinessLayout() {
             fetchMyBusiness();
         }
     }, [user]);
+
+    const [drawerVisible, setDrawerVisible] = React.useState(false);
+    const pathname = usePathname();
+
+    React.useEffect(() => {
+        setDrawerVisible(false);
+    }, [pathname]);
 
     if (loading) {
         return (
@@ -63,35 +70,100 @@ export default function BusinessLayout() {
         );
     }
 
-    // Móvil: Stack normal con botón hamburguesa
+    // Móvil: Custom Header, Stack y Bottom Tab Bar
     return (
-        <Stack
-            screenOptions={{
-                headerStyle: { backgroundColor: tc.bg },
-                headerTintColor: tc.text,
-                headerShadowVisible: false,
-                contentStyle: { backgroundColor: tc.bg },
-                headerShown: false,
-            }}
-        >
-            <Stack.Screen name="dashboard" options={{ title: 'Panel de Control' }} />
-            <Stack.Screen name="orders" options={{ title: 'Pedidos Activos' }} />
-            <Stack.Screen name="menu" options={{ title: 'Mi Menú' }} />
-            <Stack.Screen name="products" options={{ title: 'Productos' }} />
-            <Stack.Screen name="products/add" options={{ title: 'Añadir Producto' }} />
-            <Stack.Screen name="profile" options={{ title: 'Perfil del Vendedor' }} />
-            <Stack.Screen name="main-menu" options={{ title: 'Menú', presentation: 'modal' }} />
-            <Stack.Screen name="store-settings" options={{ title: 'Configuración' }} />
-            <Stack.Screen name="order-details" options={{ title: 'Detalle de Pedido' }} />
-            <Stack.Screen name="order-history" options={{ title: 'Historial' }} />
-            <Stack.Screen name="reports" options={{ title: 'Reportes' }} />
-            <Stack.Screen name="performance" options={{ title: 'Rendimiento' }} />
-            <Stack.Screen name="notifications" options={{ title: 'Notificaciones' }} />
-            <Stack.Screen name="analytics" options={{ title: 'Analíticas' }} />
-            <Stack.Screen name="earnings" options={{ title: 'Ganancias' }} />
-            <Stack.Screen name="subscription" options={{ title: 'Suscripción' }} />
-            <Stack.Screen name="advertising" options={{ title: 'Publicidad' }} />
-        </Stack>
+        <View style={{ flex: 1, backgroundColor: tc.bg }}>
+            {/* Header estilizado */}
+            <View style={{
+                height: 52,
+                backgroundColor: 'rgba(25, 25, 25, 0.95)',
+                borderBottomLeftRadius: 20,
+                borderBottomRightRadius: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 16,
+                justifyContent: 'space-between',
+                zIndex: 10
+            }}>
+                <TouchableOpacity onPress={() => setDrawerVisible(true)} style={{ padding: 8, marginLeft: -8 }}>
+                    <Menu size={24} color="#FFF" />
+                </TouchableOpacity>
+                <View style={{ alignItems: 'center' }}>
+                    <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>{profile?.full_name || 'Mi Tienda'}</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Panel Vendedor</Text>
+                </View>
+                <View style={{ width: 40 }} />
+            </View>
+
+            <View style={{ flex: 1 }}>
+                <Stack
+                    screenOptions={{
+                        headerStyle: { backgroundColor: tc.bg },
+                        headerTintColor: tc.text,
+                        headerShadowVisible: false,
+                        contentStyle: { backgroundColor: tc.bg },
+                        headerShown: false,
+                    }}
+                >
+                    <Stack.Screen name="dashboard" />
+                    <Stack.Screen name="orders" />
+                    <Stack.Screen name="menu" />
+                    <Stack.Screen name="products" />
+                    <Stack.Screen name="products/add" />
+                    <Stack.Screen name="profile" />
+                    <Stack.Screen name="main-menu" options={{ presentation: 'modal' }} />
+                    <Stack.Screen name="store-settings" />
+                    <Stack.Screen name="order-details" />
+                    <Stack.Screen name="order-history" />
+                    <Stack.Screen name="reports" />
+                    <Stack.Screen name="performance" />
+                    <Stack.Screen name="notifications" />
+                    <Stack.Screen name="analytics" />
+                    <Stack.Screen name="earnings" />
+                    <Stack.Screen name="subscription" />
+                    <Stack.Screen name="advertising" />
+                </Stack>
+            </View>
+
+            {/* Bottom Tab Bar */}
+            <View style={{
+                flexDirection: 'row',
+                height: 60,
+                backgroundColor: tc.tabBarBg,
+                borderTopColor: tc.borderLight,
+                borderTopWidth: 1,
+                alignItems: 'center',
+                justifyContent: 'space-around',
+                paddingBottom: Platform.OS === 'ios' ? 20 : 0
+            }}>
+                <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => router.push('/business/dashboard')}>
+                    <Home size={24} color={tc.textMuted} />
+                    <Text style={{ color: tc.textMuted, fontSize: 10, marginTop: 4 }}>Inicio</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => router.push('/business/orders')}>
+                    <ListOrdered size={24} color={tc.textMuted} />
+                    <Text style={{ color: tc.textMuted, fontSize: 10, marginTop: 4 }}>Pedidos</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ alignItems: 'center' }} onPress={() => router.push('/business/settings')}>
+                    <Settings size={24} color={tc.textMuted} />
+                    <Text style={{ color: tc.textMuted, fontSize: 10, marginTop: 4 }}>Ajustes</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Drawer Modal */}
+            <Modal visible={drawerVisible} animationType="slide" transparent>
+                <View style={{ flex: 1, flexDirection: 'row' }}>
+                    <TouchableOpacity 
+                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} 
+                        activeOpacity={1} 
+                        onPress={() => setDrawerVisible(false)} 
+                    />
+                    <View style={{ width: 280, backgroundColor: tc.bg, height: '100%', position: 'absolute', left: 0 }}>
+                        <BusinessSidebar />
+                    </View>
+                </View>
+            </Modal>
+        </View>
     );
 }
 

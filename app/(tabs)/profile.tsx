@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, Platform, Image, Pressable, ActivityIndicator } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, Platform, Image, Pressable, ActivityIndicator, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocialStore, Post } from '../../stores/socialStore';
 import { useListingStore } from '../../stores/listingStore';
@@ -8,17 +8,19 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { useRouter } from 'expo-router';
 import {
     User, Settings, LogOut, MapPin, ShoppingBag, Bell, HelpCircle,
-    ChevronRight, Store, Truck, Sun, Moon, Monitor, Menu, Home,
+    ChevronRight, Store, Truck, Sun, Moon, Monitor,
     MessageCircle, Bookmark, Briefcase, Camera, Edit3, Grid3X3,
-    Heart, Share2, MoreHorizontal, Calendar, BookmarkCheck
+    Heart, MoreHorizontal, BookmarkCheck
 } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { showAlert } from '../../utils/alert';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOpenMobileDrawer } from './_layout';
 import { formatDistanceToNow, format } from 'date-fns';
-import { glassStyle } from '../../utils/glass';
+import { es } from 'date-fns/locale';
 import { AppHeader } from '../../components/ui/AppHeader';
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../../lib/supabase';
 
 type ProfileView = 'wall' | 'settings';
 
@@ -31,7 +33,6 @@ export default function ProfileScreen() {
     const router = useRouter();
     const { width } = useWindowDimensions();
     const openDrawer = useOpenMobileDrawer();
-    const [scrolledY, setScrolledY] = useState(0);
     const [activeView, setActiveView] = useState<ProfileView>('wall');
     const [posts, setPosts] = useState<Post[]>([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
@@ -40,6 +41,8 @@ export default function ProfileScreen() {
     const isTablet = width >= 768 && width < 1024;
     const isMobile = width < 768;
     const contentMaxWidth = 960;
+
+    const scrollY = useRef(new Animated.Value(0)).current;
 
     const hasBusinessRole = profile?.roles?.includes('business_owner') || profile?.roles?.includes('seller' as any);
     const hasDriverRole = profile?.roles?.includes('delivery_driver') || profile?.roles?.includes('driver' as any);
@@ -59,6 +62,60 @@ export default function ProfileScreen() {
         setLoadingPosts(false);
     };
 
+    const [tempCoverUrl, setTempCoverUrl] = useState<string | null>(null);
+
+    const handleEditCover = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [16, 9],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets && result.assets[0]) {
+                const imgUrl = result.assets[0].uri;
+                setTempCoverUrl(imgUrl);
+
+                const res = await fetch(imgUrl);
+                const blob = await res.blob();
+                
+                let fileToUpload: any = blob;
+                if (Platform.OS === 'web') {
+                    fileToUpload = new File([blob], 'banner.jpg', { type: 'image/jpeg' });
+                }
+
+                const fileName = `banner.jpg`;
+                const filePath = `covers/${user?.id}/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, fileToUpload, { upsert: true });
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath);
+
+                const { error: dbError } = await supabase
+                    .from('users')
+                    .update({ cover_url: publicUrl })
+                    .eq('id', user?.id);
+
+                if (dbError) {
+                    console.warn('cover_url update failed (column may not exist yet):', dbError.message);
+                } else {
+                    await fetchProfile();
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            showAlert('Error', 'No se pudo subir la imagen');
+            setTempCoverUrl(null);
+        }
+    };
+
     const handleSignOut = async () => {
         await signOut();
         router.replace('/(auth)/login');
@@ -73,25 +130,40 @@ export default function ProfileScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: tc.bg }]}>
-            <AppHeader
-                title="Mi Perfil"
-                leftIcon="menu"
-                rightButtons={['notifications']}
-            />
+            {/* Header flotante sobre el cover */}
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 }}>
+                <AppHeader
+                    subtitle="MI CUENTA"
+                    title="Mi Perfil"
+                    leftIcon="menu"
+                    rightButtons={['notifications']}
+                    scrollY={scrollY}
+                    bgColor="transparent"
+                />
+            </View>
 
-            <ScrollView
+            <Animated.ScrollView
                 showsVerticalScrollIndicator={false}
-                onScroll={(e) => setScrolledY(e.nativeEvent.contentOffset.y)}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false }
+                )}
                 scrollEventThrottle={16}
-                style={{ marginTop: -1 }}
             >
                 {/* ====== COVER PHOTO ====== */}
                 <View style={[styles.coverContainer, { height: coverHeight }]}>
+                    {(tempCoverUrl || profile?.cover_url) ? (
+                        <Image 
+                            source={{ uri: tempCoverUrl || profile?.cover_url }} 
+                            style={StyleSheet.absoluteFillObject} 
+                            resizeMode="cover"
+                        />
+                    ) : null}
                     <LinearGradient
-                        colors={[colors.primary.DEFAULT + '50', colors.primary.DEFAULT + '20', tc.bg]}
+                        colors={[(tempCoverUrl || profile?.cover_url) ? 'transparent' : colors.primary.DEFAULT + '50', tc.bg]}
                         style={StyleSheet.absoluteFillObject}
                     />
-                    <TouchableOpacity style={[styles.editCoverBtn, { backgroundColor: 'rgba(0,0,0,0.35)' }]}>
+                    <TouchableOpacity style={[styles.editCoverBtn, { backgroundColor: 'rgba(0,0,0,0.35)' }]} onPress={handleEditCover}>
                         <Camera size={15} color="#fff" />
                         {!isMobile && <Text style={styles.editCoverText}>Editar portada</Text>}
                     </TouchableOpacity>
@@ -170,7 +242,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={{ height: 80 }} />
-            </ScrollView>
+            </Animated.ScrollView>
         </View>
     );
 }
@@ -399,17 +471,7 @@ function ThemeOption({ icon: Icon, label, active, onPress, tc }: any) {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     // Header
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5, zIndex: 10, position: 'sticky' as any, top: 0 },
-    headerScrolled: { ...Platform.select({ web: { boxShadow: '0 2px 16px rgba(0,0,0,0.08)' } as any, ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10 }, android: { elevation: 4 } }) },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    menuButton: { padding: 6 },
-    headerTitle: { fontSize: 20, fontWeight: '800' },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-    premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
-    premiumDot: { width: 6, height: 6, borderRadius: 3 },
-    premiumText: { fontSize: 11, fontWeight: 'bold', letterSpacing: 0.5 },
-    iconButton: { position: 'relative', padding: 4 },
-    notificationDot: { position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.error, borderWidth: 1, borderColor: colors.white },
+    card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
 
     // Cover
     coverContainer: { width: '100%', position: 'relative' },

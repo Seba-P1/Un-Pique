@@ -171,34 +171,6 @@ export default function BusinessDashboard() {
 
     return (
         <View style={[styles.container, { backgroundColor: tc.bg }]}>
-            <SafeAreaView edges={['top']}>
-                {/* Header compacto */}
-                <View style={[styles.header, { borderBottomColor: tc.borderLight }]}>
-                    <View style={styles.headerLeft}>
-                        {!isDesktop && (
-                            <TouchableOpacity style={styles.menuButton} onPress={() => openDrawer?.()}>
-                                <Menu size={24} color={tc.text} />
-                            </TouchableOpacity>
-                        )}
-                        <View>
-                            <Text style={[styles.headerStoreName, { color: tc.text }]} numberOfLines={1}>
-                                {profile?.full_name || 'Mi Tienda'}
-                            </Text>
-                            <Text style={[styles.headerSubtitle, { color: tc.textMuted }]}>Dashboard</Text>
-                        </View>
-                    </View>
-                    <Text style={[styles.storeName, { color: tc.text, flex: 2, textAlign: 'center' }]}>
-                        Panel Vendedor
-                    </Text>
-                    <View style={styles.headerRight}>
-                        <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/notifications' as any)}>
-                            <Bell size={24} color={tc.textMuted} />
-                            <View style={styles.notificationDot} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </SafeAreaView>
-
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {/* KPI Cards */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kpiRow}>
@@ -318,24 +290,6 @@ export default function BusinessDashboard() {
 
                 <View style={{ height: isDesktop ? 24 : 80 }} />
             </ScrollView>
-
-            {/* Mobile Bottom Navigation */}
-            {!isDesktop && (
-                <View style={[styles.bottomNav, { backgroundColor: tc.tabBarBg, paddingBottom: Platform.OS === 'ios' ? 24 : insets.bottom + 6 }]}>
-                    <TouchableOpacity style={styles.navItem} onPress={() => router.push('/business/dashboard' as any)}>
-                        <Home size={22} color={colors.primary.DEFAULT} />
-                        <Text style={[styles.navItemLabel, { color: colors.primary.DEFAULT }]}>Inicio</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.navItem} onPress={() => router.push('/business/orders' as any)}>
-                        <ListOrdered size={22} color={tc.textMuted} />
-                        <Text style={[styles.navItemLabel, { color: tc.textMuted }]}>Pedidos</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile' as any)}>
-                        <User size={22} color={tc.textMuted} />
-                        <Text style={[styles.navItemLabel, { color: tc.textMuted }]}>Perfil</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
         </View>
     );
 }

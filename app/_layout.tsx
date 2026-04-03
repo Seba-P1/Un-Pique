@@ -288,7 +288,7 @@ export default function RootLayout() {
                                 animation: 'slide_from_right',
                             }}
                         />
-                        <Stack.Screen name="shop/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
+                        <Stack.Screen name="shop/[slug]" options={{ headerShown: false, animation: 'slide_from_right' }} />
                         <Stack.Screen name="product/[id]" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
                         <Stack.Screen name="checkout/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
                         <Stack.Screen name="checkout/payment" options={{ headerShown: false, animation: 'slide_from_right' }} />

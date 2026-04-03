@@ -5,7 +5,7 @@ import {
     TextInput, TouchableOpacity, Text, Modal, FlatList, Image, Animated, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Bell, ShoppingCart, MessageCircle, MapPin, X, Send, Menu, ChevronDown } from 'lucide-react-native';
+import { X, MapPin } from 'lucide-react-native';
 import { StoriesRail, CategoriesGrid, BusinessFeed } from '../../components/home';
 import { AdBanner } from '../../components/features/ads/AdBanner';
 import { FeaturedSection } from '../../components/features/home/FeaturedSection';
@@ -18,26 +18,8 @@ import { useRouter } from 'expo-router';
 import { showAlert } from '../../utils/alert';
 import { openMobileDrawer } from './_layout';
 import { AppHeader } from '../../components/ui/AppHeader';
-import { glassStyle } from '../../utils/glass';
 
-// Mock search data
-const SEARCH_DATA = [
-    { id: '1', name: 'Burger King', type: 'Restaurante', image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=80&q=60' },
-    { id: '2', name: 'Pizzería La Mamma', type: 'Restaurante', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=80&q=60' },
-    { id: '3', name: 'Sushi Go', type: 'Restaurante', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=80&q=60' },
-    { id: '4', name: 'Plomería Express', type: 'Servicio', image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=80&q=60' },
-    { id: '5', name: 'Belleza & Spa', type: 'Servicio', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=80&q=60' },
-    { id: '6', name: 'Hotel Paraíso', type: 'Alojamiento', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=80&q=60' },
-    { id: '7', name: 'Café Central', type: 'Restaurante', image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=80&q=60' },
-    { id: '8', name: 'Electricista Juan', type: 'Servicio', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=80&q=60' },
-];
 
-// Mock DM data
-const MOCK_CHATS = [
-    { id: '1', name: 'Burger King', avatar: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=80&q=60', lastMsg: 'Tu pedido está listo', time: '12:30' },
-    { id: '2', name: 'Ana García', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', lastMsg: '¡Hola! ¿Cómo estás?', time: '11:15' },
-    { id: '3', name: 'Plomería Express', avatar: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=80&q=60', lastMsg: 'Puedo ir mañana a las 10', time: 'Ayer' },
-];
 
 export default function HomeScreen() {
     const tc = useThemeColors();
@@ -47,16 +29,8 @@ export default function HomeScreen() {
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
 
-    // Search
-    const [searchText, setSearchText] = useState('');
-    const [showSearchResults, setShowSearchResults] = useState(false);
-    const searchRef = useRef<TextInput>(null);
-
     // Scroll Animation
     const scrollY = useRef(new Animated.Value(0)).current;
-
-    // DM Drawer
-    const [dmVisible, setDmVisible] = useState(false);
 
     // Location picker
     const [locationPickerVisible, setLocationPickerVisible] = useState(false);
@@ -66,25 +40,11 @@ export default function HomeScreen() {
         setTimeout(() => setRefreshing(false), 2000);
     }, []);
 
-    const filteredResults = searchText.trim().length > 0
-        ? SEARCH_DATA.filter(item =>
-            item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            item.type.toLowerCase().includes(searchText.toLowerCase())
-        )
-        : [];
 
-    const handleSearchSelect = (item: typeof SEARCH_DATA[0]) => {
-        setSearchText('');
-        setShowSearchResults(false);
-        showAlert(item.name, `Navegando a ${item.name} (${item.type}). Conectar con datos reales próximamente.`);
-    };
 
     const handleSearchSubmit = (query?: string) => {
-        const q = query || searchText.trim();
-        if (q) {
-            setShowSearchResults(false);
-            router.push(`/search?q=${encodeURIComponent(q)}` as any);
-            setSearchText('');
+        if (query) {
+            router.push(`/search?q=${encodeURIComponent(query)}` as any);
         }
     };
 
@@ -93,27 +53,19 @@ export default function HomeScreen() {
         setLocationPickerVisible(false);
     };
 
-    const headerShadowOpacity = scrollY.interpolate({
-        inputRange: [0, 50],
-        outputRange: [0, 1],
-        extrapolate: 'clamp',
-    });
-
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             <AppHeader
                 subtitle="UN PIQUE"
-                title="Explorando"
+                title="Inicio"
                 leftIcon="menu"
-                rightButtons={['search', 'notifications']}
-                onSearch={handleSearchSubmit}
+                rightButtons={['search', 'notifications', 'cart']}
+                onSearchSubmit={handleSearchSubmit}
                 searchPlaceholder="Buscar negocios, servicios..."
+                scrollY={scrollY}
             />
 
-            {/* Overlay para cerrar search dropdown */}
-            {showSearchResults && (
-                <TouchableOpacity style={styles.searchOverlay} activeOpacity={1} onPress={() => setShowSearchResults(false)} />
-            )}
+
 
             <Animated.ScrollView
                 style={styles.content}
@@ -137,34 +89,7 @@ export default function HomeScreen() {
                 </View>
             </Animated.ScrollView>
 
-            {/* DM DRAWER MODAL */}
-            <Modal visible={dmVisible} transparent animationType="fade" onRequestClose={() => setDmVisible(false)}>
-                <View style={styles.dmOverlay}>
-                    <TouchableOpacity style={styles.dmOverlayBg} activeOpacity={1} onPress={() => setDmVisible(false)} />
-                    <View style={[styles.dmPanel, { backgroundColor: tc.bgCard }, isDesktop && { width: 380 }]}>
-                        <View style={[styles.dmHeader, { borderBottomColor: tc.borderLight }]}>
-                            <Text style={[styles.dmTitle, { color: tc.text }]}>Mensajes</Text>
-                            <TouchableOpacity onPress={() => setDmVisible(false)}>
-                                <X size={22} color={tc.text} />
-                            </TouchableOpacity>
-                        </View>
-                        <ScrollView contentContainerStyle={styles.dmList}>
-                            {MOCK_CHATS.map((chat) => (
-                                <TouchableOpacity key={chat.id} style={[styles.dmItem, { borderBottomColor: tc.borderLight }]}
-                                    onPress={() => { setDmVisible(false); showAlert(chat.name, chat.lastMsg); }}
-                                >
-                                    <Image source={{ uri: chat.avatar }} style={styles.dmAvatar} />
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[styles.dmName, { color: tc.text }]}>{chat.name}</Text>
-                                        <Text style={[styles.dmLastMsg, { color: tc.textMuted }]} numberOfLines={1}>{chat.lastMsg}</Text>
-                                    </View>
-                                    <Text style={[styles.dmTime, { color: tc.textMuted }]}>{chat.time}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
+
 
             {/* LOCATION PICKER MODAL */}
             <Modal visible={locationPickerVisible} transparent animationType="fade" onRequestClose={() => setLocationPickerVisible(false)}>

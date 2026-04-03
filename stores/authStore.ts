@@ -14,6 +14,7 @@ export interface UserProfile {
     full_name: string;
     phone?: string;
     avatar_url?: string;
+    cover_url?: string;
     locality_id?: string;
     roles: UserRole[];
     is_active: boolean;
