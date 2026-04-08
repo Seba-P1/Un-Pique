@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UtensilsCrossed } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
-import { CategoriesGrid, BusinessCardMini, ProductCard, SectionHeader } from '../../../components/delivery';
+import { CategoriesGrid, BusinessCardWide, ProductCard, SectionHeader } from '../../../components/delivery';
 import { useLocationStore } from '../../../stores/locationStore';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { useCartStore } from '../../../stores/cartStore';
@@ -40,7 +40,7 @@ function BusinessHorizontalList({ data, loading }: { data: Business[]; loading: 
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.horizontalList}
-            renderItem={({ item }) => <BusinessCardMini business={item} />}
+            renderItem={({ item }) => <BusinessCardWide business={item} />}
         />
     );
 }
