@@ -5,10 +5,11 @@ import { ArrowLeft, Clock, Star, MapPin, Search, Share2, Heart, ShoppingCart } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
 import { Button } from '../../components/ui';
-import { ProductItem, ProductModal } from '../../components/shop';
+import { ProductItem } from '../../components/shop';
 import { useCartStore } from '../../stores/cartStore';
 import { useBusinessStore } from '../../stores/businessStore';
 import { useProductStore } from '../../stores/productStore';
+import { useFavoritesStore } from '../../stores/favoritesStore';
 import { Skeleton } from '../../components/ui/Skeleton';
 import BusinessMap from '../../components/shop/BusinessMap';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -28,9 +29,8 @@ export default function BusinessDetailScreen() {
     
     const [activeTab, setActiveTab] = useState('menu');
     const scrollY = useRef(new Animated.Value(0)).current;
-    const [selectedProduct, setSelectedProduct] = useState<any>(null);
-    const [modalVisible, setModalVisible] = useState(false);
     const { items } = useCartStore();
+    const { toggleFavorite, isFavorite } = useFavoritesStore();
 
     useEffect(() => {
         if (slug) {
@@ -47,14 +47,18 @@ export default function BusinessDetailScreen() {
     const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
     const isOpen = business?.is_open && checkIsBusinessOpen(business?.schedule);
     const scheduleList = business ? getFormattedScheduleList(business.schedule) : [];
+    const isBusinessFavorite = business ? isFavorite(business.id) : false;
 
     const handleProductPress = (product: any) => {
-        setSelectedProduct(product);
-        setModalVisible(true);
+        router.push(`/product/${product.id}`);
     };
 
     const handleSearch = () => Alert.alert('Buscar', 'Función de búsqueda de productos próximamente.');
-    const handleFavorite = () => Alert.alert('Favoritos', 'Añadido a tus favoritos (Próximamente).');
+    const handleFavorite = () => {
+        if (business) {
+            toggleFavorite(business.id);
+        }
+    };
     const handleShare = async () => {
         if (!business) return;
         try {
@@ -150,7 +154,7 @@ export default function BusinessDetailScreen() {
                                         <Text style={[styles.category, { color: tc.textSecondary }]}>{business.category}</Text>
                                     </View>
                                     <TouchableOpacity style={[styles.heartBtn, { backgroundColor: tc.bgHover }]} onPress={handleFavorite}>
-                                        <Heart size={20} color={tc.textMuted} />
+                                        <Heart size={20} color={isBusinessFavorite ? '#FF4757' : tc.textMuted} fill={isBusinessFavorite ? '#FF4757' : 'transparent'} />
                                     </TouchableOpacity>
                                 </View>
 
@@ -255,9 +259,6 @@ export default function BusinessDetailScreen() {
 
                 <View style={{ height: 120 }} />
             </Animated.ScrollView>
-
-            {/* Product Modal */}
-            <ProductModal visible={modalVisible} onClose={() => setModalVisible(false)} product={selectedProduct} businessId={(slug as string) || '1'} businessName={business.name} />
 
             {/* Floating Cart Button (PedidosYa Style) */}
             <View style={[styles.floatingCartWrapper, isDesktop && { alignItems: 'center', right: 0 }, { pointerEvents: 'box-none' }]} >

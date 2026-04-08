@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     ArrowLeft, ShoppingCart, Minus, Plus, Trash2, MapPin,
-    CreditCard, Truck, ChevronRight, X, Check, Tag, Clock
+    CreditCard, Bike, ChevronRight, X, Check, Tag, Clock
 } from 'lucide-react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { useCartStore } from '../stores/cartStore';
@@ -210,7 +210,7 @@ export default function CartScreen() {
                                     style={[styles.optionCard, { backgroundColor: tc.bgCard, borderColor: deliveryType === dt ? colors.primary.DEFAULT : tc.borderLight }]}
                                     onPress={() => setDeliveryType(dt)}
                                 >
-                                    {dt === 'delivery' ? <Truck size={22} color={deliveryType === dt ? colors.primary.DEFAULT : tc.textMuted} /> : <ShoppingCart size={22} color={deliveryType === dt ? colors.primary.DEFAULT : tc.textMuted} />}
+                                    {dt === 'delivery' ? <Bike color="#22c55e" size={22} /> : <ShoppingCart size={22} color={deliveryType === dt ? colors.primary.DEFAULT : tc.textMuted} />}
                                     <View style={{ flex: 1 }}>
                                         <Text style={[styles.optionTitle, { color: tc.text }]}>{dt === 'delivery' ? 'Delivery' : 'Retiro en local'}</Text>
                                         <Text style={[styles.optionSub, { color: tc.textMuted }]}>{dt === 'delivery' ? `${businessDeliveryFee > 0 ? `$${businessDeliveryFee}` : 'Gratis'} · 30-45 min` : 'Gratis · 15-20 min'}</Text>

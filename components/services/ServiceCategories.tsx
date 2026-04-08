@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-    Wrench, Zap, Droplets, Paintbrush, Hammer, Truck, Scissors, Heart,
+    Wrench, Zap, Droplets, Paintbrush, Hammer, Bike, Scissors, Heart,
     Camera, BookOpen, Baby, Dog, Car, Wifi, Shield, Stethoscope,
     ChefHat, Dumbbell, Music, Leaf
 } from 'lucide-react-native';
@@ -27,7 +27,7 @@ const SERVICE_CATEGORIES: ServiceCat[] = [
     { id: '3', name: 'Mecánica', description: 'Autos y motos', icon: Wrench, gradient: '#EF4444', image: 'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=300&h=200&fit=crop' },
     { id: '4', name: 'Pintura', description: 'Interior y exterior', icon: Paintbrush, gradient: '#10B981', image: 'https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=300&h=200&fit=crop' },
     { id: '5', name: 'Albañilería', description: 'Construcción', icon: Hammer, gradient: '#8B5CF6', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=300&h=200&fit=crop' },
-    { id: '6', name: 'Fletes', description: 'Mudanzas', icon: Truck, gradient: '#6366F1', image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=300&h=200&fit=crop' },
+    { id: '6', name: 'Fletes', description: 'Mudanzas', icon: Bike, gradient: '#6366F1', image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=300&h=200&fit=crop' },
     { id: '7', name: 'Peluquería', description: 'Cortes y color', icon: Scissors, gradient: '#EC4899', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=300&h=200&fit=crop' },
     { id: '8', name: 'Salud', description: 'Médicos y enfermería', icon: Stethoscope, gradient: '#EF4444', image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=300&h=200&fit=crop' },
     { id: '9', name: 'Fotografía', description: 'Eventos y retratos', icon: Camera, gradient: '#F97316', image: 'https://images.unsplash.com/photo-1471341971476-ae15ff5dd4ea?w=300&h=200&fit=crop' },

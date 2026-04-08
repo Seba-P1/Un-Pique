@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppToggle } from '../../components/ui/AppToggle';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Camera, Store, User, MapPin, Clock, Phone, Globe, CreditCard, Truck, Bell, Power, Plus, Trash2, Info } from 'lucide-react-native';
+import { ArrowLeft, Camera, Store, User, MapPin, Clock, Phone, Globe, CreditCard, Bike, Bell, Power, Plus, Trash2, Info } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useBusinessStore } from '../../stores/businessStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -17,7 +17,7 @@ const TABS = [
     { id: 'perfil', label: 'Perfil', icon: Store },
     { id: 'tienda', label: 'Info', icon: Info },
     { id: 'horarios', label: 'Horarios', icon: Clock },
-    { id: 'envio', label: 'Envíos', icon: Truck }
+    { id: 'envio', label: 'Envíos', icon: Bike }
 ];
 
 const DAYS_OF_WEEK = [
@@ -397,7 +397,7 @@ export default function CentralizedSettingsScreen() {
                     <View style={styles.tabSection}>
                         <View style={styles.sectionHeader}>
                             <View style={[styles.sectionIcon, { backgroundColor: tc.bgInput }]}>
-                                <Truck size={22} color={colors.primary.DEFAULT} />
+                                <Bike color="#22c55e" size={22} />
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={[styles.sectionTitle, { color: tc.text }]}>Logística y Pagos</Text>
@@ -409,7 +409,7 @@ export default function CentralizedSettingsScreen() {
                             <ToggleRow label="Habilitar envíos a domicilio" value={acceptsDelivery} onChange={setAcceptsDelivery} tc={tc} />
                             {acceptsDelivery && (
                                 <View style={{ marginTop: 10, gap: 12 }}>
-                                    <SettingField icon={<Truck size={18} color={tc.textMuted} />} label="Radio máx. de entrega (km)" value={deliveryRadius} onChange={setDeliveryRadius} keyboardType="number-pad" tc={tc} />
+                                    <SettingField icon={<Bike color="#22c55e" size={18} />} label="Radio máx. de entrega (km)" value={deliveryRadius} onChange={setDeliveryRadius} keyboardType="number-pad" tc={tc} />
                                     <SettingField icon={<CreditCard size={18} color={tc.textMuted} />} label="Costo del envío ($)" value={deliveryFee} onChange={setDeliveryFee} keyboardType="decimal-pad" tc={tc} />
                                     <SettingField icon={<CreditCard size={18} color={tc.textMuted} />} label="Monto mínimo para envíos ($)" value={minOrder} onChange={setMinOrder} keyboardType="decimal-pad" tc={tc} />
                                 </View>

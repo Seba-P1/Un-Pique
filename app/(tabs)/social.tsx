@@ -21,6 +21,7 @@ import { useChatStore, ChatRoom } from '../../stores/chatStore';
 import { useLocationStore } from '../../stores/locationStore';
 import { useAuthStore } from '../../stores/authStore';
 import { CreatePostModal } from '../../components/social';
+import { CreateStoryModal } from '../../components/home';
 import { useRouter } from 'expo-router';
 import { AppHeader } from '../../components/ui/AppHeader';
 import { formatDistanceToNow } from 'date-fns';
@@ -207,11 +208,11 @@ function DMDrawer({ visible, onClose, tc }: { visible: boolean; onClose: () => v
 // =============================================
 // HISTORIAS LOCALES — Con botón "+" para agregar
 // =============================================
-function LocalStories({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
+function LocalStories({ tc, onAddStory }: { tc: ReturnType<typeof useThemeColors>; onAddStory: () => void }) {
     const { user } = useAuthStore();
 
     const handleAddStory = () => {
-        showAlert('Próximamente', 'La función de historias estará disponible pronto. ¡Podrás compartir tu día a día con la comunidad!');
+        onAddStory();
     };
 
     return (
@@ -440,6 +441,7 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
     const { currentLocality } = useLocationStore();
     const [refreshing, setRefreshing] = useState(false);
     const [createModalVisible, setCreateModalVisible] = useState(false);
+    const [showCreateStory, setShowCreateStory] = useState(false);
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
     const [repostTarget, setRepostTarget] = useState<Post | null>(null);
 
@@ -491,7 +493,7 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
                 }
                 ListHeaderComponent={
                     <View>
-                        <LocalStories tc={tc} />
+                        <LocalStories tc={tc} onAddStory={() => setShowCreateStory(true)} />
                         <CreatePostBox tc={tc} onPress={() => setCreateModalVisible(true)} />
                     </View>
                 }
@@ -517,6 +519,7 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
             </Pressable>
 
             <CreatePostModal visible={createModalVisible} onClose={() => setCreateModalVisible(false)} />
+            <CreateStoryModal visible={showCreateStory} onClose={() => setShowCreateStory(false)} />
             <RepostModal post={repostTarget} onClose={() => setRepostTarget(null)} tc={tc} />
         </View>
     );
@@ -637,6 +640,8 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
     const saved = isSaved(item.id);
     const commentsOpen = expandedComments.has(item.id);
     const [saveFlash, setSaveFlash] = useState(false);
+    const { width } = useWindowDimensions();
+    const showActionText = width >= 768;
 
     const handleSave = () => {
         if (!user) {
@@ -664,7 +669,15 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
             {/* Cabecera — Avatar + Nombre + Hora + Ubicación */}
             <View style={styles.postHeader}>
                 <Pressable style={[styles.userInfo, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={() => router.push(`/profile/${item.author_id}` as any)}>
-                    <Image source={{ uri: item.author.avatar_url || 'https://via.placeholder.com/44' }} style={styles.avatar} />
+                    {item.author?.avatar_url ? (
+                        <Image source={{ uri: item.author.avatar_url }} style={styles.avatar} />
+                    ) : (
+                        <View style={[styles.avatar, { backgroundColor: colors.primary.DEFAULT, justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={{ color: colors.white, fontWeight: 'bold', fontSize: 18 }}>
+                                {item.author?.full_name ? item.author.full_name.charAt(0).toUpperCase() : 'U'}
+                            </Text>
+                        </View>
+                    )}
                     <View style={{ flex: 1 }}>
                         <View style={styles.nameRow}>
                             <Text style={[styles.userName, { color: tc.text }]}>{item.author.full_name}</Text>
@@ -721,20 +734,20 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
             {/* Acciones — Me gusta, Comentar, Compartir, Guardar */}
             <View style={[styles.actionBar, { borderBottomColor: tc.borderLight }]}>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={() => toggleLike(item.id)}>
-                    <Heart size={15} color={liked ? colors.danger : tc.textSecondary} fill={liked ? colors.danger : 'transparent'} />
-                    <Text style={[styles.actionText, { color: liked ? colors.danger : tc.textSecondary }]}>Me gusta</Text>
+                    <Heart size={18} color={liked ? colors.danger : tc.textSecondary} fill={liked ? colors.danger : 'transparent'} />
+                    {showActionText && <Text style={[styles.actionText, { color: liked ? colors.danger : tc.textSecondary }]}>Me gusta</Text>}
                 </Pressable>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={() => toggleComments(item.id)}>
-                    <MessageCircle size={15} color={tc.textSecondary} />
-                    <Text style={[styles.actionText, { color: tc.textSecondary }]}>Comentar</Text>
+                    <MessageCircle size={18} color={tc.textSecondary} />
+                    {showActionText && <Text style={[styles.actionText, { color: tc.textSecondary }]}>Comentar</Text>}
                 </Pressable>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={handleShare}>
-                    <Share2 size={15} color={tc.textSecondary} />
-                    <Text style={[styles.actionText, { color: tc.textSecondary }]}>Compartir</Text>
+                    <Share2 size={18} color={tc.textSecondary} />
+                    {showActionText && <Text style={[styles.actionText, { color: tc.textSecondary }]}>Compartir</Text>}
                 </Pressable>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={handleSave}>
-                    <Bookmark size={15} color={saved ? colors.primary.DEFAULT : tc.textSecondary} fill={saved ? colors.primary.DEFAULT : 'transparent'} />
-                    <Text style={[styles.actionText, { color: saved ? colors.primary.DEFAULT : tc.textSecondary }]}>{saved ? 'Guardado ✓' : 'Guardar'}</Text>
+                    <Bookmark size={18} color={saved ? colors.primary.DEFAULT : tc.textSecondary} fill={saved ? colors.primary.DEFAULT : 'transparent'} />
+                    {showActionText && <Text style={[styles.actionText, { color: saved ? colors.primary.DEFAULT : tc.textSecondary }]}>{saved ? 'Guardado' : 'Guardar'}</Text>}
                 </Pressable>
             </View>
 
@@ -770,7 +783,7 @@ function CommunityPanel({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
                 </View>
                 <View style={{ paddingVertical: 12, alignItems: 'center' }}>
                     <Text style={{ color: tc.textMuted, fontSize: 13, textAlign: 'center', fontStyle: 'italic' }}>
-                        Las tendencias se mostrarán cuando haya más actividad en la comunidad.
+                        Disponible próximamente
                     </Text>
                 </View>
             </View>
@@ -783,7 +796,7 @@ function CommunityPanel({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
                 </View>
                 <View style={{ paddingVertical: 12, alignItems: 'center' }}>
                     <Text style={{ color: tc.textMuted, fontSize: 13, textAlign: 'center', fontStyle: 'italic' }}>
-                        Sugerencias de personas y negocios aparecerán aquí a medida que crezcamos.
+                        Disponible próximamente
                     </Text>
                 </View>
             </View>
@@ -796,7 +809,7 @@ function CommunityPanel({ tc }: { tc: ReturnType<typeof useThemeColors> }) {
                 </View>
                 <View style={{ paddingVertical: 12, alignItems: 'center' }}>
                     <Text style={{ color: tc.textMuted, fontSize: 13, textAlign: 'center', fontStyle: 'italic' }}>
-                        Los eventos de la comunidad aparecerán aquí pronto.
+                        Disponible próximamente
                     </Text>
                 </View>
             </View>

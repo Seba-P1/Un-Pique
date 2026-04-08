@@ -22,7 +22,7 @@ import {
     MapPin,
     Building2,
     Store,
-    Truck,
+    Bike,
     X
 } from 'lucide-react-native';
 import colors from '../../constants/colors';
@@ -58,7 +58,7 @@ function getExtraItems(roles: string[] = []) {
         items.push({ key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business' });
     }
     if (roles.includes('delivery_driver')) {
-        items.push({ key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Truck, route: '/driver' });
+        items.push({ key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Bike, route: '/driver' });
     }
     return items;
 }
@@ -253,7 +253,7 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
                                 >
                                     <item.icon size={18} color={active ? tc.primary : tc.textSecondary} strokeWidth={active ? 2.2 : 1.8} />
                                     <Text style={[
-                                        styles.drawerItemLabel, 
+                                        styles.drawerItemLabel,
                                         { color: active ? tc.primary : tc.text },
                                         active && { fontWeight: '700' }
                                     ]}>{item.label}</Text>
@@ -277,7 +277,7 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
                                 >
                                     <item.icon size={18} color={active ? tc.primary : tc.textSecondary} strokeWidth={active ? 2.2 : 1.8} />
                                     <Text style={[
-                                        styles.drawerItemLabel, 
+                                        styles.drawerItemLabel,
                                         { color: active ? tc.primary : tc.text },
                                         active && { fontWeight: '700' }
                                     ]}>{item.label}</Text>
@@ -307,6 +307,7 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
 export default function TabsLayout() {
     const insets = useSafeAreaInsets();
     const tc = useThemeColors();
+    const { theme } = useThemeStore();
     const { width } = useWindowDimensions();
     const isDesktop = width >= DESKTOP_BREAKPOINT;
     const [drawerVisible, setDrawerVisible] = useState(false);
@@ -330,31 +331,44 @@ export default function TabsLayout() {
                 <Tabs
                     screenOptions={{
                         tabBarActiveTintColor: colors.primary.DEFAULT,
-                        tabBarInactiveTintColor: tc.textMuted,
+                        tabBarInactiveTintColor: theme === 'dark' ? '#ffffff' : '#1a1a1a',
                         tabBarStyle: isDesktop
                             ? { display: 'none' }
                             : {
-                                backgroundColor: tc.tabBarBg,
-                                borderTopWidth: 0,
-                                height: 52 + Math.max(insets.bottom, 0),
-                                paddingBottom: Math.max(insets.bottom, 0),
+                                flexDirection: 'row',
+                                width: '100%',
+                                backgroundColor: theme === 'dark' ? '#121212' : '#ffffff',
+                                borderTopWidth: 1,
+                                borderTopColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                                height: 56 + Math.max(insets.bottom, 8),
+                                paddingBottom: Math.max(insets.bottom, 8),
                                 paddingTop: 0,
                                 ...(Platform.OS === 'web' ? { boxShadow: '0px -1px 16px rgba(0,0,0,0.08)' } : {}),
                                 elevation: 8,
                             },
                         tabBarItemStyle: {
-                            paddingTop: 6,
-                            paddingBottom: 4,
-                            height: 52,
+                            flex: 1,
+                            alignItems: 'center',
                             justifyContent: 'center',
+                            paddingTop: 2,
+                            paddingBottom: 2,
+                            height: 56,
                         },
-                        tabBarLabelStyle: {
-                            fontSize: 9,
-                            fontWeight: '700',
-                            marginTop: 2,
-                            letterSpacing: -0.1,
-                        },
-                        tabBarIconStyle: { marginBottom: 0 },
+                        tabBarLabel: ({ color, children }) => (
+                            <Text
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                style={{
+                                    fontSize: 12,
+                                    fontWeight: '300',
+                                    color,
+                                    marginTop: 1,
+                                    textAlign: 'center'
+                                }}
+                            >
+                                {children}
+                            </Text>
+                        ),
                         headerShown: false,
                     }}
                 >
@@ -362,7 +376,7 @@ export default function TabsLayout() {
                         name="index"
                         options={{
                             title: 'Inicio',
-                            tabBarIcon: ({ color }) => <Home size={20} strokeWidth={2} color={color} />,
+                            tabBarIcon: ({ color, focused }) => <Home size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
                         }}
                         listeners={{
                             tabPress: () => { },
@@ -373,21 +387,21 @@ export default function TabsLayout() {
                         name="marketplace"
                         options={{
                             title: 'Sabor Local',
-                            tabBarIcon: ({ color }) => <UtensilsCrossed size={20} strokeWidth={2} color={color} />,
+                            tabBarIcon: ({ color, focused }) => <ShoppingBag size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
                         }}
                     />
                     <Tabs.Screen
                         name="servicios"
                         options={{
                             title: 'Servicios',
-                            tabBarIcon: ({ color }) => <Wrench size={20} strokeWidth={2} color={color} />,
+                            tabBarIcon: ({ color, focused }) => <Wrench size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
                         }}
                     />
                     <Tabs.Screen
                         name="social"
                         options={{
                             title: 'Social',
-                            tabBarIcon: ({ color }) => <MessageCircle size={20} strokeWidth={2} color={color} />,
+                            tabBarIcon: ({ color, focused }) => <MessageCircle size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
                         }}
                     />
                     <Tabs.Screen
@@ -398,7 +412,7 @@ export default function TabsLayout() {
                         name="profile"
                         options={{
                             title: 'Mi Perfil',
-                            tabBarIcon: ({ color }) => <User size={20} strokeWidth={2} color={color} />,
+                            tabBarIcon: ({ color, focused }) => <User size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
                         }}
                     />
                 </Tabs>

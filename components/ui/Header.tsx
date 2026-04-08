@@ -1,7 +1,7 @@
 import React, { useState, memo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput, useWindowDimensions, Modal, TouchableWithoutFeedback, ScrollView, LayoutAnimation, UIManager } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Bell, MapPin, Search, ShoppingCart, MoreVertical, Settings, ShoppingBag, Truck, UserCircle, Star, LogOut, HelpCircle, X } from 'lucide-react-native';
+import { ArrowLeft, Bell, MapPin, Search, ShoppingCart, MoreVertical, Settings, ShoppingBag, Bike, UserCircle, Star, LogOut, HelpCircle, X } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -103,7 +103,7 @@ export const HeaderTypeA = ({
                                 <MenuItem icon={Star} label="Mis Favoritos" onPress={() => router.push('/(tabs)/favorites' as any)} tc={tc} />
                                 <View style={[styles.menuDivider, { backgroundColor: tc.borderLight }]} />
                                 {user?.user_metadata?.role === 'seller' && (
-                                    <MenuItem icon={Truck} label="Panel Vendedor" onPress={() => router.push('/business/dashboard' as any)} tc={tc} highlight />
+                                    <MenuItem icon={Bike} label="Panel Vendedor" onPress={() => router.push('/business/dashboard' as any)} tc={tc} highlight />
                                 )}
                                 <MenuItem icon={UserCircle} label="Mi Perfil" onPress={() => router.push('/(tabs)/profile' as any)} tc={tc} />
                                 <MenuItem icon={Settings} label="Configuración" onPress={() => router.push('/settings' as any)} tc={tc} />

@@ -1,0 +1,300 @@
+warning: LF will be replaced by CRLF in app/(tabs)/marketplace/index.tsx.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in app/(tabs)/profile.tsx.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in app/business/settings.tsx.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in app/shop/[slug].tsx.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in components/delivery/index.ts.
+The file will have its original line endings in your working directory
+[1mdiff --git a/app/(tabs)/_layout.tsx b/app/(tabs)/_layout.tsx[m
+[1mindex 80593f7..1b6919f 100644[m
+[1m--- a/app/(tabs)/_layout.tsx[m
+[1m+++ b/app/(tabs)/_layout.tsx[m
+[36m@@ -22,7 +22,7 @@[m [mimport {[m
+     MapPin,[m
+     Building2,[m
+     Store,[m
+[31m-    Truck,[m
+[32m+[m[32m    Bike,[m
+     X[m
+ } from 'lucide-react-native';[m
+ import colors from '../../constants/colors';[m
+[36m@@ -58,7 +58,7 @@[m [mfunction getExtraItems(roles: string[] = []) {[m
+         items.push({ key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business' });[m
+     }[m
+     if (roles.includes('delivery_driver')) {[m
+[31m-        items.push({ key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Truck, route: '/driver' });[m
+[32m+[m[32m        items.push({ key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Bike, route: '/driver' });[m
+     }[m
+     return items;[m
+ }[m
+[36m@@ -253,7 +253,7 @@[m [mfunction MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v[m
+                                 >[m
+                                     <item.icon size={18} color={active ? tc.primary : tc.textSecondary} strokeWidth={active ? 2.2 : 1.8} />[m
+                                     <Text style={[[m
+[31m-                                        styles.drawerItemLabel, [m
+[32m+[m[32m                                        styles.drawerItemLabel,[m
+                                         { color: active ? tc.primary : tc.text },[m
+                                         active && { fontWeight: '700' }[m
+                                     ]}>{item.label}</Text>[m
+[36m@@ -277,7 +277,7 @@[m [mfunction MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v[m
+                                 >[m
+                                     <item.icon size={18} color={active ? tc.primary : tc.textSecondary} strokeWidth={active ? 2.2 : 1.8} />[m
+                                     <Text style={[[m
+[31m-                                        styles.drawerItemLabel, [m
+[32m+[m[32m                                        styles.drawerItemLabel,[m
+                                         { color: active ? tc.primary : tc.text },[m
+                                         active && { fontWeight: '700' }[m
+                                     ]}>{item.label}</Text>[m
+[36m@@ -307,6 +307,7 @@[m [mfunction MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v[m
+ export default function TabsLayout() {[m
+     const insets = useSafeAreaInsets();[m
+     const tc = useThemeColors();[m
+[32m+[m[32m    const { theme } = useThemeStore();[m
+     const { width } = useWindowDimensions();[m
+     const isDesktop = width >= DESKTOP_BREAKPOINT;[m
+     const [drawerVisible, setDrawerVisible] = useState(false);[m
+[36m@@ -330,31 +331,44 @@[m [mexport default function TabsLayout() {[m
+                 <Tabs[m
+                     screenOptions={{[m
+                         tabBarActiveTintColor: colors.primary.DEFAULT,[m
+[31m-                        tabBarInactiveTintColor: tc.textMuted,[m
+[32m+[m[32m                        tabBarInactiveTintColor: theme === 'dark' ? '#ffffff' : '#1a1a1a',[m
+                         tabBarStyle: isDesktop[m
+                             ? { display: 'none' }[m
+                             : {[m
+[31m-                                backgroundColor: tc.tabBarBg,[m
+[31m-                                borderTopWidth: 0,[m
+[31m-                                height: 52 + Math.max(insets.bottom, 0),[m
+[31m-                                paddingBottom: Math.max(insets.bottom, 0),[m
+[32m+[m[32m                                flexDirection: 'row',[m
+[32m+[m[32m                                width: '100%',[m
+[32m+[m[32m                                backgroundColor: theme === 'dark' ? '#121212' : '#ffffff',[m
+[32m+[m[32m                                borderTopWidth: 1,[m
+[32m+[m[32m                                borderTopColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',[m
+[32m+[m[32m                                height: 56 + Math.max(insets.bottom, 8),[m
+[32m+[m[32m                                paddingBottom: Math.max(insets.bottom, 8),[m
+                                 paddingTop: 0,[m
+                                 ...(Platform.OS === 'web' ? { boxShadow: '0px -1px 16px rgba(0,0,0,0.08)' } : {}),[m
+                                 elevation: 8,[m
+                             },[m
+                         tabBarItemStyle: {[m
+[31m-                            paddingTop: 6,[m
+[31m-                            paddingBottom: 4,[m
+[31m-                            height: 52,[m
+[32m+[m[32m                            flex: 1,[m
+[32m+[m[32m                            alignItems: 'center',[m
+                             justifyContent: 'center',[m
+[32m+[m[32m                            paddingTop: 2,[m
+[32m+[m[32m                            paddingBottom: 2,[m
+[32m+[m[32m                            height: 56,[m
+                         },[m
+[31m-                        tabBarLabelStyle: {[m
+[31m-                            fontSize: 9,[m
+[31m-                            fontWeight: '700',[m
+[31m-                            marginTop: 2,[m
+[31m-                            letterSpacing: -0.1,[m
+[31m-                        },[m
+[31m-                        tabBarIconStyle: { marginBottom: 0 },[m
+[32m+[m[32m                        tabBarLabel: ({ color, children }) => ([m
+[32m+[m[32m                            <Text[m
+[32m+[m[32m                                numberOfLines={1}[m
+[32m+[m[32m                                adjustsFontSizeToFit[m
+[32m+[m[32m                                style={{[m
+[32m+[m[32m                                    fontSize: 12,[m
+[32m+[m[32m                                    fontWeight: '300',[m
+[32m+[m[32m                                    color,[m
+[32m+[m[32m                                    marginTop: 1,[m
+[32m+[m[32m                                    textAlign: 'center'[m
+[32m+[m[32m                                }}[m
+[32m+[m[32m                            >[m
+[32m+[m[32m                                {children}[m
+[32m+[m[32m                            </Text>[m
+[32m+[m[32m                        ),[m
+                         headerShown: false,[m
+                     }}[m
+                 >[m
+[36m@@ -362,7 +376,7 @@[m [mexport default function TabsLayout() {[m
+                         name="index"[m
+                         options={{[m
+                             title: 'Inicio',[m
+[31m-                            tabBarIcon: ({ color }) => <Home size={20} strokeWidth={2} color={color} />,[m
+[32m+[m[32m                            tabBarIcon: ({ color, focused }) => <Home size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,[m
+                         }}[m
+                         listeners={{[m
+                             tabPress: () => { },[m
+[36m@@ -373,21 +387,21 @@[m [mexport default function TabsLayout() {[m
+                         name="marketplace"[m
+                         options={{[m
+                             title: 'Sabor Local',[m
+[31m-                            tabBarIcon: ({ color }) => <UtensilsCrossed size={20} strokeWidth={2} color={color} />,[m
+[32m+[m[32m                            tabBarIcon: ({ color, focused }) => <ShoppingBag size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,[m
+                         }}[m
+                     />[m
+                     <Tabs.Screen[m
+                         name="servicios"[m
+                         options={{[m
+                             title: 'Servicios',[m
+[31m-                            tabBarIcon: ({ color }) => <Wrench size={20} strokeWidth={2} color={color} />,[m
+[32m+[m[32m                            tabBarIcon: ({ color, focused }) => <Wrench size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,[m
+                         }}[m
+                     />[m
+                     <Tabs.Screen[m
+                         name="social"[m
+                         options={{[m
+                             title: 'Social',[m
+[31m-                            tabBarIcon: ({ color }) => <MessageCircle size={20} strokeWidth={2} color={color} />,[m
+[32m+[m[32m                            tabBarIcon: ({ color, focused }) => <MessageCircle size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,[m
+                         }}[m
+                     />[m
+                     <Tabs.Screen[m
+[36m@@ -398,7 +412,7 @@[m [mexport default function TabsLayout() {[m
+                         name="profile"[m
+                         options={{[m
+                             title: 'Mi Perfil',[m
+[31m-                            tabBarIcon: ({ color }) => <User size={20} strokeWidth={2} color={color} />,[m
+[32m+[m[32m                            tabBarIcon: ({ color, focused }) => <User size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,[m
+                         }}[m
+                     />[m
+                 </Tabs>[m
+[1mdiff --git a/app/(tabs)/marketplace/index.tsx b/app/(tabs)/marketplace/index.tsx[m
+[1mindex ad6b9e9..2252311 100644[m
+[1m--- a/app/(tabs)/marketplace/index.tsx[m
+[1m+++ b/app/(tabs)/marketplace/index.tsx[m
+[36m@@ -1,90 +1,219 @@[m
+[31m-import React, { useState, useEffect, useRef } from 'react';[m
+[32m+[m[32mimport React, { useState, useRef, useCallback } from 'react';[m
+ import {[m
+     View,[m
+     Text,[m
+     StyleSheet,[m
+[31m-    TouchableOpacity,[m
+[31m-    TextInput,[m
+     FlatList,[m
+     ActivityIndicator,[m
+     useWindowDimensions,[m
+     Platform,[m
+     Animated,[m
+[32m+[m[32m    ScrollView,[m
+ } from 'react-native';[m
+ import { SafeAreaView } from 'react-native-safe-area-context';[m
+[31m-import { Search, UtensilsCrossed } from 'lucide-react-native';[m
+[32m+[m[32mimport { UtensilsCrossed } from 'lucide-react-native';[m
+ import { colors } from '../../../constants/colors';[m
+[31m-import { BusinessCard, CategoriesGrid } from '../../../components/delivery';[m
+[31m-import { BusinessFeed } from '../../../components/home/BusinessFeed';[m
+[31m-import { useBusinessStore } from '../../../stores/businessStore';[m
+[31m-import { useFavoritesStore } from '../../../stores/favoritesStore';[m
+[31m-import { useAuthStore } from '../../../stores/authStore';[m
+[32m+[m[32mimport { CategoriesGrid, BusinessCardMini, ProductCard, SectionHeader } from '../../../components/delivery';[m
+[32m+[m[32mimport { useLocationStore } from '../../../stores/locationStore';[m
+ import { useThemeColors } from '../../../hooks/useThemeColors';[m
+[31m-import { useRouter } from 'expo-router';[m
+ import { useCartStore } from '../../../stores/cartStore';[m
+ import { AppHeader } from '../../../components/ui/AppHeader';[m
+[32m+[m[32mimport { useMarketplaceData, MarketplaceProduct } from '../../../hooks/useMarketplaceData';[m
+[32m+[m[32mimport { Business } from '../../../stores/businessStore';[m
+ [m
+[32m+[m[32m// ─── Horizontal Business List (sections 2-4) ────────────────────[m
+[32m+[m[32mfunction BusinessHorizontalList({ data, loading }: { data: Business[]; loading: boolean }) {[m
+[32m+[m[32m    const tc = useThemeColors();[m
+[32m+[m
+[32m+[m[32m    if (loading) {[m
+[32m+[m[32m        return ([m
+[32m+[m[32m            <View style={styles.sectionLoading}>[m
+[32m+[m[32m                <ActivityIndicator size="small" color={tc.primary} />[m
+[32m+[m[32m            </View>[m
+[32m+[m[32m        );[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    return ([m
+[32m+[m[32m        <FlatList[m
+[32m+[m[32m            data={data}[m
+[32m+[m[32m            horizontal[m
+[32m+[m[32m            showsHorizontalScrollIndicator={false}[m
+[32m+[m[32m            keyExtractor={(item) => item.id}[m
+[32m+[m[32m            contentContainerStyle={styles.horizontalList}[m
+[32m+[m[32m            renderItem={({ item }) => <BusinessCardMini business={item} />}[m
+[32m+[m[32m        />[m
+[32m+[m[32m    );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// ─── Horizontal Product List (section 5) ─────────────────────────[m
+[32m+[m[32mfunction ProductHorizontalList({ data, loading }: { data: MarketplaceProduct[]; loading: boolean }) {[m
+[32m+[m[32m    const tc = useThemeColors();[m
+[32m+[m
+[32m+[m[32m    if (loading) {[m
+[32m+[m[32m        return ([m
+[32m+[m[32m            <View style={styles.sectionLoading}>[m
+[32m+[m[32m                <ActivityIndicator size="small" color={tc.primary} />[m
+[32m+[m[32m            </View>[m
+[32m+[m[32m        );[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    return ([m
+[32m+[m[32m        <FlatList[m
+[32m+[m[32m            data={data}[m
+[32m+[m[32m            horizontal[m
+[32m+[m[32m            showsHorizontalScrollIndicator={false}[m
+[32m+[m[32m            keyExtractor={(item) => item.id}[m
+[32m+[m[32m            contentContainerStyle={styles.horizontalList}[m
+[32m+[m[32m            renderItem={({ item }) => <ProductCard product={item} variant="compact" />}[m
+[32m+[m[32m        />[m
+[32m+[m[32m    );[m
+[32m+[m[32m}[m
+ [m
+[32m+[m
+[32m+[m[32m// ─── Main Screen ─────────────────────────────────────────────────[m
+ export default function DeliveryScreen() {[m
+     const tc = useThemeColors();[m
+[31m-    const { businesses, loading, fetchBusinesses } = useBusinessStore();[m
+[31m-    const { fetchFavorites } = useFavoritesStore();[m
+[31m-    const { user } = useAuthStore();[m
+     const { width } = useWindowDimensions();[m
+[31m-    const router = useRouter();[m
+     const { itemCount } = useCartStore();[m
+[32m+[m[32m    const { currentLocality } = useLocationStore();[m
+[32m+[m[32m    const scrollY = useRef(new Animated.Value(0)).current;[m
+[32m+[m
+[32m+[m[32m    const isDesktop = width >= 768;[m
+ [m
+[31m-    const [searchQuery, setSearchQuery] = useState('');[m
+     const [selectedCategory, setSelectedCategory] = useState('all');[m
+[32m+[m[32m    const [searchQuery, setSearchQuery] = useState('');[m
+ [m
+[31m-    const scrollY = useRef(new Animated.Value(0)).current;[m
+[32m+[m[32m    const {[m
+[32m+[m[32m        vendors,[m
+[32m+[m[32m        delivery,[m
+[32m+[m[32m        pickup,[m
+[32m+[m[32m        topProducts,[m
+[32m+[m[32m        allProducts,[m
+[32m+[m[32m        loadMoreProducts,[m
+[32m+[m[32m    } = useMarketplaceData(currentLocality?.id);[m
+ [m
+[31m-    const isDesktop = width >= 768;[m
+[32m+[m[32m    // ── Section 6 render item ────────────────────────────────────[m
+[32m+[m[32m    const renderGridProduct = useCallback(({ item }: { item: MarketplaceProduct }) => ([m
+[32m+[m[32m        <ProductCard product={item} variant="grid" />[m
+[32m+[m[32m    ), []);[m
+ [m
+[31m-    useEffect(() => {[m
+[31m-        loadData();[m
+[31m-    }, []);[m
+[32m+[m[32m    const keyExtractor = useCallback((item: MarketplaceProduct) => item.id, []);[m
+ [m
+[31m-    const loadData = async () => {[m
+[31m-        await fetchBusinesses();[m
+[31m-        if (user) {[m
+[31m-            await fetchFavorites(user.id);[m
+[31m-        }[m
+[31m-    };[m
+[32m+[m[32m    // ── Header with sections 1-5 ─────────────────────────────────[m
+[32m+[m[32m    const ListHeader = useCallback(() => ([m
+[32m+[m[32m        <View style={[isDesktop && styles.desktopContainer]}>[m
+[32m+[m[32m            {/* Subtitle */}[m
+[32m+[m[32m            <Text style={[styles.subtitle, { color: tc.textMuted }]}>Delivery y comida</Text>[m
+ [m
+[31m-    // 

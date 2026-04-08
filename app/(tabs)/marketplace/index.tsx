@@ -1,90 +1,219 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
     View,
     Text,
     StyleSheet,
-    TouchableOpacity,
-    TextInput,
     FlatList,
     ActivityIndicator,
     useWindowDimensions,
     Platform,
     Animated,
+    ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, UtensilsCrossed } from 'lucide-react-native';
+import { UtensilsCrossed } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
-import { BusinessCard, CategoriesGrid } from '../../../components/delivery';
-import { BusinessFeed } from '../../../components/home/BusinessFeed';
-import { useBusinessStore } from '../../../stores/businessStore';
-import { useFavoritesStore } from '../../../stores/favoritesStore';
-import { useAuthStore } from '../../../stores/authStore';
+import { CategoriesGrid, BusinessCardMini, ProductCard, SectionHeader } from '../../../components/delivery';
+import { useLocationStore } from '../../../stores/locationStore';
 import { useThemeColors } from '../../../hooks/useThemeColors';
-import { useRouter } from 'expo-router';
 import { useCartStore } from '../../../stores/cartStore';
 import { AppHeader } from '../../../components/ui/AppHeader';
+import { useMarketplaceData, MarketplaceProduct } from '../../../hooks/useMarketplaceData';
+import { Business } from '../../../stores/businessStore';
+
+// ─── Horizontal Business List (sections 2-4) ────────────────────
+function BusinessHorizontalList({ data, loading }: { data: Business[]; loading: boolean }) {
+    const tc = useThemeColors();
+
+    if (loading) {
+        return (
+            <View style={styles.sectionLoading}>
+                <ActivityIndicator size="small" color={tc.primary} />
+            </View>
+        );
+    }
+
+    return (
+        <FlatList
+            data={data}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.horizontalList}
+            renderItem={({ item }) => <BusinessCardMini business={item} />}
+        />
+    );
+}
+
+// ─── Horizontal Product List (section 5) ─────────────────────────
+function ProductHorizontalList({ data, loading }: { data: MarketplaceProduct[]; loading: boolean }) {
+    const tc = useThemeColors();
+
+    if (loading) {
+        return (
+            <View style={styles.sectionLoading}>
+                <ActivityIndicator size="small" color={tc.primary} />
+            </View>
+        );
+    }
+
+    return (
+        <FlatList
+            data={data}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.horizontalList}
+            renderItem={({ item }) => <ProductCard product={item} variant="compact" />}
+        />
+    );
+}
 
 
+// ─── Main Screen ─────────────────────────────────────────────────
 export default function DeliveryScreen() {
     const tc = useThemeColors();
-    const { businesses, loading, fetchBusinesses } = useBusinessStore();
-    const { fetchFavorites } = useFavoritesStore();
-    const { user } = useAuthStore();
     const { width } = useWindowDimensions();
-    const router = useRouter();
     const { itemCount } = useCartStore();
-
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('all');
-
+    const { currentLocality } = useLocationStore();
     const scrollY = useRef(new Animated.Value(0)).current;
 
     const isDesktop = width >= 768;
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const loadData = async () => {
-        await fetchBusinesses();
-        if (user) {
-            await fetchFavorites(user.id);
-        }
-    };
+    const {
+        vendors,
+        delivery,
+        pickup,
+        topProducts,
+        allProducts,
+        loadMoreProducts,
+    } = useMarketplaceData(currentLocality?.id);
 
-    // Filter businesses
-    const filteredBusinesses = businesses.filter((business) => {
-        const matchesSearch = searchQuery.trim() === '' || 
-            business.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            business.description?.toLowerCase().includes(searchQuery.toLowerCase());
-            
-        const matchesCategory = selectedCategory === 'all' || business.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
+    // ── Section 6 render item ────────────────────────────────────
+    const renderGridProduct = useCallback(({ item }: { item: MarketplaceProduct }) => (
+        <ProductCard product={item} variant="grid" />
+    ), []);
 
-    const renderBusinessItem = ({ item }: any) => (
-        <BusinessCard business={item} />
-    );
+    const keyExtractor = useCallback((item: MarketplaceProduct) => item.id, []);
 
-    const renderEmptyState = () => (
-        <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}>
-                <UtensilsCrossed size={64} color={tc.textMuted} />
+    // ── Header with sections 1-5 ─────────────────────────────────
+    const ListHeader = useCallback(() => (
+        <View style={[isDesktop && styles.desktopContainer]}>
+            {/* Subtitle */}
+            <Text style={[styles.subtitle, { color: tc.textMuted }]}>Delivery y comida</Text>
+
+            {/* SECTION 1 — Categorías */}
+            <CategoriesGrid
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+            />
+
+            {/* SECTION 2 — Vendedores de Acá */}
+            {(vendors.loading || vendors.data.length > 0) && (
+                <View>
+                    <SectionHeader
+                        title="Vendedores de Acá"
+                        onSeeAll={() => {
+                            // TODO: navegar a lista filtrada
+                        }}
+                    />
+                    <BusinessHorizontalList data={vendors.data} loading={vendors.loading} />
+                </View>
+            )}
+
+            {/* SECTION 3 — Te lo enviamos a tu casa */}
+            {(delivery.loading || delivery.data.length > 0) && (
+                <View>
+                    <SectionHeader
+                        title="Te lo enviamos a tu casa"
+                        onSeeAll={() => {
+                            // TODO: navegar a lista filtrada
+                        }}
+                    />
+                    <BusinessHorizontalList data={delivery.data} loading={delivery.loading} />
+                </View>
+            )}
+
+            {/* SECTION 4 — Retirá en el local */}
+            {(pickup.loading || pickup.data.length > 0) && (
+                <View>
+                    <SectionHeader
+                        title="Retirá en el local"
+                        onSeeAll={() => {
+                            // TODO: navegar a lista filtrada
+                        }}
+                    />
+                    <BusinessHorizontalList data={pickup.data} loading={pickup.loading} />
+                </View>
+            )}
+
+            {/* SECTION 5 — Los más pedidos */}
+            {(topProducts.loading || topProducts.data.length > 0) && (
+                <View>
+                    <SectionHeader
+                        title="Los más pedidos"
+                        onSeeAll={() => {
+                            // TODO: navegar a lista filtrada
+                        }}
+                    />
+                    <ProductHorizontalList data={topProducts.data} loading={topProducts.loading} />
+                </View>
+            )}
+
+            {/* SECTION 6 Header */}
+            {(allProducts.loading || allProducts.data.length > 0) && (
+                <SectionHeader title="¿Qué querés comer hoy?" />
+            )}
+
+            {/* Loading for section 6 initial load */}
+            {allProducts.loading && (
+                <View style={styles.sectionLoading}>
+                    <ActivityIndicator size="small" color={tc.primary} />
+                </View>
+            )}
+        </View>
+    ), [
+        tc, isDesktop, selectedCategory, vendors, delivery, pickup, topProducts, allProducts.loading, allProducts.data.length,
+    ]);
+
+    // ── Footer (loading more indicator) ──────────────────────────
+    const ListFooter = useCallback(() => {
+        if (!allProducts.loadingMore) return null;
+        return (
+            <View style={styles.footerLoading}>
+                <ActivityIndicator size="small" color={tc.primary} />
+                <Text style={[styles.footerText, { color: tc.textMuted }]}>Cargando más...</Text>
             </View>
-            <Text style={[styles.emptyTitle, { color: tc.text }]}>
-                {searchQuery 
-                    ? 'No encontramos negocios con ese nombre'
-                    : selectedCategory !== 'all'
-                        ? 'No se encontraron negocios'
-                        : 'No hay negocios disponibles'}
-            </Text>
-            <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
-                {searchQuery || selectedCategory !== 'all'
-                    ? 'Intenta con otra búsqueda o categoría'
-                    : 'Pronto habrá más negocios en tu zona'}
-            </Text>
-        </View >
-    );
+        );
+    }, [allProducts.loadingMore, tc]);
+
+    // ── Empty state ──────────────────────────────────────────────
+    const EmptyComponent = useCallback(() => {
+        if (allProducts.loading) return null;
+        // Only show if everything is empty and not loading
+        const allEmpty = vendors.data.length === 0 && delivery.data.length === 0 &&
+            pickup.data.length === 0 && topProducts.data.length === 0 && allProducts.data.length === 0;
+        const allDoneLoading = !vendors.loading && !delivery.loading && !pickup.loading && !topProducts.loading;
+
+        if (!allEmpty || !allDoneLoading) return null;
+
+        return (
+            <View style={styles.emptyContainer}>
+                <View style={styles.emptyIcon}>
+                    <UtensilsCrossed size={64} color={tc.textMuted} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: tc.text }]}>
+                    No hay negocios disponibles
+                </Text>
+                <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
+                    Pronto habrá más negocios en tu zona
+                </Text>
+            </View>
+        );
+    }, [allProducts, vendors, delivery, pickup, topProducts, tc]);
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={isDesktop ? [] : ['top']}>
@@ -97,210 +226,76 @@ export default function DeliveryScreen() {
                 scrollY={scrollY}
             />
 
-            {/* Business List */}
-            {loading ? (
-                <View style={[styles.loadingContainer, styles.centeredContent]}>
-                    <ActivityIndicator size="large" color={tc.primary} />
-                    <Text style={[styles.loadingText, { color: tc.textSecondary }]}>Cargando negocios...</Text>
-                </View>
-            ) : (
-                <Animated.FlatList
-                    data={filteredBusinesses}
-                    renderItem={renderBusinessItem}
-                    keyExtractor={(item: { id: string }) => item.id} // Added type to item to satisfy TS strictness if needed
-                    contentContainerStyle={[styles.businessList, isDesktop && { maxWidth: 900, alignSelf: 'center', width: '100%' }]}
-                    ListEmptyComponent={renderEmptyState}
-                    style={styles.listStyle}
-                    showsVerticalScrollIndicator={false}
-                    refreshing={loading}
-                    onRefresh={loadData}
-                    numColumns={isDesktop ? 2 : 1}
-                    key={isDesktop ? 'desktop' : 'mobile'}
-                    columnWrapperStyle={isDesktop ? { gap: 16 } : undefined}
-                    onScroll={Animated.event(
-                        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                        { useNativeDriver: Platform.OS !== 'web' }
-                    )}
-                    scrollEventThrottle={16}
-                    ListHeaderComponent={
-                        <View style={[styles.centeredContent, { width: '100%' }, isDesktop && { maxWidth: 900, alignSelf: 'center' }]}>
-                            <Text style={{ fontSize: 16, color: tc.textMuted, marginBottom: 16, paddingHorizontal: 20, marginTop: 4 }}>Delivery y comida</Text>
-                            {/* Categories */}
-                            <CategoriesGrid
-                                selectedCategory={selectedCategory}
-                                onSelectCategory={setSelectedCategory}
-                            />
-
-                            {/* Results Count */}
-                            {!loading && (
-                                <View style={styles.resultsHeader}>
-                                    <Text style={[styles.resultsText, { color: tc.textSecondary }]}>
-                                        {filteredBusinesses.length} {filteredBusinesses.length === 1 ? 'negocio' : 'negocios'}
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                    }
-                    ListFooterComponent={
-                        <View style={[styles.centeredContent, { width: '100%', paddingBottom: 40 }, isDesktop && { maxWidth: 900, alignSelf: 'center' }]}>
-                            {/* Re-using BusinessFeed to show featured/all restaurants as requested */}
-                            <View style={styles.feedDivider} />
-                            <BusinessFeed />
-                        </View>
-                    }
-                />
-            )}
+            <Animated.FlatList
+                data={allProducts.loading ? [] : allProducts.data}
+                renderItem={renderGridProduct}
+                keyExtractor={keyExtractor}
+                numColumns={2}
+                key="product-grid-2col"
+                ListHeaderComponent={ListHeader}
+                ListFooterComponent={ListFooter}
+                ListEmptyComponent={EmptyComponent}
+                contentContainerStyle={[
+                    styles.mainList,
+                    isDesktop && { maxWidth: 900, alignSelf: 'center', width: '100%' },
+                ]}
+                columnWrapperStyle={styles.gridRow}
+                showsVerticalScrollIndicator={false}
+                onEndReached={loadMoreProducts}
+                onEndReachedThreshold={0.2}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: Platform.OS !== 'web' }
+                )}
+                scrollEventThrottle={16}
+            />
         </SafeAreaView>
     );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────
 const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    headerWrapper: {
-        zIndex: 10,
-        backgroundColor: colors.white,
-    },
-    centeredContent: {
-        width: '100%',
-        maxWidth: 600,
+    desktopContainer: {
+        maxWidth: 900,
         alignSelf: 'center',
-    },
-    listStyle: {
         width: '100%',
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    subtitle: {
+        fontSize: 16,
+        marginBottom: 16,
         paddingHorizontal: 20,
-        paddingTop: 12,
-        paddingBottom: 16,
+        marginTop: 4,
     },
-    brandIcon: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        backgroundColor: colors.primary?.DEFAULT || '#FF6B35',
+    horizontalList: {
+        paddingHorizontal: 20,
+        paddingBottom: 4,
+    },
+    sectionLoading: {
+        height: 80,
         justifyContent: 'center',
         alignItems: 'center',
-        ...(Platform.OS === 'web' ? { boxShadow: '0 2px 8px rgba(255,107,53,0.3)' } : {}),
     },
-    headerLabel: {
-        fontSize: 9,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
+    mainList: {
+        paddingBottom: 40,
     },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: '800',
+    gridRow: {
+        paddingHorizontal: 14,
     },
-    headerActions: {
+    footerLoading: {
         flexDirection: 'row',
+        justifyContent: 'center',
         alignItems: 'center',
+        paddingVertical: 20,
         gap: 8,
     },
-    headerActionBtn: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
-    },
-    cartBadge: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        backgroundColor: '#FF6B35',
-        minWidth: 18,
-        height: 18,
-        borderRadius: 9,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 4,
-        borderWidth: 1.5,
-        borderColor: '#fff',
-    },
-    cartBadgeText: {
-        color: '#ffffff',
-        fontSize: 10,
-        fontWeight: '800',
-    },
-    inlineSearchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderTopWidth: 1,
-    },
-    inlineSearchInput: {
-        flex: 1,
-        marginLeft: 10,
-        fontSize: 15,
+    footerText: {
+        fontSize: 13,
         fontFamily: 'Nunito Sans',
-    },
-    searchRow: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        gap: 12,
-        marginBottom: 16,
-    },
-    searchBar: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 24, // More premium pill shape
-        paddingHorizontal: 16,
-        height: 48,
-        gap: 12,
-        borderWidth: 1,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 15,
-        fontFamily: 'Nunito Sans',
-    },
-    filterButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 24, // Premium pill shape
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-    },
-    resultsHeader: {
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-    },
-    resultsText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    businessList: {
-        paddingHorizontal: 20,
-    },
-    feedDivider: {
-        height: 1,
-        backgroundColor: colors.gray[200],
-        marginVertical: 24,
-        marginHorizontal: 20,
-        opacity: 0.5,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 12,
-    },
-    loadingText: {
-        fontSize: 15,
     },
     emptyContainer: {
-        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         paddingVertical: 60,

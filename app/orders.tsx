@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, useWindowD
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-    ArrowLeft, ShoppingBag, Clock, CheckCircle, Truck, Package,
+    ArrowLeft, ShoppingBag, Clock, CheckCircle, Bike, Package,
     ChevronRight, MapPin, Star, RotateCcw, XCircle
 } from 'lucide-react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -13,7 +13,7 @@ import { showAlert } from '../utils/alert';
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> = {
     'Entregado': { color: '#166534', bg: '#dcfce7', icon: CheckCircle },
-    'En camino': { color: '#9a3412', bg: '#fff7ed', icon: Truck },
+    'En camino': { color: '#9a3412', bg: '#fff7ed', icon: Bike },
     'Preparando': { color: '#1e40af', bg: '#dbeafe', icon: Package },
     'Cancelado': { color: '#991b1b', bg: '#fee2e2', icon: XCircle },
 };

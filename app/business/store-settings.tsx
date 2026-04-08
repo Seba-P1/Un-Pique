@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppToggle } from '../../components/ui/AppToggle';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Store, MapPin, Clock, Phone, Globe, CreditCard, Truck, Bell, Power } from 'lucide-react-native';
+import { ArrowLeft, Store, MapPin, Clock, Phone, Globe, CreditCard, Bike, Bell, Power } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useBusinessStore } from '../../stores/businessStore';
 import colors from '../../constants/colors';
@@ -206,7 +206,7 @@ export default function StoreSettingsScreen() {
                     <ToggleRow label="Acepta entregas a domicilio" value={acceptsDelivery} onChange={setAcceptsDelivery} tc={tc} />
                     {acceptsDelivery && (
                         <>
-                            <SettingField icon={<Truck size={18} color={tc.textMuted} />} label="Radio (km)" value={deliveryRadius} onChange={setDeliveryRadius} keyboardType="number-pad" tc={tc} />
+                            <SettingField icon={<Bike color="#22c55e" size={18} />} label="Radio (km)" value={deliveryRadius} onChange={setDeliveryRadius} keyboardType="number-pad" tc={tc} />
                             <SettingField icon={<CreditCard size={18} color={tc.textMuted} />} label="Costo envío ($)" value={deliveryFee} onChange={setDeliveryFee} keyboardType="decimal-pad" tc={tc} />
                             <SettingField icon={<CreditCard size={18} color={tc.textMuted} />} label="Pedido mín. ($)" value={minOrder} onChange={setMinOrder} keyboardType="decimal-pad" tc={tc} />
                         </>

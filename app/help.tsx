@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-    ArrowLeft, ChevronDown, ChevronUp, Search, ShoppingCart, Truck,
+    ArrowLeft, ChevronDown, ChevronUp, Search, ShoppingCart, Bike,
     CreditCard, User, Shield, HelpCircle, MessageCircle, Mail, Phone,
     Star, Store, Settings, MapPin
 } from 'lucide-react-native';
@@ -34,7 +34,7 @@ const HELP_SECTIONS: Section[] = [
     },
     {
         title: 'Repartidores',
-        icon: Truck,
+        icon: Bike,
         iconColor: '#06B6D4',
         faqs: [
             { q: '¿Cómo me registro como repartidor?', a: 'Desde tu perfil, accedé al "Panel de Repartidor" y seguí los pasos de registro. Necesitás DNI, licencia de conducir vigente, y un vehículo propio.' },

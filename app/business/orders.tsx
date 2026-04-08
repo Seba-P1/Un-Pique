@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Package, Clock, CheckCircle, XCircle, Truck } from 'lucide-react-native';
+import { ArrowLeft, Package, Clock, CheckCircle, XCircle, Bike } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { showAlert } from '../../utils/alert';
@@ -13,7 +13,7 @@ const STATUS_CONFIG = {
     pending: { label: 'Pendiente', color: colors.warning, icon: Clock, action: 'Aceptar' },
     preparing: { label: 'Preparando', color: colors.info, icon: Package, action: 'Marcar Listo' },
     ready: { label: 'Listo', color: colors.success, icon: CheckCircle, action: 'En Camino' },
-    in_delivery: { label: 'En Camino', color: colors.primary.DEFAULT, icon: Truck, action: 'Entregar' },
+    in_delivery: { label: 'En Camino', color: colors.primary.DEFAULT, icon: Bike, action: 'Entregar' },
     delivered: { label: 'Entregado', color: colors.success, icon: CheckCircle, action: null },
     cancelled: { label: 'Cancelado', color: colors.danger, icon: XCircle, action: null },
 };

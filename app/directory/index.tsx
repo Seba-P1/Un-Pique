@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Search, MapPin, Star, ChevronRight, Briefcase, Wrench, Truck } from 'lucide-react-native';
+import { Search, MapPin, Star, ChevronRight, Briefcase, Wrench, Bike } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 
 const CATEGORIES = [
     { id: 'all', label: 'Todos', icon: Briefcase },
     { id: 'plumbing', label: 'Plomería', icon: Wrench },
-    { id: 'mechanic', label: 'Mecánica', icon: Truck },
+    { id: 'mechanic', label: 'Mecánica', icon: Bike },
     { id: 'health', label: 'Salud', icon: Briefcase },
 ];
 

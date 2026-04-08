@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Platform }
 import { useRouter } from 'expo-router';
 import {
     UtensilsCrossed, Briefcase, Home, Users, ShoppingBag, Scissors,
-    Truck, Stethoscope, GraduationCap, Wrench
+    Bike, Stethoscope, GraduationCap, Wrench
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { showAlert } from '../../utils/alert';
@@ -60,7 +60,7 @@ const CATEGORIES: Category[] = [
     },
     {
         id: '7', name: 'Envíos', description: 'Mensajería rápida',
-        icon: Truck, route: null,
+        icon: Bike, route: null,
         gradient: '#06B6D4',
         image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=300&h=200&fit=crop',
     },

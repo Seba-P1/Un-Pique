@@ -8,7 +8,7 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { useRouter } from 'expo-router';
 import {
     User, Settings, LogOut, MapPin, ShoppingBag, Bell, HelpCircle,
-    ChevronRight, Store, Truck, Sun, Moon, Monitor,
+    ChevronRight, Store, Bike, Sun, Moon, Monitor,
     MessageCircle, Bookmark, Briefcase, Camera, Edit3, Grid3X3,
     Heart, MoreHorizontal, BookmarkCheck
 } from 'lucide-react-native';
@@ -403,7 +403,7 @@ function SettingsView({ tc, router, hasListings, showRolesSection, hasBusinessRo
                             <RoleCard icon={Store} label="Vendedor" description="Gestiona tu tienda" active={currentRole === 'business_owner'} onPress={() => { if (currentRole === 'business_owner') { setCurrentRole('customer'); } else { setCurrentRole('business_owner'); router.push('/business/dashboard' as any); } }} color={colors.primary.DEFAULT} tc={tc} />
                         )}
                         {hasDriverRole && (
-                            <RoleCard icon={Truck} label="Repartidor" description="Gestiona entregas" active={currentRole === 'delivery_driver'} onPress={() => { if (currentRole === 'delivery_driver') { setCurrentRole('customer'); } else { setCurrentRole('delivery_driver'); router.push('/driver/dashboard' as any); } }} color="#22c55e" tc={tc} />
+                            <RoleCard icon={Bike} label="Repartidor" description="Gestiona entregas" active={currentRole === 'delivery_driver'} onPress={() => { if (currentRole === 'delivery_driver') { setCurrentRole('customer'); } else { setCurrentRole('delivery_driver'); router.push('/driver/dashboard' as any); } }} color="#22c55e" tc={tc} />
                         )}
                     </View>
                 </View>
