@@ -1,7 +1,7 @@
 // Tabs Layout — Responsive: Sidebar on Desktop, Bottom Tabs on Mobile
 import React, { useState, useEffect } from 'react';
 import { Tabs, usePathname, useRouter } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, ScrollView, Modal, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, ScrollView, Modal, Pressable, useColorScheme } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -23,7 +23,12 @@ import {
     Building2,
     Store,
     Bike,
-    X
+    X,
+    House,
+    ShoppingBasket,
+    Tag,
+    ClipboardList,
+    CircleUser
 } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -312,6 +317,9 @@ export default function TabsLayout() {
     const isDesktop = width >= DESKTOP_BREAKPOINT;
     const [drawerVisible, setDrawerVisible] = useState(false);
 
+    const colorScheme = useColorScheme();
+    const inactiveColor = colorScheme === 'dark' ? '#ffffff' : '#1a1a1a';
+
     // Wire up global drawer opener for mobile hamburger
     useEffect(() => {
         setOpenDrawerFn(() => setDrawerVisible(true));
@@ -376,7 +384,7 @@ export default function TabsLayout() {
                         name="index"
                         options={{
                             title: 'Inicio',
-                            tabBarIcon: ({ color, focused }) => <Home size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
+                            tabBarIcon: ({ focused }) => <House size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
                         }}
                         listeners={{
                             tabPress: () => { },
@@ -387,21 +395,21 @@ export default function TabsLayout() {
                         name="marketplace"
                         options={{
                             title: 'Sabor Local',
-                            tabBarIcon: ({ color, focused }) => <ShoppingBag size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
+                            tabBarIcon: ({ focused }) => <ShoppingBasket size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
                         }}
                     />
                     <Tabs.Screen
                         name="servicios"
                         options={{
                             title: 'Servicios',
-                            tabBarIcon: ({ color, focused }) => <Wrench size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
+                            tabBarIcon: ({ focused }) => <Tag size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
                         }}
                     />
                     <Tabs.Screen
                         name="social"
                         options={{
                             title: 'Social',
-                            tabBarIcon: ({ color, focused }) => <MessageCircle size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
+                            tabBarIcon: ({ focused }) => <ClipboardList size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
                         }}
                     />
                     <Tabs.Screen
@@ -412,7 +420,7 @@ export default function TabsLayout() {
                         name="profile"
                         options={{
                             title: 'Mi Perfil',
-                            tabBarIcon: ({ color, focused }) => <User size={20} strokeWidth={2} color={color} fill={focused ? color : 'none'} />,
+                            tabBarIcon: ({ focused }) => <CircleUser size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
                         }}
                     />
                 </Tabs>
