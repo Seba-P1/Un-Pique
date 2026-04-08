@@ -1,7 +1,7 @@
 // Tabs Layout — Responsive: Sidebar on Desktop, Bottom Tabs on Mobile
 import React, { useState, useEffect } from 'react';
 import { Tabs, usePathname, useRouter } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, ScrollView, Modal, Pressable, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, ScrollView, Modal, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -317,8 +317,8 @@ export default function TabsLayout() {
     const isDesktop = width >= DESKTOP_BREAKPOINT;
     const [drawerVisible, setDrawerVisible] = useState(false);
 
-    const colorScheme = useColorScheme();
-    const inactiveColor = colorScheme === 'dark' ? '#ffffff' : '#1a1a1a';
+    const isDark = theme === 'dark';
+    const inactiveColor = isDark ? '#ffffff' : '#1a1a1a';
 
     // Wire up global drawer opener for mobile hamburger
     useEffect(() => {
@@ -339,15 +339,15 @@ export default function TabsLayout() {
                 <Tabs
                     screenOptions={{
                         tabBarActiveTintColor: colors.primary.DEFAULT,
-                        tabBarInactiveTintColor: colorScheme === 'dark' ? '#ffffff' : '#1a1a1a',
+                        tabBarInactiveTintColor: inactiveColor,
                         tabBarStyle: isDesktop
                             ? { display: 'none' }
                             : {
                                 flexDirection: 'row',
                                 width: '100%',
-                                backgroundColor: colorScheme === 'dark' ? '#121212' : '#ffffff',
+                                backgroundColor: isDark ? '#121212' : '#ffffff',
                                 borderTopWidth: 1,
-                                borderTopColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                                borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
                                 height: 56 + Math.max(insets.bottom, 8),
                                 paddingBottom: Math.max(insets.bottom, 8),
                                 paddingTop: 0,
