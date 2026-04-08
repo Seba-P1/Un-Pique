@@ -201,14 +201,14 @@ export function BusinessCard({ business }: BusinessCardProps) {
                     </Text>
 
                     <View style={styles.infoRow}>
-                        {business.accepts_delivery && (
+                        {business.has_delivery && (
                             <View style={[styles.infoItem, { backgroundColor: tc.bgHover }]}>
                                 <Text style={[styles.infoText, { color: tc.textSecondary }]}>
                                     {business.delivery_fee === 0 ? 'Envío Gratis' : `Envío $${business.delivery_fee}`}
                                 </Text>
                             </View>
                         )}
-                        {!business.accepts_delivery && business.has_pickup && (
+                        {!business.has_delivery && business.has_pickup && (
                             <View style={[styles.infoItem, { backgroundColor: tc.bgHover }]}>
                                 <MapPin size={12} color={tc.textMuted} />
                                 <Text style={[styles.infoText, { color: tc.textSecondary }]}>

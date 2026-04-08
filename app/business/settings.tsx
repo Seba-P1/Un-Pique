@@ -53,7 +53,7 @@ export default function CentralizedSettingsScreen() {
     const [schedule, setSchedule] = useState<WeekScheduleType>(() => normalizeSchedule(selectedBusiness?.schedule || {})!);
 
     // Delivery & Payments State
-    const [acceptsDelivery, setAcceptsDelivery] = useState(selectedBusiness?.accepts_delivery ?? true);
+    const [hasDelivery, setHasDelivery] = useState(selectedBusiness?.has_delivery ?? true);
     const [acceptsCash, setAcceptsCash] = useState(selectedBusiness?.accepts_cash ?? true);
     const [acceptsMercadoPago, setAcceptsMercadoPago] = useState(selectedBusiness?.accepts_mercadopago ?? false);
     const [deliveryRadius, setDeliveryRadius] = useState(String(selectedBusiness?.delivery_radius || '5'));
@@ -135,7 +135,7 @@ export default function CentralizedSettingsScreen() {
             website: storeWebsite.trim(),
             is_open: isOpen,
             schedule: schedule,
-            accepts_delivery: acceptsDelivery,
+            has_delivery: hasDelivery,
             accepts_cash: acceptsCash,
             accepts_mercadopago: acceptsMercadoPago,
             delivery_radius: parseFloat(deliveryRadius) || 5,
@@ -406,8 +406,8 @@ export default function CentralizedSettingsScreen() {
                         </View>
 
                         <SectionCard title="Envíos a Domicilio" tc={tc}>
-                            <ToggleRow label="Habilitar envíos a domicilio" value={acceptsDelivery} onChange={setAcceptsDelivery} tc={tc} />
-                            {acceptsDelivery && (
+                            <ToggleRow label="Habilitar envíos a domicilio" value={hasDelivery} onChange={setHasDelivery} tc={tc} />
+                            {hasDelivery && (
                                 <View style={{ marginTop: 10, gap: 12 }}>
                                     <SettingField icon={<Bike color="#22c55e" size={18} />} label="Radio máx. de entrega (km)" value={deliveryRadius} onChange={setDeliveryRadius} keyboardType="number-pad" tc={tc} />
                                     <SettingField icon={<CreditCard size={18} color={tc.textMuted} />} label="Costo del envío ($)" value={deliveryFee} onChange={setDeliveryFee} keyboardType="decimal-pad" tc={tc} />

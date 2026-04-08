@@ -128,7 +128,7 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
                             {mappedCategory}
                         </Text>
 
-                        {business.accepts_delivery && (
+                        {business.has_delivery && (
                             <>
                                 <Text style={[styles.dot, { color: tc.textMuted }]}>·</Text>
                                 <View style={styles.deliveryBadge}>
@@ -142,7 +142,7 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
                             </>
                         )}
 
-                        {!business.accepts_delivery && business.has_pickup && (
+                        {!business.has_delivery && business.has_pickup && (
                             <>
                                 <Text style={[styles.dot, { color: tc.textMuted }]}>·</Text>
                                 <View style={styles.deliveryBadge}>

@@ -27,7 +27,7 @@ export interface Business {
     phone?: string;
     website?: string;
     schedule?: any;
-    accepts_delivery?: boolean;
+    has_delivery?: boolean;
     has_pickup?: boolean;
     accepts_cash?: boolean;
     accepts_mercadopago?: boolean;
@@ -69,7 +69,7 @@ const formatBusiness = (b: any): Business => ({
     phone: b.phone,
     website: b.website,
     schedule: normalizeSchedule(b.business_hours),
-    accepts_delivery: b.has_delivery,
+    has_delivery: b.has_delivery,
     has_pickup: b.has_pickup,
     accepts_cash: Array.isArray(b.payment_methods) ? b.payment_methods.includes('cash') : false,
     accepts_mercadopago: Array.isArray(b.payment_methods) ? b.payment_methods.includes('mercadopago') : false,
@@ -201,7 +201,7 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
             if (data.website !== undefined) supabasePayload.website = data.website;
             if (data.is_open !== undefined) supabasePayload.is_open = data.is_open;
             if (data.schedule !== undefined) supabasePayload.business_hours = data.schedule;
-            if (data.accepts_delivery !== undefined) supabasePayload.has_delivery = data.accepts_delivery;
+            if (data.has_delivery !== undefined) supabasePayload.has_delivery = data.has_delivery;
             if (data.delivery_radius !== undefined) supabasePayload.delivery_radius_km = data.delivery_radius;
             if (data.delivery_fee !== undefined) supabasePayload.delivery_fee = data.delivery_fee;
             if (data.min_order !== undefined) supabasePayload.min_order_amount = data.min_order;

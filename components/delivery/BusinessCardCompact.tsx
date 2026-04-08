@@ -94,7 +94,7 @@ export function BusinessCardCompact({ business }: BusinessCardCompactProps) {
                         </>
                     )}
 
-                    {business.accepts_delivery ? (
+                    {business.has_delivery ? (
                         <View style={styles.inlineRow}>
                             <Bike size={11} color="#22c55e" />
                             <Text style={[styles.metaText, { color: tc.textSecondary }]}>

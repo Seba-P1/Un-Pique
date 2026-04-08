@@ -53,7 +53,7 @@ const formatBusiness = (b: any): Business => ({
     phone: b.phone,
     website: b.website,
     schedule: b.business_hours,
-    accepts_delivery: b.has_delivery,
+    has_delivery: b.has_delivery,
     has_pickup: b.has_pickup,
     accepts_cash: Array.isArray(b.payment_methods) ? b.payment_methods.includes('cash') : false,
     accepts_mercadopago: Array.isArray(b.payment_methods) ? b.payment_methods.includes('mercadopago') : false,

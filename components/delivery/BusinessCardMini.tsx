@@ -114,13 +114,13 @@ export function BusinessCardMini({ business }: BusinessCardMiniProps) {
                                 </Text>
                             </View>
                         )}
-                        {business.accepts_delivery && (
+                        {business.has_delivery && (
                             <View style={[styles.tagPill, { backgroundColor: tc.bgHover }]}>
                                 <Bike color="#22c55e" size={10} />
                                 <Text style={[styles.tagText, { color: tc.textSecondary }]}>Delivery</Text>
                             </View>
                         )}
-                        {!business.accepts_delivery && business.has_pickup && (
+                        {!business.has_delivery && business.has_pickup && (
                             <View style={[styles.tagPill, { backgroundColor: tc.bgHover }]}>
                                 <MapPin size={10} color={tc.textMuted} />
                                 <Text style={[styles.tagText, { color: tc.textSecondary }]}>Retiro</Text>

@@ -49,7 +49,7 @@ export default function StoreSettingsScreen() {
     const [manualOverride, setManualOverride] = useState(false);
     const [isManuallyOpen, setIsManuallyOpen] = useState(selectedBusiness?.is_open ?? true);
 
-    const [acceptsDelivery, setAcceptsDelivery] = useState(selectedBusiness?.accepts_delivery ?? true);
+    const [hasDelivery, setHasDelivery] = useState(selectedBusiness?.has_delivery ?? true);
     const [acceptsCash, setAcceptsCash] = useState(selectedBusiness?.accepts_cash ?? true);
     const [acceptsMercadoPago, setAcceptsMercadoPago] = useState(selectedBusiness?.accepts_mercadopago ?? false);
     const [deliveryRadius, setDeliveryRadius] = useState(String(selectedBusiness?.delivery_radius || '5'));
@@ -87,7 +87,7 @@ export default function StoreSettingsScreen() {
             website: storeWebsite.trim(),
             is_open: isManuallyOpen,
             schedule: schedule as any,
-            accepts_delivery: acceptsDelivery,
+            has_delivery: hasDelivery,
             accepts_cash: acceptsCash,
             accepts_mercadopago: acceptsMercadoPago,
             delivery_radius: parseFloat(deliveryRadius) || 5,
@@ -203,8 +203,8 @@ export default function StoreSettingsScreen() {
 
                 {/* Entregas */}
                 <SectionCard title="Entregas" tc={tc}>
-                    <ToggleRow label="Acepta entregas a domicilio" value={acceptsDelivery} onChange={setAcceptsDelivery} tc={tc} />
-                    {acceptsDelivery && (
+                    <ToggleRow label="Acepta entregas a domicilio" value={hasDelivery} onChange={setHasDelivery} tc={tc} />
+                    {hasDelivery && (
                         <>
                             <SettingField icon={<Bike color="#22c55e" size={18} />} label="Radio (km)" value={deliveryRadius} onChange={setDeliveryRadius} keyboardType="number-pad" tc={tc} />
                             <SettingField icon={<CreditCard size={18} color={tc.textMuted} />} label="Costo envío ($)" value={deliveryFee} onChange={setDeliveryFee} keyboardType="decimal-pad" tc={tc} />
