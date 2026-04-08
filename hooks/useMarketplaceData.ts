@@ -127,7 +127,9 @@ export function useMarketplaceData(localityId?: string) {
                 setVendors({ data: (data || []).map(formatBusiness), loading: false, error: null });
             } catch (err: any) {
                 console.error('[Marketplace] Error fetching vendors:', err);
-                setVendors({ data: [], loading: false, error: err.message });
+                setVendors(prev => ({ ...prev, data: [], error: err.message }));
+            } finally {
+                setVendors(prev => ({ ...prev, loading: false }));
             }
         };
         fetchVendors();
@@ -155,7 +157,9 @@ export function useMarketplaceData(localityId?: string) {
                 setDelivery({ data: (data || []).map(formatBusiness), loading: false, error: null });
             } catch (err: any) {
                 console.error('[Marketplace] Error fetching delivery:', err);
-                setDelivery({ data: [], loading: false, error: err.message });
+                setDelivery(prev => ({ ...prev, data: [], error: err.message }));
+            } finally {
+                setDelivery(prev => ({ ...prev, loading: false }));
             }
         };
         fetchDelivery();
@@ -184,7 +188,9 @@ export function useMarketplaceData(localityId?: string) {
                 setPickup({ data: (data || []).map(formatBusiness), loading: false, error: null });
             } catch (err: any) {
                 console.error('[Marketplace] Error fetching pickup:', err);
-                setPickup({ data: [], loading: false, error: err.message });
+                setPickup(prev => ({ ...prev, data: [], error: err.message }));
+            } finally {
+                setPickup(prev => ({ ...prev, loading: false }));
             }
         };
         fetchPickup();
@@ -206,7 +212,9 @@ export function useMarketplaceData(localityId?: string) {
                 setTopProducts({ data: (data || []).map(formatProduct), loading: false, error: null });
             } catch (err: any) {
                 console.error('[Marketplace] Error fetching top products:', err);
-                setTopProducts({ data: [], loading: false, error: err.message });
+                setTopProducts(prev => ({ ...prev, data: [], error: err.message }));
+            } finally {
+                setTopProducts(prev => ({ ...prev, loading: false }));
             }
         };
         fetchTopProducts();
@@ -238,7 +246,9 @@ export function useMarketplaceData(localityId?: string) {
                 pageRef.current = 1;
             } catch (err: any) {
                 console.error('[Marketplace] Error fetching all products:', err);
-                setAllProducts({ data: [], loading: false, loadingMore: false, error: err.message, hasMore: false });
+                setAllProducts(prev => ({ ...prev, data: [], loadingMore: false, error: err.message, hasMore: false }));
+            } finally {
+                setAllProducts(prev => ({ ...prev, loading: false }));
             }
         };
         fetchFirstPage();

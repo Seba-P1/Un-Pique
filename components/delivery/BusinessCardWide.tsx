@@ -90,7 +90,9 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
                     ) : (
                         <LinearGradient
                             colors={['#FF6B35', '#cc4400']}
-                            style={StyleSheet.absoluteFillObject}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.bannerImage}
                         />
                     )}
 
