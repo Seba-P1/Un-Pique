@@ -339,15 +339,15 @@ export default function TabsLayout() {
                 <Tabs
                     screenOptions={{
                         tabBarActiveTintColor: colors.primary.DEFAULT,
-                        tabBarInactiveTintColor: theme === 'dark' ? '#ffffff' : '#1a1a1a',
+                        tabBarInactiveTintColor: colorScheme === 'dark' ? '#ffffff' : '#1a1a1a',
                         tabBarStyle: isDesktop
                             ? { display: 'none' }
                             : {
                                 flexDirection: 'row',
                                 width: '100%',
-                                backgroundColor: theme === 'dark' ? '#121212' : '#ffffff',
+                                backgroundColor: colorScheme === 'dark' ? '#121212' : '#ffffff',
                                 borderTopWidth: 1,
-                                borderTopColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                                borderTopColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
                                 height: 56 + Math.max(insets.bottom, 8),
                                 paddingBottom: Math.max(insets.bottom, 8),
                                 paddingTop: 0,
