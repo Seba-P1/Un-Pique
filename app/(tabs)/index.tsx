@@ -18,7 +18,40 @@ import { useRouter } from 'expo-router';
 import { showAlert } from '../../utils/alert';
 import { openMobileDrawer } from './_layout';
 import { AppHeader } from '../../components/ui/AppHeader';
+import { supabase } from '../../lib/supabase';
+import { Business } from '../../stores/businessStore';
 
+// ── Fallback locality ────────────────────────────────────────────
+const FALLBACK_LOCALITY_ID = 'f8b76cc2-4df3-4b9f-846f-08586b1ee3c3'; // Río Colorado
+
+// ── Business formatter (same as useMarketplaceData) ──────────────
+const formatBusiness = (b: any): Business => ({
+    id: b.id,
+    name: b.name,
+    description: b.description || '',
+    address: b.address || '',
+    rating: b.rating || 0,
+    delivery_time: '30-45 min',
+    min_order: b.min_order_amount || 0,
+    delivery_fee: b.delivery_fee || 0,
+    image: b.cover_url || b.logo_url || 'https://via.placeholder.com/300',
+    tags: b.tags || [],
+    is_open: b.is_open,
+    locality_id: b.locality_id,
+    category: b.category,
+    logo_url: b.logo_url,
+    cover_url: b.cover_url,
+    slug: b.slug,
+    phone: b.phone,
+    website: b.website,
+    schedule: b.business_hours,
+    has_delivery: b.has_delivery,
+    has_pickup: b.has_pickup,
+    accepts_cash: Array.isArray(b.payment_methods) ? b.payment_methods.includes('cash') : false,
+    accepts_mercadopago: Array.isArray(b.payment_methods) ? b.payment_methods.includes('mercadopago') : false,
+    mercadopago_connected: b.mercadopago_connected || false,
+    delivery_radius: b.delivery_radius_km,
+});
 
 
 export default function HomeScreen() {
@@ -35,10 +68,103 @@ export default function HomeScreen() {
     // Location picker
     const [locationPickerVisible, setLocationPickerVisible] = useState(false);
 
+    // ── Real data states ─────────────────────────────────────────
+    const [featuredBusinesses, setFeaturedBusinesses] = useState<Business[]>([]);
+    const [newBusinesses, setNewBusinesses] = useState<Business[]>([]);
+    const [loadingFeatured, setLoadingFeatured] = useState(true);
+    const [loadingNew, setLoadingNew] = useState(true);
+
+    // ── Fetch real data from Supabase ────────────────────────────
+    const fetchHomeData = useCallback(async () => {
+        const localityId = currentLocality?.id || FALLBACK_LOCALITY_ID;
+
+        setLoadingFeatured(true);
+        setLoadingNew(true);
+
+        try {
+            // First get the region_id for this locality
+            const { data: localityData } = await supabase
+                .from('localities')
+                .select('region_id')
+                .eq('id', localityId)
+                .single();
+
+            const regionId = localityData?.region_id;
+
+            // Build base query — if we have region_id, get all businesses in region
+            // Otherwise fall back to just the locality
+            const buildQuery = () => {
+                let query = supabase
+                    .from('businesses')
+                    .select('*')
+                    .eq('is_active', true);
+
+                if (regionId) {
+                    // Get all localities in this region, then filter businesses
+                    // Since Supabase doesn't support subqueries easily,
+                    // we'll use a two-step approach
+                    return { query, regionId };
+                }
+                return { query: query.eq('locality_id', localityId), regionId: null };
+            };
+
+            const { regionId: resolvedRegionId } = buildQuery();
+
+            let localityIds: string[] = [localityId];
+
+            if (resolvedRegionId) {
+                const { data: regionLocalities } = await supabase
+                    .from('localities')
+                    .select('id')
+                    .eq('region_id', resolvedRegionId);
+                if (regionLocalities && regionLocalities.length > 0) {
+                    localityIds = regionLocalities.map((l: any) => l.id);
+                }
+            }
+
+            // Fetch both in parallel
+            const [featuredResult, newResult] = await Promise.all([
+                // Destacados: best rated
+                supabase
+                    .from('businesses')
+                    .select('*')
+                    .eq('is_active', true)
+                    .in('locality_id', localityIds)
+                    .order('rating', { ascending: false, nullsFirst: false })
+                    .limit(10),
+
+                // Nuevo en zona: most recent
+                supabase
+                    .from('businesses')
+                    .select('*')
+                    .eq('is_active', true)
+                    .in('locality_id', localityIds)
+                    .order('created_at', { ascending: false })
+                    .limit(8),
+            ]);
+
+            if (featuredResult.data) {
+                setFeaturedBusinesses(featuredResult.data.map(formatBusiness));
+            }
+            if (newResult.data) {
+                setNewBusinesses(newResult.data.map(formatBusiness));
+            }
+        } catch (err) {
+            console.error('[Home] Error fetching home data:', err);
+        } finally {
+            setLoadingFeatured(false);
+            setLoadingNew(false);
+        }
+    }, [currentLocality?.id]);
+
+    useEffect(() => {
+        fetchHomeData();
+    }, [fetchHomeData]);
+
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 2000);
-    }, []);
+        fetchHomeData().finally(() => setRefreshing(false));
+    }, [fetchHomeData]);
 
 
 
@@ -59,7 +185,7 @@ export default function HomeScreen() {
                 subtitle="UN PIQUE"
                 title="Inicio"
                 leftIcon="menu"
-                rightButtons={['search', 'notifications', 'cart']}
+                rightButtons={['search', 'favorites', 'notifications', 'cart']}
                 onSearchSubmit={handleSearchSubmit}
                 searchPlaceholder="Buscar negocios, servicios..."
                 scrollY={scrollY}
@@ -82,8 +208,8 @@ export default function HomeScreen() {
                     <View style={styles.sectionSpacer}><StoriesRail /></View>
                     <AdBanner />
                     <CategoriesGrid />
-                    <FeaturedSection />
-                    <NewInTown />
+                    <FeaturedSection businesses={featuredBusinesses} loading={loadingFeatured} />
+                    <NewInTown businesses={newBusinesses} loading={loadingNew} />
                     <SocialPreview />
                     <BusinessFeed />
                 </View>

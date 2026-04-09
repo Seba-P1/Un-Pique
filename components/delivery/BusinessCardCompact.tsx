@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bike, MapPin } from 'lucide-react-native';
+import { Bike, MapPin, Heart } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { Business } from '../../stores/businessStore';
+import { useFavoritesStore } from '../../stores/favoritesStore';
 import { checkIsBusinessOpen } from '../../utils/schedule';
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -48,6 +49,8 @@ export function BusinessCardCompact({ business }: BusinessCardCompactProps) {
     const isOpen = business.is_open && checkIsBusinessOpen(business.schedule);
     const logoUri = business.logo_url;
     const mappedCategory = CATEGORY_MAP[business.category] || business.category || 'Otros';
+    const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
+    const liked = useFavoritesStore((s) => s.isFavorite('business', business.id));
 
     const handlePress = () => {
         router.push(`/shop/${business.slug || business.id}` as any);
@@ -119,6 +122,25 @@ export function BusinessCardCompact({ business }: BusinessCardCompactProps) {
                     </Text>
                 </View>
             </View>
+
+            {/* Favorite button */}
+            <Pressable
+                style={({ pressed }) => [
+                    styles.favoriteButton,
+                    pressed && { opacity: 0.6 }
+                ]}
+                hitSlop={8}
+                onPress={(e) => {
+                    e.stopPropagation?.();
+                    toggleFavorite('business', business.id);
+                }}
+            >
+                <Heart
+                    size={18}
+                    color={liked ? '#ef4444' : tc.textMuted}
+                    fill={liked ? '#ef4444' : 'transparent'}
+                />
+            </Pressable>
         </Pressable>
     );
 }
@@ -196,5 +218,12 @@ const styles = StyleSheet.create({
         height: 6,
         borderRadius: 3,
         backgroundColor: '#f87171',
+    },
+    favoriteButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useCartStore } from '../../stores/cartStore';
+import { useFavoritesStore } from '../../stores/favoritesStore';
 import { showAlert } from '../../utils/alert';
 import { openMobileDrawer } from '../../app/(tabs)/_layout';
 
@@ -42,6 +43,7 @@ export function AppHeader({
     const [searchText, setSearchText] = useState('');
 
     const totalCartItems = items.reduce((acc, item) => acc + item.quantity, 0);
+    const newFavoritesCount = useFavoritesStore((s) => s.newFavoritesCount);
 
     const borderOpacity = scrollY ? scrollY.interpolate({
         inputRange: [0, 10],
@@ -304,9 +306,14 @@ export function AppHeader({
                                                 pressed && styles.iconButtonActive
                                             ]}
                                             hitSlop={4}
-                                            onPress={() => showAlert('Próximamente', 'Función de favoritos')}
+                                            onPress={() => router.push('/favorites' as any)}
                                         >
                                             <Heart size={16} color={tc.text} />
+                                            {newFavoritesCount > 0 && (
+                                                <View style={styles.badge}>
+                                                    <Text style={styles.badgeText}>{newFavoritesCount > 99 ? '99+' : newFavoritesCount}</Text>
+                                                </View>
+                                            )}
                                         </Pressable>
                                     );
                                 }

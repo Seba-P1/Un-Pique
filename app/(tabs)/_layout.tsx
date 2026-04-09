@@ -35,6 +35,7 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { useThemeStore } from '../../stores/themeStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useLocationStore } from '../../stores/locationStore';
+import { useFavoritesStore } from '../../stores/favoritesStore';
 import { glassStyle } from '../../utils/glass';
 
 const SIDEBAR_WIDTH_EXPANDED = 260; // Slightly narrower for cleaner look
@@ -324,6 +325,12 @@ export default function TabsLayout() {
     useEffect(() => {
         setOpenDrawerFn(() => setDrawerVisible(true));
         return () => setOpenDrawerFn(null);
+    }, []);
+
+    // Fetch favorites when user is authenticated
+    const fetchFavorites = useFavoritesStore((s) => s.fetchFavorites);
+    useEffect(() => {
+        fetchFavorites();
     }, []);
 
     return (

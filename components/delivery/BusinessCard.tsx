@@ -32,10 +32,11 @@ interface BusinessCardProps {
 export function BusinessCard({ business }: BusinessCardProps) {
     const tc = useThemeColors();
     const router = useRouter();
-    const { isFavorite, toggleFavorite } = useFavoritesStore();
+    const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
+    const isFav = useFavoritesStore((s) => s.isFavorite);
     const [isTogglingFavorite, setIsTogglingFavorite] = React.useState(false);
 
-    const liked = isFavorite(business.id);
+    const liked = isFav('business', business.id);
     const isOpen = business.is_open && checkIsBusinessOpen(business.schedule);
 
     // Shared animated value for scale and shadow
@@ -87,7 +88,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
         e.preventDefault();
         setIsTogglingFavorite(true);
         try {
-            await toggleFavorite(business.id);
+            await toggleFavorite('business', business.id);
         } catch (error) {
             console.error('Error toggling favorite:', error);
         } finally {
@@ -156,8 +157,8 @@ export function BusinessCard({ business }: BusinessCardProps) {
                     >
                         <Heart
                             size={18}
-                            color={liked ? primaryColor : colors.white}
-                            fill={liked ? primaryColor : 'transparent'}
+                            color={liked ? '#ef4444' : colors.white}
+                            fill={liked ? '#ef4444' : 'transparent'}
                         />
                     </Pressable>
 

@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Platform, ActivityIndicator, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Linking, Platform, ActivityIndicator, Share, Modal, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { MapPin, Phone, Star, MessageCircle, Share2, Clock, Globe, ArrowLeft, AlertTriangle } from 'lucide-react-native';
+import { MapPin, Phone, Star, MessageCircle, Share2, Clock, Globe, ArrowLeft, AlertTriangle, Heart } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { showAlert } from '../../utils/alert';
 import { Button } from '../../components/ui';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { supabase } from '../../lib/supabase';
 import type { Listing } from '../../stores/listingStore';
+import { useFavoritesStore } from '../../stores/favoritesStore';
+import { useLocationStore } from '../../stores/locationStore';
+import { useSocialStore } from '../../stores/socialStore';
 
 export default function ServiceDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -15,6 +18,14 @@ export default function ServiceDetailScreen() {
     const tc = useThemeColors();
     const [listing, setListing] = useState<Listing | null>(null);
     const [loading, setLoading] = useState(true);
+    const [sharing, setSharing] = useState(false);
+    const [shareModalVisible, setShareModalVisible] = useState(false);
+    const [shareComment, setShareComment] = useState('');
+
+    const toggleFavorite = useFavoritesStore(s => s.toggleFavorite);
+    const isFavorite = useFavoritesStore(s => s.isFavorite);
+    const serviceId = listing?.id || id;
+    const isSaved = isFavorite('listing', serviceId);
 
     useEffect(() => {
         if (id) fetchListing();
@@ -70,17 +81,43 @@ export default function ServiceDetailScreen() {
     };
 
     const handleShare = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            showAlert('Iniciá sesión', 'Necesitás estar logueado para compartir');
+            return;
+        }
+        setShareModalVisible(true);
+    };
+
+    const submitShare = async () => {
         try {
-            const message = `${listing.title} — ${listing.description}\n\nCompartido desde Un Pique`;
-            if (Platform.OS === 'web' && navigator.share) {
-                await navigator.share({ text: message });
-            } else if (Platform.OS !== 'web') {
-                await Share.share({ message });
-            } else {
-                await navigator.clipboard.writeText(message);
-                showAlert('Copiado', 'Enlace copiado al portapapeles.');
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            setSharing(true);
+            const localityId = useLocationStore.getState().currentLocality?.id;
+            if (!localityId) {
+                showAlert('Error', 'No se pudo determinar tu localidad. Reabrí la app.');
+                setSharing(false);
+                return;
             }
-        } catch (e) { /* user cancelled */ }
+            const serviceName = listing?.title || 'Servicio';
+            
+            const postContent = shareComment 
+                ? shareComment + '\n\n[service:' + serviceId + ':' + serviceName + ']'
+                : '[service:' + serviceId + ':' + serviceName + ']';
+
+            await useSocialStore.getState().createPost(postContent.trim(), [], localityId);
+
+            showAlert('¡Listo!', 'El servicio fue compartido en tu muro');
+            setShareModalVisible(false);
+            setShareComment('');
+        } catch (err: any) {
+            console.error('[Share service] Error real:', JSON.stringify(err));
+            showAlert('Error', 'No se pudo compartir: ' + (err?.message || JSON.stringify(err)));
+        } finally {
+            setSharing(false);
+        }
     };
 
     const coverImage = listing.images?.[0] || 'https://via.placeholder.com/800x200?text=Sin+imagen';
@@ -162,13 +199,17 @@ export default function ServiceDetailScreen() {
                     )}
 
                     <View style={styles.actionsGrid}>
-                        <TouchableOpacity style={[styles.actionBtnSecondary, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]} onPress={handleShare}>
+                        <TouchableOpacity 
+                            style={[styles.actionBtnSecondary, { backgroundColor: tc.bgCard, borderColor: tc.borderLight, opacity: sharing ? 0.5 : 1 }]} 
+                            onPress={handleShare}
+                            disabled={sharing}
+                        >
                             <Share2 size={24} color={tc.textSecondary} />
                             <Text style={[styles.actionBtnTextSec, { color: tc.textSecondary }]}>Compartir</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.actionBtnSecondary, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]} onPress={() => showAlert('Próximamente', 'Podrás guardar servicios a favoritos.')}>
-                            <Star size={24} color={tc.textSecondary} />
-                            <Text style={[styles.actionBtnTextSec, { color: tc.textSecondary }]}>Guardar</Text>
+                        <TouchableOpacity style={[styles.actionBtnSecondary, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]} onPress={() => toggleFavorite('listing', serviceId)}>
+                            <Heart size={24} color={isSaved ? '#ef4444' : tc.textSecondary} fill={isSaved ? '#ef4444' : 'transparent'} />
+                            <Text style={[styles.actionBtnTextSec, { color: isSaved ? '#ef4444' : tc.textSecondary }]}>{isSaved ? 'Guardado' : 'Guardar'}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -190,6 +231,46 @@ export default function ServiceDetailScreen() {
                     </View>
                 </View>
             </View>
+
+            {/* Share Modal */}
+            <Modal visible={shareModalVisible} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: tc.bgCard }]}>
+                        <Text style={[styles.modalTitle, { color: tc.text }]}>Compartir en tu muro</Text>
+                        <TextInput
+                            style={[styles.modalInput, { borderColor: tc.borderLight, color: tc.text, backgroundColor: tc.bg }]}
+                            placeholder="Agregá un comentario (opcional)..."
+                            placeholderTextColor={tc.textMuted}
+                            value={shareComment}
+                            onChangeText={setShareComment}
+                            multiline
+                        />
+                        <View style={styles.modalBtns}>
+                            <TouchableOpacity 
+                                style={[styles.modalBtn, styles.modalBtnCancel, { borderColor: tc.borderLight }]} 
+                                onPress={() => setShareModalVisible(false)}
+                                disabled={sharing}
+                            >
+                                <Text style={{ color: tc.text, fontWeight: '600' }}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.modalBtn, styles.modalBtnSubmit]} 
+                                onPress={submitShare}
+                                disabled={sharing}
+                            >
+                                {sharing ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : (
+                                    <View style={styles.modalBtnTextContainer}>
+                                        <Share2 size={16} color="#fff" />
+                                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Publicar</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -238,5 +319,13 @@ const styles = StyleSheet.create({
     errorText: { fontSize: 16, fontWeight: '600', marginTop: 8 },
     backLinkBtn: { marginTop: 12, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
     galleryImage: { width: 140, height: 100, borderRadius: 12 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalContent: { width: '100%', borderRadius: 16, padding: 20 },
+    modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
+    modalInput: { borderWidth: 1, borderRadius: 12, padding: 12, minHeight: 80, textAlignVertical: 'top', fontSize: 15, marginBottom: 16 },
+    modalBtns: { flexDirection: 'row', gap: 12 },
+    modalBtn: { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    modalBtnCancel: { backgroundColor: 'transparent', borderWidth: 1 },
+    modalBtnSubmit: { backgroundColor: '#FF6B35' },
+    modalBtnTextContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 }
 });
-

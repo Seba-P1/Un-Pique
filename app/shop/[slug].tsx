@@ -30,7 +30,8 @@ export default function BusinessDetailScreen() {
     const [activeTab, setActiveTab] = useState('menu');
     const scrollY = useRef(new Animated.Value(0)).current;
     const { items } = useCartStore();
-    const { toggleFavorite, isFavorite } = useFavoritesStore();
+    const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
+    const isFav = useFavoritesStore((s) => s.isFavorite);
 
     useEffect(() => {
         if (slug) {
@@ -47,7 +48,7 @@ export default function BusinessDetailScreen() {
     const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
     const isOpen = business?.is_open && checkIsBusinessOpen(business?.schedule);
     const scheduleList = business ? getFormattedScheduleList(business.schedule) : [];
-    const isBusinessFavorite = business ? isFavorite(business.id) : false;
+    const isBusinessFavorite = business ? isFav('business', business.id) : false;
 
     const handleProductPress = (product: any) => {
         router.push(`/product/${product.id}`);
@@ -56,7 +57,7 @@ export default function BusinessDetailScreen() {
     const handleSearch = () => Alert.alert('Buscar', 'Función de búsqueda de productos próximamente.');
     const handleFavorite = () => {
         if (business) {
-            toggleFavorite(business.id);
+            toggleFavorite('business', business.id);
         }
     };
     const handleShare = async () => {
@@ -154,7 +155,7 @@ export default function BusinessDetailScreen() {
                                         <Text style={[styles.category, { color: tc.textSecondary }]}>{business.category}</Text>
                                     </View>
                                     <TouchableOpacity style={[styles.heartBtn, { backgroundColor: tc.bgHover }]} onPress={handleFavorite}>
-                                        <Heart size={20} color={isBusinessFavorite ? '#FF4757' : tc.textMuted} fill={isBusinessFavorite ? '#FF4757' : 'transparent'} />
+                                        <Heart size={20} color={isBusinessFavorite ? '#ef4444' : tc.textMuted} fill={isBusinessFavorite ? '#ef4444' : 'transparent'} />
                                     </TouchableOpacity>
                                 </View>
 

@@ -1,10 +1,11 @@
 import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, Animated, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Star, Bike, MapPin } from 'lucide-react-native';
+import { Star, Bike, MapPin, Heart } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { Business } from '../../stores/businessStore';
+import { useFavoritesStore } from '../../stores/favoritesStore';
 import { checkIsBusinessOpen } from '../../utils/schedule';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -51,6 +52,8 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
     const coverUri = business.cover_url || (business as any).image;
     const logoUri = business.logo_url;
     const mappedCategory = CATEGORY_MAP[business.category] || business.category || 'Otros';
+    const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
+    const liked = useFavoritesStore((s) => s.isFavorite('business', business.id));
 
     const handlePress = () => {
         router.push(`/shop/${business.slug || business.id}` as any);
@@ -102,6 +105,25 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
                             {isOpen ? 'Abierto' : 'Cerrado'}
                         </Text>
                     </View>
+
+                    {/* Favorite button top-right */}
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.favoriteButton,
+                            pressed && { transform: [{ scale: 0.9 }] }
+                        ]}
+                        hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                        onPress={(e) => {
+                            e.stopPropagation?.();
+                            toggleFavorite('business', business.id);
+                        }}
+                    >
+                        <Heart
+                            size={16}
+                            color={liked ? '#ef4444' : '#ffffff'}
+                            fill={liked ? '#ef4444' : 'transparent'}
+                        />
+                    </Pressable>
 
                     {/* Logo superpuesto en bottom-left */}
                     <View style={[styles.logoWrap, { backgroundColor: tc.bgCard }]}>
@@ -214,6 +236,18 @@ const styles = StyleSheet.create({
         color: '#f87171',
         fontSize: 10,
         fontWeight: '700',
+    },
+    favoriteButton: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 3,
     },
     logoWrap: {
         position: 'absolute',

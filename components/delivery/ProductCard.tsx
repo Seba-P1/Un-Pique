@@ -20,7 +20,7 @@ export function ProductCard({ product, variant = 'compact' }: ProductCardProps) 
     const scale = useRef(new Animated.Value(1)).current;
     const addItem = useCartStore((s) => s.addItem);
     const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
-    const isFavorite = useFavoritesStore((s) => s.isFavorite(product.business_id));
+    const isFavorite = useFavoritesStore((s) => s.isFavorite('product', product.id));
 
     const primaryColor = colors?.primary?.DEFAULT || '#FF6B35';
     const isGrid = variant === 'grid';
@@ -32,8 +32,8 @@ export function ProductCard({ product, variant = 'compact' }: ProductCardProps) 
 
     // ── Favorite toggle ───────────────────────────────────────────
     const handleFavorite = useCallback(() => {
-        toggleFavorite(product.business_id);
-    }, [product.business_id, toggleFavorite]);
+        toggleFavorite('product', product.id);
+    }, [product.id, toggleFavorite]);
 
     // ── Quick add to cart (qty 1, no modal) ───────────────────────
     const handleQuickAdd = useCallback(() => {
@@ -107,7 +107,7 @@ export function ProductCard({ product, variant = 'compact' }: ProductCardProps) 
                         <Heart
                             size={16}
                             color="#fff"
-                            fill={isFavorite ? '#FF4757' : 'transparent'}
+                            fill={isFavorite ? '#ef4444' : 'transparent'}
                         />
                     </Pressable>
 

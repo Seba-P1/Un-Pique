@@ -664,6 +664,19 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
         onRepost?.(item);
     };
 
+    const parseContent = (content: string) => {
+        const match = /\[service:([^:]+):(.+)\]/.exec(content);
+        if (match) {
+            return {
+                text: content.replace(match[0], '').trim(),
+                service: { id: match[1], name: match[2] }
+            };
+        }
+        return { text: content, service: null };
+    };
+
+    const parsed = parseContent(item.content);
+
     return (
         <View style={[styles.postCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
             {/* Cabecera — Avatar + Nombre + Hora + Ubicación */}
@@ -697,7 +710,7 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
                 </Pressable>
             </View>
 
-            {/* Contenido: imagen + texto */}
+            {/* Contenido: imagen + texto + tarjeta compartida */}
             {item.media_urls && item.media_urls.length > 0 ? (
                 <View style={[styles.postContentWithImage, !isDesktop && { flexDirection: 'column' }]}>
                     <Image
@@ -705,10 +718,40 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
                         style={[styles.postImageSide, !isDesktop && { width: '100%', height: 240, borderRadius: 0 }]}
                         resizeMode="cover"
                     />
-                    <Text style={[styles.caption, { color: tc.text }]}>{item.content}</Text>
+                    <View style={{ flex: 1 }}>
+                        {!!parsed.text && <Text style={[styles.caption, { color: tc.text }]}>{parsed.text}</Text>}
+                        {parsed.service && (
+                            <TouchableOpacity 
+                                style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
+                                onPress={() => router.push(`/directory/${parsed.service.id}` as any)}
+                            >
+                                <View style={styles.sharedServiceIconRow}>
+                                    <Share2 size={14} color={colors.primary.DEFAULT} />
+                                    <Text style={{ color: colors.primary.DEFAULT, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
+                                </View>
+                                <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
+                                <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
             ) : (
-                <Text style={[styles.caption, { color: tc.text, paddingHorizontal: 16, paddingBottom: 12 }]}>{item.content}</Text>
+                <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                    {!!parsed.text && <Text style={[styles.caption, { color: tc.text, marginBottom: parsed.service ? 8 : 0 }]}>{parsed.text}</Text>}
+                    {parsed.service && (
+                        <TouchableOpacity 
+                            style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
+                            onPress={() => router.push(`/directory/${parsed.service.id}` as any)}
+                        >
+                            <View style={styles.sharedServiceIconRow}>
+                                <Share2 size={14} color={colors.primary.DEFAULT} />
+                                <Text style={{ color: colors.primary.DEFAULT, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
+                            </View>
+                            <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
+                            <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             )}
 
             {/* Resumen likes/comentarios */}
@@ -1092,6 +1135,8 @@ const styles = StyleSheet.create({
     },
     postImageSide: { width: 200, height: 200, borderRadius: 12 },
     caption: { fontSize: 14, lineHeight: 21, flex: 1 },
+    sharedServiceCard: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 4 },
+    sharedServiceIconRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 
     // — Counters —
     countsSummary: {

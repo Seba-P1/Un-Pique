@@ -5,12 +5,12 @@ import { useSocialStore, Post } from '../../stores/socialStore';
 import { useListingStore } from '../../stores/listingStore';
 import { useThemeStore } from '../../stores/themeStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
     User, Settings, LogOut, MapPin, ShoppingBag, Bell, HelpCircle,
     ChevronRight, Store, Bike, Sun, Moon, Monitor,
     MessageCircle, Bookmark, Briefcase, Camera, Edit3, Grid3X3,
-    Heart, MoreHorizontal, BookmarkCheck
+    Heart, MoreHorizontal, BookmarkCheck, Share2
 } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { showAlert } from '../../utils/alert';
@@ -51,8 +51,13 @@ export default function ProfileScreen() {
 
     useEffect(() => {
         fetchUserListings();
-        loadPosts();
     }, []);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadPosts();
+        }, [])
+    );
 
     const loadPosts = async () => {
         if (!user) return;
@@ -313,6 +318,19 @@ function WallPostCard({ post, tc, isLiked, toggleLike, isSaved, toggleSave, rout
     const liked = isLiked(post.id);
     const saved = isSaved(post.id);
 
+    const parseContent = (content: string) => {
+        const match = /\[service:([^:]+):(.+)\]/.exec(content);
+        if (match) {
+            return {
+                text: content.replace(match[0], '').trim(),
+                service: { id: match[1], name: match[2] }
+            };
+        }
+        return { text: content, service: null };
+    };
+
+    const parsed = parseContent(post.content);
+
     return (
         <View style={[wallStyles.postCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
             <View style={wallStyles.postHeader}>
@@ -328,7 +346,23 @@ function WallPostCard({ post, tc, isLiked, toggleLike, isSaved, toggleSave, rout
                 <TouchableOpacity style={{ padding: 4 }}><MoreHorizontal size={18} color={tc.textMuted} /></TouchableOpacity>
             </View>
 
-            <Text style={[wallStyles.postContent, { color: tc.text }]}>{post.content}</Text>
+            {!!parsed.text && <Text style={[wallStyles.postContent, { color: tc.text }]}>{parsed.text}</Text>}
+            
+            {parsed.service && (
+                <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+                    <TouchableOpacity 
+                        style={[wallStyles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
+                        onPress={() => router.push(`/directory/${parsed.service.id}` as any)}
+                    >
+                        <View style={wallStyles.sharedServiceIconRow}>
+                            <Share2 size={14} color={colors.primary.DEFAULT} />
+                            <Text style={{ color: colors.primary.DEFAULT, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
+                        </View>
+                        <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
+                        <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {post.media_urls && post.media_urls.length > 0 && (
                 <Image source={{ uri: post.media_urls[0] }} style={wallStyles.postImage} resizeMode="cover" />
@@ -537,6 +571,8 @@ const wallStyles = StyleSheet.create({
     postActions: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 4, borderTopWidth: 0.5 },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 6 },
     actionLabel: { fontSize: 13, fontWeight: '600' },
+    sharedServiceCard: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 4 },
+    sharedServiceIconRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });
 
 // Settings styles
