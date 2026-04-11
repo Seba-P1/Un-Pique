@@ -215,10 +215,21 @@ export default function DeliveryScreen() {
         );
     }, [allProducts, vendors, delivery, pickup, topProducts, tc]);
 
+    // ── Computed Subtitle logic ──────────────────────────────────
+    const headerSubtitle = React.useMemo(() => {
+        if (vendors.loading) return "TU ZONA";
+        const uniqueLocalities = new Set(vendors.data.map(b => b.locality_id));
+        if (uniqueLocalities.size > 1) {
+            return "COMARCA DEL COLORADO";
+        }
+        return currentLocality?.name?.toUpperCase() || "TU ZONA";
+    }, [vendors.loading, vendors.data, currentLocality]);
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={isDesktop ? [] : ['top']}>
             <AppHeader
                 title="Sabor Local"
+                subtitle={headerSubtitle}
                 leftIcon="menu"
                 rightButtons={['search', 'favorites', 'notifications', 'cart']}
                 onSearch={setSearchQuery}

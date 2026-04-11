@@ -106,9 +106,52 @@ export function useMarketplaceData(localityId?: string) {
 
     const pageRef = useRef(0);
 
-    // ── Section 2: Vendedores de Acá ─────────────────────────────
+    // ── Pre-fetch locality IDs para la región ────────────────────
+    const [regionLocalityIds, setRegionLocalityIds] = useState<string[]>([]);
+
     useEffect(() => {
         if (!localityId) {
+            setRegionLocalityIds([]);
+            return;
+        }
+
+        const resolveRegion = async () => {
+            try {
+                const { data: userLocality } = await supabase
+                    .from('localities')
+                    .select('region_id')
+                    .eq('id', localityId)
+                    .single();
+
+                const regionId = userLocality?.region_id;
+                
+                if (!regionId) {
+                    setRegionLocalityIds([localityId]);
+                    return;
+                }
+
+                const { data: localities } = await supabase
+                    .from('localities')
+                    .select('id')
+                    .eq('region_id', regionId);
+
+                if (localities && localities.length > 0) {
+                    setRegionLocalityIds(localities.map(l => l.id));
+                } else {
+                    setRegionLocalityIds([localityId]);
+                }
+            } catch (err) {
+                console.error('[Marketplace] Error resolving region:', err);
+                setRegionLocalityIds([localityId]);
+            }
+        };
+
+        resolveRegion();
+    }, [localityId]);
+
+    // ── Section 2: Vendedores de Acá ─────────────────────────────
+    useEffect(() => {
+        if (regionLocalityIds.length === 0) {
             setVendors({ data: [], loading: false, error: null });
             return;
         }
@@ -119,7 +162,7 @@ export function useMarketplaceData(localityId?: string) {
                     .from('businesses')
                     .select('*')
                     .eq('is_active', true)
-                    .eq('locality_id', localityId)
+                    .in('locality_id', regionLocalityIds)
                     .order('is_open', { ascending: false })
                     .limit(10);
 
@@ -133,11 +176,11 @@ export function useMarketplaceData(localityId?: string) {
             }
         };
         fetchVendors();
-    }, [localityId]);
+    }, [regionLocalityIds]);
 
     // ── Section 3: Te lo enviamos a tu casa ──────────────────────
     useEffect(() => {
-        if (!localityId) {
+        if (regionLocalityIds.length === 0) {
             setDelivery({ data: [], loading: false, error: null });
             return;
         }
@@ -148,7 +191,7 @@ export function useMarketplaceData(localityId?: string) {
                     .from('businesses')
                     .select('*')
                     .eq('is_active', true)
-                    .eq('locality_id', localityId)
+                    .in('locality_id', regionLocalityIds)
                     .eq('has_delivery', true)
                     .order('is_open', { ascending: false })
                     .limit(10);
@@ -163,11 +206,11 @@ export function useMarketplaceData(localityId?: string) {
             }
         };
         fetchDelivery();
-    }, [localityId]);
+    }, [regionLocalityIds]);
 
     // ── Section 4: Retirá en el local ────────────────────────────
     useEffect(() => {
-        if (!localityId) {
+        if (regionLocalityIds.length === 0) {
             setPickup({ data: [], loading: false, error: null });
             return;
         }
@@ -178,7 +221,7 @@ export function useMarketplaceData(localityId?: string) {
                     .from('businesses')
                     .select('*')
                     .eq('is_active', true)
-                    .eq('locality_id', localityId)
+                    .in('locality_id', regionLocalityIds)
                     .eq('has_delivery', false)
                     .eq('has_pickup', true)
                     .order('is_open', { ascending: false })
@@ -194,7 +237,7 @@ export function useMarketplaceData(localityId?: string) {
             }
         };
         fetchPickup();
-    }, [localityId]);
+    }, [regionLocalityIds]);
 
     // ── Section 5: Los más pedidos ───────────────────────────────
     useEffect(() => {
