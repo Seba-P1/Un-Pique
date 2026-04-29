@@ -115,6 +115,32 @@ export function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComme
     const liked = isLiked(item.id);
     const saved = isSaved(item.id);
     const commentsOpen = expandedComments.has(item.id);
+    const [missionClaim, setMissionClaim] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchMission = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('mission_claims')
+                    .select('id, status, missions!inner(title, points_reward)')
+                    .eq('post_id', item.id)
+                    .single();
+                
+                if (data && !error) {
+                    const missionData = Array.isArray(data.missions) ? data.missions[0] : data.missions;
+                    setMissionClaim({
+                        id: data.id,
+                        status: data.status,
+                        title: missionData?.title,
+                        points: missionData?.points_reward
+                    });
+                }
+            } catch (err) {
+                // Ignore silent failure
+            }
+        };
+        fetchMission();
+    }, [item.id]);
     
     // Repost functionality (Compartir a mi muro)
     const { createPost } = useSocialStore();
@@ -229,6 +255,20 @@ export function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComme
                             <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
                             <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
                         </TouchableOpacity>
+                    )}
+                </View>
+            )}
+
+            {missionClaim && (
+                <View style={{ backgroundColor: 'rgba(255, 107, 53, 0.1)', padding: 12, marginHorizontal: 16, marginBottom: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 107, 53, 0.2)' }}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#FF6B35', fontWeight: 'bold', fontSize: 13 }}>📸 Misión: {missionClaim.title}</Text>
+                        <Text style={{ color: tc.textMuted, fontSize: 12, marginTop: 2 }}>+{missionClaim.points} pts</Text>
+                    </View>
+                    {missionClaim.status === 'approved' && (
+                        <View style={{ backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                            <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 11 }}>✓ Aprobada</Text>
+                        </View>
                     )}
                 </View>
             )}

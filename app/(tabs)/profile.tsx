@@ -22,11 +22,14 @@ import { AppHeader } from '../../components/ui/AppHeader';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 import { uploadImage } from '../../services/imageUpload';
+import { useLoyaltyStore } from '../../stores/loyaltyStore';
+import LoyaltyCard from '../../components/loyalty/LoyaltyCard';
 
 type ProfileView = 'wall' | 'settings';
 
 export default function ProfileScreen() {
     const { user, profile, signOut, currentRole, setCurrentRole, fetchProfile } = useAuthStore();
+    const { loyalty } = useLoyaltyStore();
     const { fetchUserPosts, toggleLike, isLiked, isSaved, toggleSave, savedPosts } = useSocialStore();
     const { userListings, fetchUserListings } = useListingStore();
     const { theme, setTheme } = useThemeStore();
@@ -201,6 +204,19 @@ export default function ProfileScreen() {
                         </View>
                     </View>
                 </View>
+
+                {/* ====== LOYALTY CARD COMPACT ====== */}
+                {loyalty && (
+                    <TouchableOpacity 
+                        style={{ paddingHorizontal: 20, marginBottom: 16 }}
+                        onPress={() => router.push('/loyalty' as any)}
+                        activeOpacity={0.9}
+                    >
+                        <View pointerEvents="none" style={{ transform: [{ scale: 0.95 }], marginTop: -10, marginBottom: -10 }}>
+                            <LoyaltyCard loyalty={loyalty} />
+                        </View>
+                    </TouchableOpacity>
+                )}
 
                 {/* ====== TAB BAR ====== */}
                 <View style={[styles.tabBar, { borderBottomColor: tc.borderLight, backgroundColor: 'transparent' }, !isMobile && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>

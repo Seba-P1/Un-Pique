@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Package, ShoppingCart, History,
     BarChart3, TrendingUp, DollarSign, Settings,
     Megaphone, Crown, Bell, LogOut, User, ChevronRight,
-    Store, Target, Lock
+    Store, Target, Lock, QrCode
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
@@ -40,6 +40,7 @@ const NAV_SECTIONS: NavSection[] = [
             { icon: ShoppingCart, label: 'Pedidos', route: '/business/orders' },
             { icon: History, label: 'Historial', route: '/business/order-history' },
             { icon: Target, label: 'Misiones', route: '/business/missions', isPremiumFeature: true },
+            { icon: QrCode, label: 'Escanear QR', route: '/business/scan-qr', isPremiumFeature: true },
         ],
     },
     {

@@ -11,6 +11,7 @@ import { AdBanner } from '../../components/features/ads/AdBanner';
 import { FeaturedSection } from '../../components/features/home/FeaturedSection';
 import { NewInTown } from '../../components/features/home/NewInTown';
 import { SocialPreview } from '../../components/features/home/SocialPreview';
+import { MissionsRow } from '../../components/home/MissionsRow';
 import colors from '../../constants/colors';
 import { useLocationStore, Locality } from '../../stores/locationStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -20,6 +21,8 @@ import { openMobileDrawer } from './_layout';
 import { AppHeader } from '../../components/ui/AppHeader';
 import { supabase } from '../../lib/supabase';
 import { Business } from '../../stores/businessStore';
+import { useLoyaltyStore } from '../../stores/loyaltyStore';
+import { useAuthStore } from '../../stores/authStore';
 
 // ── Hardcoded region ID (Río Colorado region) ────────────────────
 const REGION_ID = '502d0fd3-68d2-4ad9-89d9-36b4411930d6';
@@ -58,6 +61,8 @@ const formatBusiness = (b: any): Business => ({
 export default function HomeScreen() {
     const tc = useThemeColors();
     const router = useRouter();
+    const { user } = useAuthStore();
+    const { loyalty } = useLoyaltyStore();
     const { currentLocality, availableLocalities, setCurrentLocality } = useLocationStore();
     const [refreshing, setRefreshing] = useState(false);
     const { width } = useWindowDimensions();
@@ -175,6 +180,27 @@ export default function HomeScreen() {
         setLocationPickerVisible(false);
     };
 
+    const pointsChip = user && loyalty ? (
+        <TouchableOpacity 
+            onPress={() => router.push('/loyalty' as any)} 
+            style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: '#FFF0E6', 
+                paddingHorizontal: 10, 
+                paddingVertical: 6, 
+                borderRadius: 12, 
+                marginRight: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 107, 53, 0.2)'
+            }}
+        >
+            <Text style={{ color: '#FF6B35', fontFamily: 'NunitoSans-Bold', fontSize: 13 }}>
+                ⭐ {loyalty.available_points} pts
+            </Text>
+        </TouchableOpacity>
+    ) : undefined;
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             <AppHeader
@@ -182,6 +208,7 @@ export default function HomeScreen() {
                 title="Inicio"
                 leftIcon="menu"
                 rightButtons={['search', 'favorites', 'notifications', 'cart']}
+                rightContent={pointsChip}
                 onSearchSubmit={handleSearchSubmit}
                 searchPlaceholder="Buscar negocios, servicios..."
                 scrollY={scrollY}
@@ -204,6 +231,7 @@ export default function HomeScreen() {
                     <View style={styles.sectionSpacer}><StoriesRail /></View>
                     <AdBanner />
                     <CategoriesGrid />
+                    <MissionsRow />
                     <FeaturedSection businesses={featuredBusinesses} loading={loadingFeatured} />
                     <NewInTown businesses={newBusinesses} loading={loadingNew} />
                     <SocialPreview />
