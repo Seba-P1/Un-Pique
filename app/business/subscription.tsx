@@ -1,347 +1,350 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Check, Crown, TrendingDown, TrendingUp } from 'lucide-react-native';
-import colors from '../../constants/colors';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
-import { showAlert } from '../../utils/alert';
-import { Button } from '../../components/ui';
-import { useSubscriptionStore, SUBSCRIPTION_PLANS } from '../../stores/subscriptionStore';
 import { useBusinessStore } from '../../stores/businessStore';
+import { Clock, CheckCircle, XCircle, Check, Crown } from 'lucide-react-native';
+import colors from '../../constants/colors';
 
 export default function SubscriptionScreen() {
-    const router = useRouter();
     const tc = useThemeColors();
-    const { subscription, loading, subscribeToPro } = useSubscriptionStore();
     const { selectedBusiness } = useBusinessStore();
-    const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro'>('pro');
 
-    const handleSubscribe = async () => {
-        if (!selectedBusiness) {
-            showAlert('Error', 'No se encontró información del negocio');
-            return;
-        }
+    if (!selectedBusiness) return null;
 
-        if (selectedPlan === 'free') {
-            showAlert('Info', 'Ya estás en el plan gratuito');
-            return;
-        }
+    const {
+        subscription_status = 'inactive',
+        trial_ends_at,
+        subscription_end_date,
+        subscription_plan = 'free',
+        commission_rate = 0.09,
+    } = selectedBusiness;
 
-        const success = await subscribeToPro(selectedBusiness.id);
-        if (success) {
-            showAlert('¡Éxito!', 'Te suscribiste al Plan Pro. Ahora pagarás solo 4% de comisión.');
-            router.back();
-        } else {
-            showAlert('Error', 'No se pudo procesar la suscripción');
-        }
+    const trialDaysLeft = trial_ends_at
+        ? Math.max(0, Math.ceil((new Date(trial_ends_at).getTime() - Date.now()) / 86400000))
+        : 0;
+
+    const handleActivatePlan = () => {
+        Alert.alert(
+            'Próximamente',
+            'La integración con MercadoPago está en desarrollo. Te avisaremos cuando esté lista.',
+            [{ text: 'Entendido' }]
+        );
     };
 
-    const PlanCard = ({ plan, isSelected }: { plan: typeof SUBSCRIPTION_PLANS.free; isSelected: boolean }) => (
-        <TouchableOpacity
-            style={[styles.planCard, isSelected && styles.planCardSelected]}
-            onPress={() => setSelectedPlan(plan.id)}
-            activeOpacity={0.7}
-        >
-            {plan.id === 'pro' && (
-                <View style={styles.badge}>
-                    <Crown size={16} color={colors.white} />
-                    <Text style={styles.badgeText}>Popular</Text>
-                </View>
-            )}
+    const formatDate = (dateStr: string | null | undefined) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        return new Intl.DateTimeFormat('es-AR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(d);
+    };
 
-            <View style={styles.planHeader}>
-                <Text style={styles.planName}>{plan.name}</Text>
-                {isSelected && (
-                    <View style={styles.checkmark}>
-                        <Check size={20} color={colors.white} />
+    const currentCommissionPercent = (commission_rate * 100).toFixed(0);
+
+    return (
+        <ScrollView style={[styles.container, { backgroundColor: tc.bg }]} contentContainerStyle={styles.content}>
+            <View style={styles.header}>
+                <Text style={[styles.title, { color: tc.text }]}>Suscripción y Planes</Text>
+                <Text style={[styles.subtitle, { color: tc.textSecondary }]}>
+                    Gestioná la visibilidad y beneficios de tu negocio en Un Pique.
+                </Text>
+            </View>
+
+            {/* SECCIÓN 1 — Banner de estado actual */}
+            <View style={styles.section}>
+                {subscription_status === 'trial' && (
+                    <View style={[styles.statusBanner, { backgroundColor: 'rgba(255,107,53,0.15)', borderColor: '#FF6B35' }]}>
+                        <View style={styles.statusHeader}>
+                            <Clock size={24} color="#FF6B35" />
+                            <Text style={[styles.statusTitle, { color: '#FF6B35' }]}>Período de prueba activo</Text>
+                        </View>
+                        <Text style={[styles.statusDesc, { color: tc.text }]}>
+                            Te quedan <Text style={{ fontWeight: '800' }}>{trialDaysLeft}</Text> días de prueba gratuita.
+                        </Text>
+                        {trialDaysLeft <= 7 && (
+                            <Text style={[styles.statusAlert, { color: '#ef4444' }]}>
+                                ¡Activá tu plan pronto para no perder visibilidad!
+                            </Text>
+                        )}
+                    </View>
+                )}
+
+                {subscription_status === 'active' && (
+                    <View style={[styles.statusBanner, { backgroundColor: 'rgba(34,197,94,0.15)', borderColor: '#22c55e' }]}>
+                        <View style={styles.statusHeader}>
+                            <CheckCircle size={24} color="#22c55e" />
+                            <Text style={[styles.statusTitle, { color: '#22c55e' }]}>Plan {subscription_plan.charAt(0).toUpperCase() + subscription_plan.slice(1)} activo</Text>
+                        </View>
+                        <Text style={[styles.statusDesc, { color: tc.text }]}>
+                            Próximo cobro: {formatDate(subscription_end_date)}
+                        </Text>
+                    </View>
+                )}
+
+                {(subscription_status === 'inactive' || subscription_status === 'cancelled') && (
+                    <View style={[styles.statusBanner, { backgroundColor: 'rgba(239,68,68,0.15)', borderColor: '#ef4444' }]}>
+                        <View style={styles.statusHeader}>
+                            <XCircle size={24} color="#ef4444" />
+                            <Text style={[styles.statusTitle, { color: '#ef4444' }]}>Suscripción inactiva</Text>
+                        </View>
+                        <Text style={[styles.statusDesc, { color: tc.text }]}>
+                            Tu negocio no aparece en el marketplace. Activá un plan para volver a recibir pedidos.
+                        </Text>
                     </View>
                 )}
             </View>
 
-            <View style={styles.priceContainer}>
-                <Text style={styles.price}>
-                    ${plan.price.toLocaleString()}
+            {/* SECCIÓN 3 — Info de comisiones (moved up for better flow, or as a small summary) */}
+            <View style={[styles.commissionCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                <Text style={[styles.commissionTitle, { color: tc.text }]}>Tu comisión actual: {currentCommissionPercent}%</Text>
+                <Text style={[styles.commissionText, { color: tc.textSecondary }]}>
+                    Con <Text style={{ fontWeight: '700', color: tc.text }}>Plan Base</Text> pagarás 9% por pedido.{'\n'}
+                    Con <Text style={{ fontWeight: '700', color: tc.text }}>Plan Premium</Text> pagarás 4% por pedido.
                 </Text>
-                <Text style={styles.priceLabel}>/mes</Text>
             </View>
 
-            <View style={styles.commissionContainer}>
-                <View style={styles.commissionBadge}>
-                    {plan.id === 'pro' ? (
-                        <TrendingDown size={20} color={colors.success} />
-                    ) : (
-                        <TrendingUp size={20} color={colors.danger} />
-                    )}
-                    <Text style={[
-                        styles.commissionText,
-                        { color: plan.id === 'pro' ? colors.success : colors.danger }
-                    ]}>
-                        {(plan.commission * 100).toFixed(0)}% comisión
-                    </Text>
-                </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.features}>
-                {plan.features.map((feature, index) => (
-                    <View key={index} style={styles.feature}>
-                        <Check size={16} color={colors.success} />
-                        <Text style={styles.featureText}>{feature}</Text>
+            {/* SECCIÓN 2 — Cards de planes */}
+            <View style={styles.plansContainer}>
+                {/* Plan Base */}
+                <View style={[styles.planCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                    <Text style={[styles.planName, { color: tc.text }]}>Plan Base</Text>
+                    <View style={styles.priceRow}>
+                        <Text style={[styles.planPrice, { color: tc.text }]}>USD 28</Text>
+                        <Text style={[styles.planPeriod, { color: tc.textMuted }]}>/mes</Text>
                     </View>
-                ))}
-            </View>
-        </TouchableOpacity>
-    );
+                    
+                    <View style={styles.featuresList}>
+                        {[
+                            'Negocio visible en el marketplace',
+                            'Productos ilimitados',
+                            'Panel de pedidos completo',
+                            'Estadísticas básicas',
+                            'Comisión por pedido: 9%'
+                        ].map((feat, i) => (
+                            <View key={i} style={styles.featureRow}>
+                                <Check size={18} color="#22c55e" />
+                                <Text style={[styles.featureText, { color: tc.textSecondary }]}>{feat}</Text>
+                            </View>
+                        ))}
+                    </View>
 
-    return (
-        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
-            <View style={[styles.header, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <ArrowLeft size={24} color={tc.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: tc.text }]}>Planes de Suscripción</Text>
-                <View style={{ width: 40 }} />
-            </View>
-
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                <Text style={styles.subtitle}>
-                    Elegí el plan que mejor se adapte a tu negocio
-                </Text>
-
-                <View style={styles.plansContainer}>
-                    <PlanCard
-                        plan={SUBSCRIPTION_PLANS.free}
-                        isSelected={selectedPlan === 'free'}
-                    />
-                    <PlanCard
-                        plan={SUBSCRIPTION_PLANS.pro}
-                        isSelected={selectedPlan === 'pro'}
-                    />
+                    <TouchableOpacity 
+                        style={[styles.btnOutline, { borderColor: colors.primary.DEFAULT }]} 
+                        onPress={handleActivatePlan}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={[styles.btnOutlineText, { color: colors.primary.DEFAULT }]}>Activar Plan Base</Text>
+                    </TouchableOpacity>
                 </View>
 
-                <View style={styles.comparisonCard}>
-                    <Text style={styles.comparisonTitle}>💰 Ahorro con Plan Pro</Text>
-                    <Text style={styles.comparisonText}>
-                        En ventas de $100,000/mes:
-                    </Text>
-                    <View style={styles.comparisonRow}>
-                        <Text style={styles.comparisonLabel}>Plan Gratis (9%):</Text>
-                        <Text style={styles.comparisonValue}>-$9,000</Text>
+                {/* Plan Premium */}
+                <View style={[styles.planCard, styles.planCardPremium, { backgroundColor: tc.bgCard, borderColor: colors.primary.DEFAULT }]}>
+                    <View style={[styles.recommendedBadge, { backgroundColor: colors.primary.DEFAULT }]}>
+                        <Crown size={12} color="#fff" style={{ marginRight: 4 }} />
+                        <Text style={styles.recommendedText}>RECOMENDADO</Text>
                     </View>
-                    <View style={styles.comparisonRow}>
-                        <Text style={styles.comparisonLabel}>Plan Pro (4%):</Text>
-                        <Text style={[styles.comparisonValue, { color: colors.success }]}>-$4,000</Text>
+
+                    <Text style={[styles.planName, { color: tc.text }]}>Plan Premium</Text>
+                    <View style={styles.priceRow}>
+                        <Text style={[styles.planPrice, { color: tc.text }]}>USD 45</Text>
+                        <Text style={[styles.planPeriod, { color: tc.textMuted }]}>/mes</Text>
                     </View>
-                    <View style={styles.divider} />
-                    <View style={styles.comparisonRow}>
-                        <Text style={styles.comparisonHighlight}>Ahorrás:</Text>
-                        <Text style={[styles.comparisonHighlight, { color: colors.success }]}>$5,000/mes</Text>
+                    
+                    <View style={styles.featuresList}>
+                        {[
+                            'Todo lo del plan base',
+                            '1 banner publicitario/mes incluido',
+                            '2 notificaciones push/mes incluidas',
+                            'Destacado en búsquedas',
+                            'Comisión por pedido: 4%'
+                        ].map((feat, i) => (
+                            <View key={i} style={styles.featureRow}>
+                                <Check size={18} color="#22c55e" />
+                                <Text style={[styles.featureText, { color: tc.textSecondary }]}>{feat}</Text>
+                            </View>
+                        ))}
                     </View>
+
+                    <TouchableOpacity 
+                        style={[styles.btnSolid, { backgroundColor: colors.primary.DEFAULT }]} 
+                        onPress={handleActivatePlan}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.btnSolidText}>Activar Plan Premium</Text>
+                    </TouchableOpacity>
                 </View>
-
-                <View style={{ height: 100 }} />
-            </ScrollView>
-
-            <View style={[styles.footer, { backgroundColor: tc.bgCard, borderTopColor: tc.borderLight }]}>
-                <Button
-                    title={loading ? 'Procesando...' : `Suscribirse al Plan ${SUBSCRIPTION_PLANS[selectedPlan].name}`}
-                    onPress={handleSubscribe}
-                    disabled={loading || selectedPlan === 'free'}
-                />
             </View>
-        </SafeAreaView>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.gray[50],
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.gray[100],
-    },
-    backButton: {
-        padding: 8,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
     },
     content: {
-        flex: 1,
-        padding: 20,
+        padding: 24,
+        paddingBottom: 80,
+        maxWidth: 900,
+        alignSelf: 'center',
+        width: '100%',
+    },
+    header: {
+        marginBottom: 32,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: '800',
+        fontFamily: 'Nunito Sans',
+        marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
-        color: colors.gray[600],
-        textAlign: 'center',
+        fontFamily: 'Nunito Sans',
+        lineHeight: 24,
+    },
+    section: {
         marginBottom: 24,
+    },
+    statusBanner: {
+        padding: 24,
+        borderRadius: 16,
+        borderWidth: 1,
+    },
+    statusHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+        gap: 12,
+    },
+    statusTitle: {
+        fontSize: 18,
+        fontWeight: '800',
         fontFamily: 'Nunito Sans',
     },
-    plansContainer: {
-        gap: 16,
+    statusDesc: {
+        fontSize: 15,
+        fontFamily: 'Nunito Sans',
+        lineHeight: 22,
     },
-    planCard: {
-        backgroundColor: colors.white,
-        borderRadius: 16,
+    statusAlert: {
+        fontSize: 14,
+        fontFamily: 'Nunito Sans',
+        fontWeight: '700',
+        marginTop: 8,
+    },
+    commissionCard: {
         padding: 20,
-        borderWidth: 2,
-        borderColor: colors.gray[100],
-        position: 'relative',
-    },
-    planCardSelected: {
-        borderColor: colors.primary.DEFAULT,
-        backgroundColor: '#FFF5F2',
-    },
-    badge: {
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.primary.DEFAULT,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        gap: 4,
-    },
-    badgeText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: colors.white,
-        fontFamily: 'Nunito Sans',
-    },
-    planHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    planName: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    checkmark: {
-        width: 32,
-        height: 32,
         borderRadius: 16,
-        backgroundColor: colors.primary.DEFAULT,
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderWidth: 1,
+        marginBottom: 32,
     },
-    priceContainer: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        marginBottom: 12,
-    },
-    price: {
-        fontSize: 36,
-        fontWeight: '700',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    priceLabel: {
+    commissionTitle: {
         fontSize: 16,
-        color: colors.gray[500],
-        marginLeft: 4,
+        fontWeight: '800',
         fontFamily: 'Nunito Sans',
-    },
-    commissionContainer: {
-        marginBottom: 16,
-    },
-    commissionBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: colors.gray[50],
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        alignSelf: 'flex-start',
+        marginBottom: 8,
     },
     commissionText: {
         fontSize: 14,
+        fontFamily: 'Nunito Sans',
+        lineHeight: 24,
+    },
+    plansContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 24,
+    },
+    planCard: {
+        flex: 1,
+        minWidth: 280,
+        borderRadius: 20,
+        borderWidth: 1,
+        padding: 32,
+        position: 'relative',
+    },
+    planCardPremium: {
+        borderWidth: 2,
+    },
+    recommendedBadge: {
+        position: 'absolute',
+        top: -12,
+        right: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    recommendedText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '800',
+        fontFamily: 'Nunito Sans',
+        letterSpacing: 1,
+    },
+    planName: {
+        fontSize: 20,
+        fontWeight: '800',
+        fontFamily: 'Nunito Sans',
+        marginBottom: 12,
+    },
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        marginBottom: 32,
+        gap: 4,
+    },
+    planPrice: {
+        fontSize: 36,
+        fontWeight: '800',
+        fontFamily: 'Nunito Sans',
+    },
+    planPeriod: {
+        fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Nunito Sans',
     },
-    divider: {
-        height: 1,
-        backgroundColor: colors.gray[100],
-        marginVertical: 16,
+    featuresList: {
+        gap: 16,
+        marginBottom: 40,
+        flex: 1,
     },
-    features: {
-        gap: 12,
-    },
-    feature: {
+    featureRow: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: 12,
     },
     featureText: {
-        fontSize: 14,
-        color: colors.gray[700],
+        fontSize: 15,
+        fontFamily: 'Nunito Sans',
+        lineHeight: 22,
         flex: 1,
-        fontFamily: 'Nunito Sans',
     },
-    comparisonCard: {
-        backgroundColor: colors.white,
+    btnOutline: {
+        borderWidth: 2,
         borderRadius: 12,
-        padding: 20,
-        marginTop: 24,
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    comparisonTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: colors.gray[900],
-        marginBottom: 12,
-        fontFamily: 'Nunito Sans',
-    },
-    comparisonText: {
-        fontSize: 14,
-        color: colors.gray[600],
-        marginBottom: 12,
-        fontFamily: 'Nunito Sans',
-    },
-    comparisonRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
-    },
-    comparisonLabel: {
-        fontSize: 14,
-        color: colors.gray[600],
-        fontFamily: 'Nunito Sans',
-    },
-    comparisonValue: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    comparisonHighlight: {
+    btnOutlineText: {
         fontSize: 16,
         fontWeight: '700',
-        color: colors.gray[900],
         fontFamily: 'Nunito Sans',
     },
-    footer: {
-        padding: 16,
-        backgroundColor: colors.white,
-        borderTopWidth: 1,
-        borderTopColor: colors.gray[100],
+    btnSolid: {
+        borderRadius: 12,
+        paddingVertical: 16, // slightly larger for premium
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    btnSolidText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+        fontFamily: 'Nunito Sans',
     },
 });

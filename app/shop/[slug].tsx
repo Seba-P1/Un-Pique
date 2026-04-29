@@ -140,110 +140,50 @@ export default function BusinessDetailScreen() {
                 {/* Content wrapper */}
                 <View style={isDesktop ? { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%', marginTop: -60 } : { marginTop: -50 }}>
 
-                    {/* Info Card */}
-                    <View style={[styles.infoCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }, isDesktop && { borderRadius: 24, borderWidth: 1, marginHorizontal: 20 }]}>
-                        <View style={styles.infoCardInner}>
-                            {/* Logo */}
-                            <View style={[styles.logoWrap, { borderColor: tc.bgCard, backgroundColor: tc.bgCard }]}>
-                                <Image source={{ uri: business.logo_url }} style={styles.logo} />
-                            </View>
-
-                            <View style={{ flex: 1, paddingLeft: isDesktop ? 110 : 0, paddingTop: isDesktop ? 0 : 50 }}>
-                                <View style={styles.titleRow}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[styles.name, { color: tc.text }]}>{business.name}</Text>
-                                        <Text style={[styles.category, { color: tc.textSecondary }]}>{business.category}</Text>
+                    {isDesktop ? (
+                        /* ══ DESKTOP: 2 columnas ══════════════════════════ */
+                        <View style={styles.desktopLayout}>
+                            {/* ── Columna izquierda 40%: Info sticky ────── */}
+                            <View style={styles.desktopLeftCol}>
+                                <View style={[styles.infoCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight, borderRadius: 24, borderWidth: 1 }]}>
+                                    <View style={styles.infoCardInner}>
+                                        <View style={[styles.logoWrap, { borderColor: tc.bgCard, backgroundColor: tc.bgCard }]}>
+                                            <Image source={{ uri: business.logo_url }} style={styles.logo} />
+                                        </View>
+                                        <View style={{ flex: 1, paddingLeft: 110 }}>
+                                            <View style={styles.titleRow}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[styles.name, { color: tc.text }]}>{business.name}</Text>
+                                                    <Text style={[styles.category, { color: tc.textSecondary }]}>{business.category}</Text>
+                                                </View>
+                                                <TouchableOpacity style={[styles.heartBtn, { backgroundColor: tc.bgHover }]} onPress={handleFavorite}>
+                                                    <Heart size={20} color={isBusinessFavorite ? '#ef4444' : tc.textMuted} fill={isBusinessFavorite ? '#ef4444' : 'transparent'} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            {business.description ? (
+                                                <Text style={[styles.description, { color: tc.textSecondary }]}>{business.description}</Text>
+                                            ) : null}
+                                            <View style={styles.statsRow}>
+                                                <View style={[styles.stat, { backgroundColor: tc.bgHover }]}>
+                                                    <Star size={14} color={colors.warning} fill={colors.warning} />
+                                                    <Text style={[styles.statText, { color: tc.text }]}>
+                                                        {typeof business.rating === 'number' ? business.rating.toFixed(1) : parseFloat(String(business.rating || 0)).toFixed(1)}
+                                                    </Text>
+                                                    <Text style={[styles.statCount, { color: tc.textMuted }]}>({(business as any).total_reviews || 0})</Text>
+                                                </View>
+                                            </View>
+                                        </View>
                                     </View>
-                                    <TouchableOpacity style={[styles.heartBtn, { backgroundColor: tc.bgHover }]} onPress={handleFavorite}>
-                                        <Heart size={20} color={isBusinessFavorite ? '#ef4444' : tc.textMuted} fill={isBusinessFavorite ? '#ef4444' : 'transparent'} />
-                                    </TouchableOpacity>
-                                </View>
 
-                                {business.description ? (
-                                    <Text style={[styles.description, { color: tc.textSecondary }]}>{business.description}</Text>
-                                ) : null}
-
-                                <View style={styles.statsRow}>
-                                    <View style={[styles.stat, { backgroundColor: tc.bgHover }]}>
-                                        <Star size={14} color={colors.warning} fill={colors.warning} />
-                                        <Text style={[styles.statText, { color: tc.text }]}>
-                                            {typeof business.rating === 'number' ? business.rating.toFixed(1) : parseFloat(String(business.rating || 0)).toFixed(1)}
-                                        </Text>
-                                        <Text style={[styles.statCount, { color: tc.textMuted }]}>
-                                            ({(business as any).total_reviews || 0})
-                                        </Text>
+                                    {/* Horarios y badge dentro de la sidebar desktop */}
+                                    <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 4 }}>
+                                        <Text style={[styles.sidebarSectionTitle, { color: tc.text }]}>Horarios</Text>
+                                        <View style={[styles.openBadge, { backgroundColor: isOpen ? colors.success : colors.danger }]}>
+                                            <Text style={styles.openBadgeText}>{isOpen ? 'Abierto' : 'Cerrado'}</Text>
+                                        </View>
                                     </View>
-                                </View>
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* Tabs */}
-                    <View style={[styles.tabsContainer, { borderBottomColor: tc.borderLight }, isDesktop && { marginHorizontal: 20 }]}>
-                        {['menu', 'reviews', 'info'].map((tab) => (
-                            <TouchableOpacity
-                                key={tab}
-                                style={[styles.tab, activeTab === tab && styles.activeTab]}
-                                onPress={() => setActiveTab(tab)}
-                            >
-                                <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary.DEFAULT : tc.textMuted }]}>
-                                    {tab === 'menu' ? 'Menú' : tab === 'reviews' ? 'Reseñas' : 'Info'}
-                                </Text>
-                                {activeTab === tab && <View style={styles.activeIndicator} />}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    {/* Content */}
-                    <View style={[styles.content, isDesktop && { marginHorizontal: 20, borderRadius: 16 }]}>
-                        {activeTab === 'menu' && (
-                            <View>
-                                <Text style={[styles.sectionTitle, { color: tc.text }]}>Destacados</Text>
-                                {products.length === 0 ? (
-                                    <View style={{ padding: 24, alignItems: 'center' }}>
-                                        <Text style={{ fontFamily: 'Nunito Sans', color: tc.textMuted, fontSize: 15 }}>
-                                            Este negocio aún no tiene productos cargados.
-                                        </Text>
-                                    </View>
-                                ) : (
-                                    products.map((product) => (
-                                        <ProductItem
-                                            key={product.id}
-                                            product={product}
-                                            onPress={() => handleProductPress(product)}
-                                        />
-                                    ))
-                                )}
-                            </View>
-                        )}
-                        {activeTab === 'reviews' && (
-                            <View style={{ padding: 24, alignItems: 'center' }}>
-                                <Text style={{ color: tc.textSecondary, fontFamily: 'Nunito Sans' }}>Reseñas del lugar</Text>
-                            </View>
-                        )}
-                        {activeTab === 'info' && (
-                            <View style={{ paddingBottom: 24 }}>
-                                <Text style={[styles.sectionTitle, { color: tc.text }]}>Ubicación</Text>
-                                <View style={[styles.mapContainer, { borderColor: tc.borderLight }]}>
-                                    <BusinessMap latitude={business.latitude || Number(0)} longitude={business.longitude || Number(0)} name={business.name} address={business.address} />
-                                </View>
-                                <View style={styles.addressRow}>
-                                    <MapPin size={22} color={colors.primary.DEFAULT} />
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[styles.addressLabel, { color: tc.text }]}>Dirección</Text>
-                                        <Text style={[styles.addressValue, { color: tc.textSecondary }]}>{business.address || 'No disponible'}</Text>
-                                    </View>
-                                </View>
-                                <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                    <Text style={[styles.sectionTitle, { color: tc.text, marginHorizontal: 0, marginTop: 0 }]}>Horarios</Text>
-                                    <View style={[styles.openBadge, { backgroundColor: isOpen ? colors.success : colors.danger }]}>
-                                        <Text style={styles.openBadgeText}>{isOpen ? 'Abierto Ahora' : 'Cerrado Ahora'}</Text>
-                                    </View>
-                                </View>
-                                <View style={styles.addressRow}>
-                                    <Clock size={22} color={tc.textSecondary} />
-                                    <View>
+                                    <View style={{ paddingHorizontal: 4 }}>
                                         {scheduleList.length > 0 ? scheduleList.map((sched, i) => (
                                             <Text key={i} style={[styles.scheduleText, { color: tc.text }]}>
                                                 <Text style={{ fontWeight: '700' }}>{sched.label}:</Text> {sched.text}
@@ -252,10 +192,180 @@ export default function BusinessDetailScreen() {
                                             <Text style={[styles.scheduleText, { color: tc.textSecondary }]}>No hay horarios disponibles.</Text>
                                         )}
                                     </View>
+
+                                    {/* Dirección en sidebar */}
+                                    <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
+                                    <View style={[styles.addressRow, { paddingHorizontal: 4 }]}>
+                                        <MapPin size={18} color={colors.primary.DEFAULT} />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.addressValue, { color: tc.textSecondary }]}>{business.address || 'No disponible'}</Text>
+                                        </View>
+                                    </View>
                                 </View>
                             </View>
-                        )}
-                    </View>
+
+                            {/* ── Separador vertical ───────────────────── */}
+                            <View style={[styles.desktopDivider, { backgroundColor: tc.borderLight }]} />
+
+                            {/* ── Columna derecha 60%: Tabs + productos ── */}
+                            <View style={styles.desktopRightCol}>
+                                {/* Tabs */}
+                                <View style={[styles.tabsContainer, { borderBottomColor: tc.borderLight }]}>
+                                    {['menu', 'reviews', 'info'].map((tab) => (
+                                        <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => setActiveTab(tab)}>
+                                            <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary.DEFAULT : tc.textMuted }]}>
+                                                {tab === 'menu' ? 'Menú' : tab === 'reviews' ? 'Reseñas' : 'Info'}
+                                            </Text>
+                                            {activeTab === tab && <View style={styles.activeIndicator} />}
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                {/* Contenido del tab */}
+                                <View style={styles.content}>
+                                    {activeTab === 'menu' && (
+                                        <View>
+                                            <Text style={[styles.sectionTitle, { color: tc.text }]}>Destacados</Text>
+                                            {products.length === 0 ? (
+                                                <View style={{ padding: 24, alignItems: 'center' }}>
+                                                    <Text style={{ fontFamily: 'Nunito Sans', color: tc.textMuted, fontSize: 15 }}>
+                                                        Este negocio aún no tiene productos cargados.
+                                                    </Text>
+                                                </View>
+                                            ) : (
+                                                <View style={styles.desktopProductGrid}>
+                                                    {products.map((product) => (
+                                                        <View key={product.id} style={styles.desktopProductCell}>
+                                                            <ProductItem product={product} onPress={() => handleProductPress(product)} />
+                                                        </View>
+                                                    ))}
+                                                </View>
+                                            )}
+                                        </View>
+                                    )}
+                                    {activeTab === 'reviews' && (
+                                        <View style={{ padding: 24, alignItems: 'center' }}>
+                                            <Text style={{ color: tc.textSecondary, fontFamily: 'Nunito Sans' }}>Reseñas del lugar</Text>
+                                        </View>
+                                    )}
+                                    {activeTab === 'info' && (
+                                        <View style={{ paddingBottom: 24 }}>
+                                            <Text style={[styles.sectionTitle, { color: tc.text }]}>Ubicación</Text>
+                                            <View style={[styles.mapContainer, { borderColor: tc.borderLight }]}>
+                                                <BusinessMap latitude={business.latitude || Number(0)} longitude={business.longitude || Number(0)} name={business.name} address={business.address} />
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        </View>
+                    ) : (
+                        /* ══ MOBILE: layout original ══════════════════════ */
+                        <>
+                            {/* Info Card */}
+                            <View style={[styles.infoCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                <View style={styles.infoCardInner}>
+                                    <View style={[styles.logoWrap, { borderColor: tc.bgCard, backgroundColor: tc.bgCard }]}>
+                                        <Image source={{ uri: business.logo_url }} style={styles.logo} />
+                                    </View>
+                                    <View style={{ flex: 1, paddingTop: 50 }}>
+                                        <View style={styles.titleRow}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.name, { color: tc.text }]}>{business.name}</Text>
+                                                <Text style={[styles.category, { color: tc.textSecondary }]}>{business.category}</Text>
+                                            </View>
+                                            <TouchableOpacity style={[styles.heartBtn, { backgroundColor: tc.bgHover }]} onPress={handleFavorite}>
+                                                <Heart size={20} color={isBusinessFavorite ? '#ef4444' : tc.textMuted} fill={isBusinessFavorite ? '#ef4444' : 'transparent'} />
+                                            </TouchableOpacity>
+                                        </View>
+                                        {business.description ? (
+                                            <Text style={[styles.description, { color: tc.textSecondary }]}>{business.description}</Text>
+                                        ) : null}
+                                        <View style={styles.statsRow}>
+                                            <View style={[styles.stat, { backgroundColor: tc.bgHover }]}>
+                                                <Star size={14} color={colors.warning} fill={colors.warning} />
+                                                <Text style={[styles.statText, { color: tc.text }]}>
+                                                    {typeof business.rating === 'number' ? business.rating.toFixed(1) : parseFloat(String(business.rating || 0)).toFixed(1)}
+                                                </Text>
+                                                <Text style={[styles.statCount, { color: tc.textMuted }]}>({(business as any).total_reviews || 0})</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+
+                            {/* Tabs */}
+                            <View style={[styles.tabsContainer, { borderBottomColor: tc.borderLight }]}>
+                                {['menu', 'reviews', 'info'].map((tab) => (
+                                    <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.activeTab]} onPress={() => setActiveTab(tab)}>
+                                        <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary.DEFAULT : tc.textMuted }]}>
+                                            {tab === 'menu' ? 'Menú' : tab === 'reviews' ? 'Reseñas' : 'Info'}
+                                        </Text>
+                                        {activeTab === tab && <View style={styles.activeIndicator} />}
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            {/* Content */}
+                            <View style={styles.content}>
+                                {activeTab === 'menu' && (
+                                    <View>
+                                        <Text style={[styles.sectionTitle, { color: tc.text }]}>Destacados</Text>
+                                        {products.length === 0 ? (
+                                            <View style={{ padding: 24, alignItems: 'center' }}>
+                                                <Text style={{ fontFamily: 'Nunito Sans', color: tc.textMuted, fontSize: 15 }}>
+                                                    Este negocio aún no tiene productos cargados.
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            products.map((product) => (
+                                                <ProductItem key={product.id} product={product} onPress={() => handleProductPress(product)} />
+                                            ))
+                                        )}
+                                    </View>
+                                )}
+                                {activeTab === 'reviews' && (
+                                    <View style={{ padding: 24, alignItems: 'center' }}>
+                                        <Text style={{ color: tc.textSecondary, fontFamily: 'Nunito Sans' }}>Reseñas del lugar</Text>
+                                    </View>
+                                )}
+                                {activeTab === 'info' && (
+                                    <View style={{ paddingBottom: 24 }}>
+                                        <Text style={[styles.sectionTitle, { color: tc.text }]}>Ubicación</Text>
+                                        <View style={[styles.mapContainer, { borderColor: tc.borderLight }]}>
+                                            <BusinessMap latitude={business.latitude || Number(0)} longitude={business.longitude || Number(0)} name={business.name} address={business.address} />
+                                        </View>
+                                        <View style={styles.addressRow}>
+                                            <MapPin size={22} color={colors.primary.DEFAULT} />
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.addressLabel, { color: tc.text }]}>Dirección</Text>
+                                                <Text style={[styles.addressValue, { color: tc.textSecondary }]}>{business.address || 'No disponible'}</Text>
+                                            </View>
+                                        </View>
+                                        <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                            <Text style={[styles.sectionTitle, { color: tc.text, marginHorizontal: 0, marginTop: 0 }]}>Horarios</Text>
+                                            <View style={[styles.openBadge, { backgroundColor: isOpen ? colors.success : colors.danger }]}>
+                                                <Text style={styles.openBadgeText}>{isOpen ? 'Abierto Ahora' : 'Cerrado Ahora'}</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.addressRow}>
+                                            <Clock size={22} color={tc.textSecondary} />
+                                            <View>
+                                                {scheduleList.length > 0 ? scheduleList.map((sched, i) => (
+                                                    <Text key={i} style={[styles.scheduleText, { color: tc.text }]}>
+                                                        <Text style={{ fontWeight: '700' }}>{sched.label}:</Text> {sched.text}
+                                                    </Text>
+                                                )) : (
+                                                    <Text style={[styles.scheduleText, { color: tc.textSecondary }]}>No hay horarios disponibles.</Text>
+                                                )}
+                                            </View>
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        </>
+                    )}
                 </View>
 
                 <View style={{ height: 120 }} />
@@ -321,6 +431,14 @@ const styles = StyleSheet.create({
     scheduleText: { fontFamily: 'Nunito Sans', fontSize: 14, marginBottom: 4 },
     openBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
     openBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800', fontFamily: 'Nunito Sans', textTransform: 'uppercase' },
+    // ── Desktop layout 2 columnas ──────────────────────────────────
+    desktopLayout: { flexDirection: 'row', paddingHorizontal: 20 },
+    desktopLeftCol: { width: '40%' as any, position: 'sticky' as any, top: 110, alignSelf: 'flex-start' as any },
+    desktopRightCol: { width: '60%' as any, minHeight: 500 },
+    desktopDivider: { width: 1, marginHorizontal: 16 },
+    desktopProductGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8 },
+    desktopProductCell: { width: '50%' as any, paddingHorizontal: 8, marginBottom: 8 },
+    sidebarSectionTitle: { fontFamily: 'Nunito Sans', fontSize: 15, fontWeight: '700' },
     floatingCartWrapper: { position: 'absolute', bottom: Platform.OS === 'ios' ? 32 : 24, left: 16, right: 16, alignItems: 'center', zIndex: 100 },
     floatingCartPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 50, borderRadius: 25, width: '100%', maxWidth: 400, boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' },
     floatingPillText: { fontFamily: 'Nunito Sans', fontSize: 16, fontWeight: '700', color: '#fff' },

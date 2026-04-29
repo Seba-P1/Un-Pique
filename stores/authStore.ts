@@ -4,6 +4,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import { useLoyaltyStore } from './loyaltyStore';
 
 // User role type
 export type UserRole = 'customer' | 'business_owner' | 'delivery_driver' | 'admin' | 'super_admin';
@@ -45,6 +48,40 @@ interface AuthState {
     initialize: () => Promise<void>;
 }
 
+async function registerPushToken(userId: string) {
+    if (Platform.OS === 'web') return;
+    try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') return;
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        await supabase.from('push_tokens').upsert(
+            {
+                user_id: userId,
+                token: tokenData.data,
+                platform: Platform.OS,
+                is_active: true,
+                updated_at: new Date().toISOString()
+            },
+            { onConflict: 'user_id,token' }
+        );
+    } catch (error) {
+        console.warn('Push token:', error);
+    }
+}
+
+async function deregisterPushToken(userId: string) {
+    if (Platform.OS === 'web') return;
+    try {
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        await supabase.from('push_tokens')
+            .update({ is_active: false })
+            .eq('user_id', userId)
+            .eq('token', tokenData.data);
+    } catch (error) {
+        console.warn('Push deregister:', error);
+    }
+}
+
 export const useAuthStore = create<AuthState>()(
     persist(
         (set, get) => ({
@@ -83,6 +120,11 @@ export const useAuthStore = create<AuthState>()(
 
                 // Fetch user profile
                 await get().fetchProfile();
+
+                if (data.user) {
+                    await registerPushToken(data.user.id);
+                    useLoyaltyStore.getState().fetchLoyalty();
+                }
 
                 return { error: null };
             },
@@ -131,6 +173,11 @@ export const useAuthStore = create<AuthState>()(
             },
 
             signOut: async () => {
+                const currentUser = get().user;
+                if (currentUser) {
+                    await deregisterPushToken(currentUser.id);
+                }
+                useLoyaltyStore.getState().reset();
                 await supabase.auth.signOut();
                 set({
                     user: null,
@@ -203,6 +250,10 @@ export const useAuthStore = create<AuthState>()(
                     });
                     if (session) {
                         get().fetchProfile();
+                        registerPushToken(session.user.id);
+                        useLoyaltyStore.getState().fetchLoyalty();
+                    } else {
+                        useLoyaltyStore.getState().reset();
                     }
                 });
             },

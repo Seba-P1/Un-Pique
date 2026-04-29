@@ -21,8 +21,9 @@ import { AppHeader } from '../../components/ui/AppHeader';
 import { supabase } from '../../lib/supabase';
 import { Business } from '../../stores/businessStore';
 
-// ── Fallback locality ────────────────────────────────────────────
-const FALLBACK_LOCALITY_ID = 'f8b76cc2-4df3-4b9f-846f-08586b1ee3c3'; // Río Colorado
+// ── Hardcoded region ID (Río Colorado region) ────────────────────
+const REGION_ID = '502d0fd3-68d2-4ad9-89d9-36b4411930d6';
+const FALLBACK_LOCALITY_ID = 'f8b76cc2-4df3-4b9f-846f-08586b1ee3c3';
 
 // ── Business formatter (same as useMarketplaceData) ──────────────
 const formatBusiness = (b: any): Business => ({
@@ -76,82 +77,77 @@ export default function HomeScreen() {
 
     // ── Fetch real data from Supabase ────────────────────────────
     const fetchHomeData = useCallback(async () => {
-        const localityId = currentLocality?.id || FALLBACK_LOCALITY_ID;
-
+        // Independent loading states — never block the whole screen
         setLoadingFeatured(true);
         setLoadingNew(true);
 
         try {
-            // First get the region_id for this locality
-            const { data: localityData } = await supabase
+            // Step 1: Get all locality IDs in this region
+            const { data: regionLocalities } = await supabase
                 .from('localities')
-                .select('region_id')
-                .eq('id', localityId)
-                .single();
+                .select('id')
+                .eq('region_id', REGION_ID);
 
-            const regionId = localityData?.region_id;
+            const localityIds = regionLocalities && regionLocalities.length > 0
+                ? regionLocalities.map((l: any) => l.id)
+                : [currentLocality?.id || FALLBACK_LOCALITY_ID];
 
-            // Build base query — if we have region_id, get all businesses in region
-            // Otherwise fall back to just the locality
-            const buildQuery = () => {
-                let query = supabase
-                    .from('businesses')
-                    .select('*')
-                    .eq('is_active', true);
+            // ── Fetch Featured (independent) ──────────────────────
+            (async () => {
+                try {
+                    // Try is_featured = true first
+                    const { data: featuredData } = await supabase
+                        .from('businesses')
+                        .select('*')
+                        .eq('is_active', true)
+                        .eq('is_featured', true)
+                        .in('locality_id', localityIds)
+                        .order('created_at', { ascending: false })
+                        .limit(6);
 
-                if (regionId) {
-                    // Get all localities in this region, then filter businesses
-                    // Since Supabase doesn't support subqueries easily,
-                    // we'll use a two-step approach
-                    return { query, regionId };
+                    if (featuredData && featuredData.length > 0) {
+                        setFeaturedBusinesses(featuredData.map(formatBusiness));
+                    } else {
+                        // Fallback: top by total_orders
+                        const { data: fallbackData } = await supabase
+                            .from('businesses')
+                            .select('*')
+                            .eq('is_active', true)
+                            .in('locality_id', localityIds)
+                            .order('total_orders', { ascending: false, nullsFirst: false })
+                            .limit(6);
+
+                        setFeaturedBusinesses((fallbackData || []).map(formatBusiness));
+                    }
+                } catch (err) {
+                    console.error('[Home] Error fetching featured:', err);
+                    setFeaturedBusinesses([]);
+                } finally {
+                    setLoadingFeatured(false);
                 }
-                return { query: query.eq('locality_id', localityId), regionId: null };
-            };
+            })();
 
-            const { regionId: resolvedRegionId } = buildQuery();
+            // ── Fetch New in Zone (independent) ───────────────────
+            (async () => {
+                try {
+                    const { data: newData } = await supabase
+                        .from('businesses')
+                        .select('*')
+                        .eq('is_active', true)
+                        .in('locality_id', localityIds)
+                        .order('created_at', { ascending: false })
+                        .limit(8);
 
-            let localityIds: string[] = [localityId];
-
-            if (resolvedRegionId) {
-                const { data: regionLocalities } = await supabase
-                    .from('localities')
-                    .select('id')
-                    .eq('region_id', resolvedRegionId);
-                if (regionLocalities && regionLocalities.length > 0) {
-                    localityIds = regionLocalities.map((l: any) => l.id);
+                    setNewBusinesses((newData || []).map(formatBusiness));
+                } catch (err) {
+                    console.error('[Home] Error fetching new businesses:', err);
+                    setNewBusinesses([]);
+                } finally {
+                    setLoadingNew(false);
                 }
-            }
-
-            // Fetch both in parallel
-            const [featuredResult, newResult] = await Promise.all([
-                // Destacados: best rated
-                supabase
-                    .from('businesses')
-                    .select('*')
-                    .eq('is_active', true)
-                    .in('locality_id', localityIds)
-                    .order('rating', { ascending: false, nullsFirst: false })
-                    .limit(10),
-
-                // Nuevo en zona: most recent
-                supabase
-                    .from('businesses')
-                    .select('*')
-                    .eq('is_active', true)
-                    .in('locality_id', localityIds)
-                    .order('created_at', { ascending: false })
-                    .limit(8),
-            ]);
-
-            if (featuredResult.data) {
-                setFeaturedBusinesses(featuredResult.data.map(formatBusiness));
-            }
-            if (newResult.data) {
-                setNewBusinesses(newResult.data.map(formatBusiness));
-            }
+            })();
         } catch (err) {
-            console.error('[Home] Error fetching home data:', err);
-        } finally {
+            console.error('[Home] Error resolving region localities:', err);
             setLoadingFeatured(false);
             setLoadingNew(false);
         }

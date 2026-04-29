@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
+import { uploadImage } from '../../services/imageUpload';
 
 export default function EditProfileScreen() {
     const router = useRouter();
@@ -42,20 +43,8 @@ export default function EditProfileScreen() {
             setUploading(true);
             if (!user) throw new Error('No user');
 
-            const response = await fetch(uri);
-            const blob = await response.blob();
-            const fileExt = uri.split('.').pop();
-            const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-            const filePath = `${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, blob);
-
-            if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-            setAvatarUrl(data.publicUrl);
+            const result = await uploadImage(uri, 'avatars', user.id, { maxWidth: 400, maxHeight: 400, quality: 0.8 });
+            setAvatarUrl(result.url);
         } catch (error: any) {
             showAlert('Error', error.message);
         } finally {

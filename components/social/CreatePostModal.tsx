@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
 import { showAlert } from '../../utils/alert';
+import { uploadImage } from '../../services/imageUpload';
 
 interface CreatePostModalProps {
     visible: boolean;
@@ -43,25 +44,10 @@ export function CreatePostModal({ visible, onClose }: CreatePostModalProps) {
         }
     };
 
-    const uploadImage = async (uri: string): Promise<string> => {
+    const uploadImageCustom = async (uri: string): Promise<string> => {
         try {
-            const response = await fetch(uri);
-            const blob = await response.blob();
-            const fileExt = uri.split('.').pop();
-            const fileName = `${Date.now()}.${fileExt}`;
-            const filePath = `posts/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('posts')
-                .upload(filePath, blob);
-
-            if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage
-                .from('posts')
-                .getPublicUrl(filePath);
-
-            return data.publicUrl;
+            const result = await uploadImage(uri, 'posts', '', { maxWidth: 1080, maxHeight: 1080, quality: 0.8 });
+            return result.url;
         } catch (error) {
             console.error('Error uploading image:', error);
             throw error;
@@ -86,7 +72,7 @@ export function CreatePostModal({ visible, onClose }: CreatePostModalProps) {
         try {
             let mediaUrls: string[] = [];
             if (selectedImage) {
-                const publicUrl = await uploadImage(selectedImage);
+                const publicUrl = await uploadImageCustom(selectedImage);
                 mediaUrls.push(publicUrl);
             }
 

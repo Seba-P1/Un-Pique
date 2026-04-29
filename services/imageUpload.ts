@@ -1,10 +1,11 @@
 // Servicio de carga de imágenes — Compresión + Supabase Storage
 // Compatible con Web, iOS y Android
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 
-type StorageBucket = 'avatars' | 'products' | 'businesses' | 'listings';
+type StorageBucket = 'avatars' | 'products' | 'businesses' | 'listings' | 'posts' | 'stories' | 'covers';
 
 interface UploadResult {
     url: string;
@@ -81,28 +82,54 @@ export async function pickMultipleImages(options?: {
 }
 
 /**
+ * Procesa una imagen antes de subirla: redimensiona y comprime
+ * Solo se aplica en iOS/Android. En web se salta.
+ */
+async function processImageBeforeUpload(
+    uri: string,
+    options: { maxWidth?: number; maxHeight?: number; quality?: number } = {}
+): Promise<string> {
+    if (Platform.OS === 'web') return uri;
+    const { maxWidth = 1200, maxHeight = 1200, quality = 0.75 } = options;
+    try {
+        const result = await ImageManipulator.manipulateAsync(
+            uri,
+            [{ resize: { width: maxWidth, height: maxHeight } }],
+            { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        return result.uri;
+    } catch (error) {
+        console.warn('Image processing failed, using original:', error);
+        return uri;
+    }
+}
+
+/**
  * Sube una imagen a Supabase Storage
  * Funciona correctamente en Web, iOS y Android
+ * Comprime automáticamente en móvil antes de subir
  */
 export async function uploadImage(
     uri: string,
     bucket: StorageBucket,
-    folder?: string
+    folder?: string,
+    options?: { maxWidth?: number; maxHeight?: number; quality?: number }
 ): Promise<UploadResult> {
     try {
+        const processedUri = await processImageBeforeUpload(uri, options);
         const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
         let uploadData: any;
         let finalMimeType = 'image/jpeg';
         let ext = 'jpg';
 
         if (Platform.OS === 'web') {
-            const response = await fetch(uri);
+            const response = await fetch(processedUri);
             const blob = await response.blob();
             finalMimeType = blob.type || 'image/jpeg';
             ext = finalMimeType === 'image/png' ? 'png' : 'jpg';
             uploadData = new File([blob], `imagen-${uniqueId}.${ext}`, { type: finalMimeType });
         } else {
-            const response = await fetch(uri);
+            const response = await fetch(processedUri);
             const blob = await response.blob();
             uploadData = await new Response(blob).arrayBuffer();
             finalMimeType = 'image/jpeg';

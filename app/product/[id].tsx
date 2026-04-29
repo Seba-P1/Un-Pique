@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
-    Platform, TextInput, ActivityIndicator
+    Platform, TextInput, ActivityIndicator, useWindowDimensions
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,6 +16,8 @@ export default function ProductDetailScreen() {
     const router = useRouter();
     const tc = useThemeColors();
     const insets = useSafeAreaInsets();
+    const { width } = useWindowDimensions();
+    const isDesktop = width >= 768;
     const addItem = useCartStore((s) => s.addItem);
 
     const [product, setProduct] = useState<any>(null);
@@ -101,91 +103,98 @@ export default function ProductDetailScreen() {
     const deliveryFee = business.delivery_fee ?? 0;
     const total = product.price * quantity;
 
+    // ── Bloque de imagen reutilizable ──────────────────────────────
+    const renderImage = () => product.image_url ? (
+        <Image source={{ uri: product.image_url }} style={isDesktop ? styles.heroImageDesktop : styles.heroImage} />
+    ) : (
+        <View style={[isDesktop ? styles.heroImageDesktop : styles.heroImage, { backgroundColor: tc.bgHover, justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={{ color: tc.textMuted }}>Sin imagen</Text>
+        </View>
+    );
+
+    // ── Bloque de detalles reutilizable ───────────────────────────
+    const renderDetails = () => (
+        <View style={[styles.infoContainer, isDesktop && { paddingTop: 0 }]}>
+            <Text style={[styles.productName, { color: tc.text }]}>{product.name}</Text>
+            <Text style={styles.priceText}>${product.price?.toLocaleString()}</Text>
+            {deliveryFee > 0 && (
+                <Text style={[styles.deliveryFeeText, { color: tc.textMuted }]}>+ ${deliveryFee} de envío</Text>
+            )}
+            {business.id && (
+                <TouchableOpacity
+                    style={[styles.businessRow, { borderColor: tc.borderLight, backgroundColor: tc.bgCard }]}
+                    onPress={() => router.push(`/shop/${business.slug || business.id}` as any)}
+                >
+                    {business.logo_url ? (
+                        <Image source={{ uri: business.logo_url }} style={styles.businessLogo} />
+                    ) : (
+                        <View style={[styles.businessLogo, { backgroundColor: tc.bgHover }]} />
+                    )}
+                    <Text style={[styles.businessName, { color: tc.text }]}>{business.name}</Text>
+                </TouchableOpacity>
+            )}
+            {product.description ? (
+                <Text style={[styles.description, { color: tc.textSecondary }]}>{product.description}</Text>
+            ) : null}
+            <View style={styles.noteSection}>
+                <Text style={[styles.noteTitle, { color: tc.text }]}>Aclaraciones</Text>
+                <TextInput
+                    style={[styles.textInput, {
+                        backgroundColor: tc.bgCard, color: tc.text, borderColor: tc.borderLight,
+                        ...(Platform.OS === 'web' ? { outlineWidth: 0, outline: 'none' } : {}) as any
+                    }]}
+                    placeholder="Escribí acá si tenés alguna indicación..."
+                    placeholderTextColor={tc.textMuted}
+                    value={note}
+                    onChangeText={setNote}
+                    multiline
+                    numberOfLines={3}
+                />
+            </View>
+            <View style={styles.quantityWrapper}>
+                <View style={[styles.quantityControl, { borderColor: tc.borderLight, backgroundColor: tc.bgCard }]}>
+                    <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.max(1, quantity - 1))}>
+                        <Minus size={16} color={quantity <= 1 ? tc.textMuted : colors.primary.DEFAULT} />
+                    </TouchableOpacity>
+                    <Text style={[styles.qtyText, { color: tc.text }]}>{quantity}</Text>
+                    <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.min(99, quantity + 1))}>
+                        <Plus size={16} color={colors.primary.DEFAULT} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
+    );
+
     return (
         <SafeAreaView style={[styles.rootContainer, { backgroundColor: tc.bg }]} edges={['top', 'left', 'right']}>
+            {/* Botón Volver — siempre visible */}
+            <TouchableOpacity style={[styles.backBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} onPress={() => router.back()}>
+                <ArrowLeft size={20} color="#fff" />
+            </TouchableOpacity>
+
             <ScrollView
                 style={{ flex: 1 }}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 150 }}
+                contentContainerStyle={[{ paddingBottom: 150 }, isDesktop && styles.desktopScrollContent]}
             >
-                {/* Imagen del producto */}
-                {product.image_url ? (
-                    <Image source={{ uri: product.image_url }} style={styles.heroImage} />
-                ) : (
-                    <View style={[styles.heroImage, { backgroundColor: tc.bgHover, justifyContent: 'center', alignItems: 'center' }]}>
-                        <Text style={{ color: tc.textMuted }}>Sin imagen</Text>
-                    </View>
-                )}
-
-                {/* Botón Volver */}
-                <TouchableOpacity style={[styles.backBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} onPress={() => router.back()}>
-                    <ArrowLeft size={20} color="#fff" />
-                </TouchableOpacity>
-
-                {/* Info Section */}
-                <View style={styles.infoContainer}>
-                    {/* Nombre y Precio */}
-                    <Text style={[styles.productName, { color: tc.text }]}>{product.name}</Text>
-                    <Text style={styles.priceText}>${product.price?.toLocaleString()}</Text>
-                    
-                    {deliveryFee > 0 && (
-                        <Text style={[styles.deliveryFeeText, { color: tc.textMuted }]}>
-                            + ${deliveryFee} de envío
-                        </Text>
-                    )}
-
-                    {/* Fila del Negocio */}
-                    {business.id && (
-                        <TouchableOpacity 
-                            style={[styles.businessRow, { borderColor: tc.borderLight, backgroundColor: tc.bgCard }]} 
-                            onPress={() => router.push(`/shop/${business.slug || business.id}` as any)}
-                        >
-                            {business.logo_url ? (
-                                <Image source={{ uri: business.logo_url }} style={styles.businessLogo} />
-                            ) : (
-                                <View style={[styles.businessLogo, { backgroundColor: tc.bgHover }]} />
-                            )}
-                            <Text style={[styles.businessName, { color: tc.text }]}>{business.name}</Text>
-                        </TouchableOpacity>
-                    )}
-
-                    {/* Descripción */}
-                    {product.description ? (
-                        <Text style={[styles.description, { color: tc.textSecondary }]}>{product.description}</Text>
-                    ) : null}
-
-                    {/* Aclaraciones */}
-                    <View style={styles.noteSection}>
-                        <Text style={[styles.noteTitle, { color: tc.text }]}>Aclaraciones</Text>
-                        <TextInput
-                            style={[styles.textInput, { 
-                                backgroundColor: tc.bgCard, 
-                                color: tc.text, 
-                                borderColor: tc.borderLight,
-                                ...(Platform.OS === 'web' ? { outlineWidth: 0, outline: 'none' } : {}) as any 
-                            }]}
-                            placeholder="Escribí acá si tenés alguna indicación..."
-                            placeholderTextColor={tc.textMuted}
-                            value={note}
-                            onChangeText={setNote}
-                            multiline
-                            numberOfLines={3}
-                        />
-                    </View>
-
-                    {/* Contador cantidad */}
-                    <View style={styles.quantityWrapper}>
-                        <View style={[styles.quantityControl, { borderColor: tc.borderLight, backgroundColor: tc.bgCard }]}>
-                            <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.max(1, quantity - 1))}>
-                                <Minus size={16} color={quantity <= 1 ? tc.textMuted : colors.primary.DEFAULT} />
-                            </TouchableOpacity>
-                            <Text style={[styles.qtyText, { color: tc.text }]}>{quantity}</Text>
-                            <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.min(99, quantity + 1))}>
-                                <Plus size={16} color={colors.primary.DEFAULT} />
-                            </TouchableOpacity>
+                {isDesktop ? (
+                    /* ── Desktop: 2 columnas ──────────────────────── */
+                    <View style={styles.desktopRow}>
+                        <View style={styles.desktopImageCol}>
+                            {renderImage()}
+                        </View>
+                        <View style={[styles.desktopDivider, { backgroundColor: tc.borderLight }]} />
+                        <View style={styles.desktopInfoCol}>
+                            {renderDetails()}
                         </View>
                     </View>
-                </View>
+                ) : (
+                    /* ── Mobile: layout original ─────────────────── */
+                    <>
+                        {renderImage()}
+                        {renderDetails()}
+                    </>
+                )}
             </ScrollView>
 
             {/* Bottom Bar fijo */}
@@ -204,7 +213,13 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
     rootContainer: { flex: 1 },
-    heroImage: { width: '100%', height: 280, resizeMode: 'cover' },
+    heroImage: { width: '100%', height: 280, resizeMode: 'cover' } as any,
+    heroImageDesktop: { width: '100%', aspectRatio: 1, borderRadius: 16, resizeMode: 'cover', overflow: 'hidden' } as any,
+    desktopScrollContent: { maxWidth: 1100, alignSelf: 'center' as const, width: '100%', paddingTop: 32 },
+    desktopRow: { flexDirection: 'row' as const, gap: 0 },
+    desktopImageCol: { width: '50%' as any, padding: 24, paddingRight: 0 },
+    desktopInfoCol: { width: '50%' as any, paddingTop: 24 },
+    desktopDivider: { width: 1, marginVertical: 24 },
     backBtn: { position: 'absolute', top: 16, left: 16, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
     infoContainer: { padding: 20 },
     productName: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },

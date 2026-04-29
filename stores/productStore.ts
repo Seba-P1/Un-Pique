@@ -79,7 +79,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
             let image_url: string | null = null;
 
             if (imageUri) {
-                const result = await uploadImage(imageUri, 'products', businessId);
+                const result = await uploadImage(imageUri, 'products', businessId, { maxWidth: 800, maxHeight: 800, quality: 0.8 });
                 image_url = result.url;
             }
 
@@ -123,7 +123,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
             if (imageUri) {
                 const product = get().products.find(p => p.id === id);
-                const result = await uploadImage(imageUri, 'products', product?.business_id || 'misc');
+                const result = await uploadImage(imageUri, 'products', product?.business_id || 'misc', { maxWidth: 800, maxHeight: 800, quality: 0.8 });
                 updateData.image_url = result.url;
             }
 

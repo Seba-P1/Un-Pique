@@ -1,8 +1,15 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://porrpkougyolayfzzmyn.supabase.co';
-// Using the service_role key provided by the user to bypass RLS
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvcnJwa291Z3lvbGF5Znp6bXluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDI1MDM0NywiZXhwIjoyMDg1ODI2MzQ3fQ.XRrAZW_vrGuSS4Gl-V5tz5-iotaoZnjXY3EMCpcn2vc';
+require('dotenv').config();
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+// Service role key - NEVER commit this. Must be in .env only.
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing EXPO_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
+    process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 

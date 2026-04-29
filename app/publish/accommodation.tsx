@@ -77,7 +77,7 @@ export default function PublishAccommodationScreen() {
       setUploadingImages(true);
       try {
         for (const uri of imageUris) {
-          const result = await uploadImage(uri, 'listings', 'accommodations');
+          const result = await uploadImage(uri, 'listings', 'accommodations', { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
           uploadedUrls.push(result.url);
         }
       } catch (err) {

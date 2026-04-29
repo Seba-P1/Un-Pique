@@ -21,6 +21,7 @@ import { es } from 'date-fns/locale';
 import { AppHeader } from '../../components/ui/AppHeader';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
+import { uploadImage } from '../../services/imageUpload';
 
 type ProfileView = 'wall' | 'settings';
 
@@ -82,26 +83,8 @@ export default function ProfileScreen() {
                 const imgUrl = result.assets[0].uri;
                 setTempCoverUrl(imgUrl);
 
-                const res = await fetch(imgUrl);
-                const blob = await res.blob();
-                
-                let fileToUpload: any = blob;
-                if (Platform.OS === 'web') {
-                    fileToUpload = new File([blob], 'banner.jpg', { type: 'image/jpeg' });
-                }
-
-                const fileName = `banner.jpg`;
-                const filePath = `covers/${user?.id}/${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('avatars')
-                    .upload(filePath, fileToUpload, { upsert: true });
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('avatars')
-                    .getPublicUrl(filePath);
+                const uploadRes = await uploadImage(imgUrl, 'covers', user?.id, { maxWidth: 1200, maxHeight: 800, quality: 0.8 });
+                const publicUrl = uploadRes.url;
 
                 const { error: dbError } = await supabase
                     .from('users')

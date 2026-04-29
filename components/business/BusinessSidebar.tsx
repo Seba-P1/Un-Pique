@@ -11,6 +11,7 @@ import {
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
+import { useBusinessStore } from '../../stores/businessStore';
 import colors from '../../constants/colors';
 
 interface NavItem {
@@ -62,6 +63,12 @@ export default function BusinessSidebar() {
     const router = useRouter();
     const pathname = usePathname();
     const { profile, signOut } = useAuthStore();
+    const { selectedBusiness } = useBusinessStore();
+
+    const trialDaysLeft = selectedBusiness?.trial_ends_at
+        ? Math.ceil((new Date(selectedBusiness.trial_ends_at).getTime() - Date.now()) / 86400000)
+        : 0;
+    const showTrialWarning = selectedBusiness?.subscription_status === 'trial' && trialDaysLeft <= 7;
 
     const isActive = (route: string) => {
         if (route === '/business/dashboard') {
@@ -144,6 +151,11 @@ export default function BusinessSidebar() {
                                     >
                                         {item.label}
                                     </Text>
+                                    {item.route === '/business/subscription' && showTrialWarning && (
+                                        <View style={{ backgroundColor: '#ef4444', width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', marginLeft: 'auto', marginRight: 8 }}>
+                                            <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold', fontFamily: 'Nunito Sans' }}>!</Text>
+                                        </View>
+                                    )}
                                     {active && (
                                         <View style={[styles.activeIndicator, { backgroundColor: colors.primary.DEFAULT }]} />
                                     )}

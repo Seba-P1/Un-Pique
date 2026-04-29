@@ -33,6 +33,15 @@ export interface Business {
     accepts_mercadopago?: boolean;
     mercadopago_connected?: boolean;
     delivery_radius?: number;
+    // ── Campos de suscripción ──────────────────────────────────────
+    subscription_status?: 'trial' | 'active' | 'inactive' | 'cancelled' | 'pending_payment';
+    subscription_plan?: 'free' | 'basic' | 'pro' | 'premium';
+    trial_ends_at?: string | null;
+    subscription_end_date?: string | null;
+    subscription_price_usd?: number;
+    commission_rate?: number;
+    mp_preapproval_id?: string | null;
+    mp_payer_email?: string | null;
 }
 
 interface BusinessState {
@@ -75,6 +84,15 @@ const formatBusiness = (b: any): Business => ({
     accepts_mercadopago: Array.isArray(b.payment_methods) ? b.payment_methods.includes('mercadopago') : false,
     mercadopago_connected: b.mercadopago_connected || false,
     delivery_radius: b.delivery_radius_km,
+    // ── Campos de suscripción ──────────────────────────────────────
+    subscription_status: b.subscription_status,
+    subscription_plan: b.subscription_plan ?? 'free',
+    trial_ends_at: b.trial_ends_at ?? null,
+    subscription_end_date: b.subscription_end_date ?? null,
+    subscription_price_usd: b.subscription_price_usd,
+    commission_rate: b.commission_rate,
+    mp_preapproval_id: b.mp_preapproval_id ?? null,
+    mp_payer_email: b.mp_payer_email ?? null,
 });
 
 export const useBusinessStore = create<BusinessState>((set, get) => ({
@@ -250,7 +268,10 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
     updateBusinessImage: async (id, imageUri, type) => {
         set({ saving: true });
         try {
-            const result = await uploadImage(imageUri, 'businesses', `${id}/${type}`);
+            const imageOptions = type === 'logo'
+                ? { maxWidth: 400, maxHeight: 400, quality: 0.8 }
+                : { maxWidth: 1200, maxHeight: 600, quality: 0.75 };
+            const result = await uploadImage(imageUri, 'businesses', `${id}/${type}`, imageOptions);
             const field = type === 'logo' ? 'logo_url' : 'cover_url';
 
             const { error } = await supabase

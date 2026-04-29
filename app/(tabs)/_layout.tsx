@@ -28,7 +28,8 @@ import {
     ShoppingBasket,
     Tag,
     ClipboardList,
-    CircleUser
+    CircleUser,
+    ShieldCheck
 } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -44,11 +45,11 @@ const DESKTOP_BREAKPOINT = 768;
 
 // Navigation items definition
 const NAV_ITEMS = [
-    { key: 'index', label: 'Inicio', icon: Home, route: '/(tabs)/' },
-    { key: 'marketplace', label: 'Sabor Local', icon: UtensilsCrossed, route: '/(tabs)/marketplace' },
-    { key: 'servicios', label: 'Servicios', icon: Wrench, route: '/(tabs)/servicios' },
-    { key: 'social', label: 'Social', icon: MessageCircle, route: '/(tabs)/social' },
-    { key: 'profile', label: 'Mi Perfil', icon: User, route: '/(tabs)/profile' },
+    { key: 'index', label: 'Inicio', icon: House, route: '/(tabs)/' },
+    { key: 'marketplace', label: 'Sabor Local', icon: ShoppingBasket, route: '/(tabs)/marketplace' },
+    { key: 'servicios', label: 'Servicios', icon: Tag, route: '/(tabs)/servicios' },
+    { key: 'social', label: 'Social', icon: ClipboardList, route: '/(tabs)/social' },
+    { key: 'profile', label: 'Mi Perfil', icon: CircleUser, route: '/(tabs)/profile' },
 ];
 
 const EXTRA_ITEMS_BASE = [
@@ -65,6 +66,9 @@ function getExtraItems(roles: string[] = []) {
     }
     if (roles.includes('delivery_driver')) {
         items.push({ key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Bike, route: '/driver' });
+    }
+    if (roles.includes('admin') || roles.includes('super_admin')) {
+        items.push({ key: 'admin-panel', label: 'Panel Admin', icon: ShieldCheck, route: '/admin' });
     }
     return items;
 }
@@ -319,7 +323,7 @@ export default function TabsLayout() {
     const [drawerVisible, setDrawerVisible] = useState(false);
 
     const isDark = theme === 'dark';
-    const inactiveColor = isDark ? '#ffffff' : '#1a1a1a';
+    const inactiveColor = tc.textMuted;
 
     // Wire up global drawer opener for mobile hamburger
     useEffect(() => {
@@ -345,7 +349,7 @@ export default function TabsLayout() {
             <View style={styles.mainContent}>
                 <Tabs
                     screenOptions={{
-                        tabBarActiveTintColor: colors.primary.DEFAULT,
+                        tabBarActiveTintColor: '#FF6B35',
                         tabBarInactiveTintColor: inactiveColor,
                         tabBarStyle: isDesktop
                             ? { display: 'none' }
@@ -391,7 +395,7 @@ export default function TabsLayout() {
                         name="index"
                         options={{
                             title: 'Inicio',
-                            tabBarIcon: ({ focused }) => <House size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
+                            tabBarIcon: ({ focused }) => <House size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} fill="none" />,
                         }}
                         listeners={{
                             tabPress: () => { },
@@ -402,21 +406,21 @@ export default function TabsLayout() {
                         name="marketplace"
                         options={{
                             title: 'Sabor Local',
-                            tabBarIcon: ({ focused }) => <ShoppingBasket size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
+                            tabBarIcon: ({ focused }) => <ShoppingBasket size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} fill="none" />,
                         }}
                     />
                     <Tabs.Screen
                         name="servicios"
                         options={{
                             title: 'Servicios',
-                            tabBarIcon: ({ focused }) => <Tag size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
+                            tabBarIcon: ({ focused }) => <Tag size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} fill="none" />,
                         }}
                     />
                     <Tabs.Screen
                         name="social"
                         options={{
                             title: 'Social',
-                            tabBarIcon: ({ focused }) => <ClipboardList size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
+                            tabBarIcon: ({ focused }) => <ClipboardList size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} fill="none" />,
                         }}
                     />
                     <Tabs.Screen
@@ -427,7 +431,7 @@ export default function TabsLayout() {
                         name="profile"
                         options={{
                             title: 'Mi Perfil',
-                            tabBarIcon: ({ focused }) => <CircleUser size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} />,
+                            tabBarIcon: ({ focused }) => <CircleUser size={22} strokeWidth={focused ? 2.5 : 1.5} color={focused ? '#FF6B35' : inactiveColor} fill="none" />,
                         }}
                     />
                 </Tabs>

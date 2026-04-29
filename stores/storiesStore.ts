@@ -41,22 +41,32 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not authenticated');
 
-            // Upload media to Supabase Storage
-            const response = await fetch(mediaUri);
-            const blob = await response.blob();
-            const fileExt = mediaUri.split('.').pop();
-            const fileName = `${Date.now()}.${fileExt}`;
-            const filePath = `stories/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('stories')
-                .upload(filePath, blob);
-
-            if (uploadError) throw uploadError;
-
-            const { data: urlData } = supabase.storage
-                .from('stories')
-                .getPublicUrl(filePath);
+            // Upload media to Supabase Storage using unified service
+            const { uploadImage } = require('../services/imageUpload');
+            let publicUrl = '';
+            
+            if (mediaType === 'image') {
+                const result = await uploadImage(mediaUri, 'stories', '', { maxWidth: 1080, maxHeight: 1920, quality: 0.8 });
+                publicUrl = result.url;
+            } else {
+                // Para videos seguimos usando la subida nativa
+                const response = await fetch(mediaUri);
+                const blob = await response.blob();
+                const fileExt = mediaUri.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const filePath = `stories/${fileName}`;
+                
+                const { error: uploadError } = await supabase.storage
+                    .from('stories')
+                    .upload(filePath, blob);
+    
+                if (uploadError) throw uploadError;
+                
+                const { data: urlData } = supabase.storage
+                    .from('stories')
+                    .getPublicUrl(filePath);
+                publicUrl = urlData.publicUrl;
+            }
 
             // Create story record
             const expiresAt = new Date();
@@ -66,7 +76,7 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
                 .from('stories')
                 .insert({
                     author_id: user.id,
-                    media_url: urlData.publicUrl,
+                    media_url: publicUrl,
                     media_type: mediaType,
                     duration: mediaType === 'image' ? 5 : 15,
                     locality_id: localityId,
