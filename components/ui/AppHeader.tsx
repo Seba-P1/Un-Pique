@@ -15,6 +15,7 @@ export interface AppHeaderProps {
     subtitle?: string;
     leftIcon?: 'menu' | 'back' | 'none';
     rightButtons?: Array<'search' | 'cart' | 'favorites' | 'notifications'>;
+    rightContent?: React.ReactNode;
     onSearch?: (query: string) => void; // Triggered on every key change
     onSearchSubmit?: (query: string) => void; // Triggered only on ENTER
     searchPlaceholder?: string;
@@ -27,6 +28,7 @@ export function AppHeader({
     subtitle,
     leftIcon = 'none',
     rightButtons = [],
+    rightContent,
     onSearch,
     onSearchSubmit,
     searchPlaceholder = 'Buscar...',
@@ -227,6 +229,7 @@ export function AppHeader({
 
                         {/* Right Area */}
                         <View style={styles.headerActions}>
+                            {rightContent}
                             {isDesktop && rightButtons.includes('search') && (
                                 <View style={[styles.desktopSearchContainer, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)' }]}>
                                     <Search size={15} color={tc.textMuted} />

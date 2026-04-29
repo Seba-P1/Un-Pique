@@ -110,6 +110,7 @@ export default function BusinessLayout() {
                     <Stack.Screen name="menu" />
                     <Stack.Screen name="products" />
                     <Stack.Screen name="products/add" />
+                    <Stack.Screen name="missions" />
                     <Stack.Screen name="profile" />
                     <Stack.Screen name="main-menu" options={{ presentation: 'modal' }} />
                     <Stack.Screen name="store-settings" />

@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Package, ShoppingCart, History,
     BarChart3, TrendingUp, DollarSign, Settings,
     Megaphone, Crown, Bell, LogOut, User, ChevronRight,
-    Store
+    Store, Target, Lock
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
@@ -18,6 +18,7 @@ interface NavItem {
     icon: any;
     label: string;
     route: string;
+    isPremiumFeature?: boolean;
 }
 
 interface NavSection {
@@ -38,6 +39,7 @@ const NAV_SECTIONS: NavSection[] = [
             { icon: Package, label: 'Productos', route: '/business/products' },
             { icon: ShoppingCart, label: 'Pedidos', route: '/business/orders' },
             { icon: History, label: 'Historial', route: '/business/order-history' },
+            { icon: Target, label: 'Misiones', route: '/business/missions', isPremiumFeature: true },
         ],
     },
     {
@@ -127,20 +129,34 @@ export default function BusinessSidebar() {
                         {section.items.map((item, iIdx) => {
                             const active = isActive(item.route);
                             const Icon = item.icon;
+                            
+                            const isLockedPremium = item.isPremiumFeature && selectedBusiness?.subscription_plan !== 'premium';
+                            
                             return (
                                 <TouchableOpacity
                                     key={iIdx}
                                     style={[
                                         styles.navItem,
                                         active && [styles.navItemActive, { backgroundColor: colors.primary.DEFAULT + '15' }],
+                                        isLockedPremium && { opacity: 0.7 }
                                     ]}
-                                    onPress={() => router.push(item.route as any)}
+                                    onPress={() => {
+                                        if (isLockedPremium) {
+                                            router.push('/business/subscription' as any);
+                                        } else {
+                                            router.push(item.route as any);
+                                        }
+                                    }}
                                     activeOpacity={0.7}
                                 >
-                                    <Icon
-                                        size={18}
-                                        color={active ? colors.primary.DEFAULT : tc.textSecondary}
-                                    />
+                                    {isLockedPremium ? (
+                                        <Lock size={18} color={tc.textSecondary} />
+                                    ) : (
+                                        <Icon
+                                            size={18}
+                                            color={active ? colors.primary.DEFAULT : tc.textSecondary}
+                                        />
+                                    )}
                                     <Text
                                         style={[
                                             styles.navLabel,
@@ -151,12 +167,19 @@ export default function BusinessSidebar() {
                                     >
                                         {item.label}
                                     </Text>
+                                    
+                                    {isLockedPremium && (
+                                        <View style={{ backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 'auto' }}>
+                                            <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>PREMIUM</Text>
+                                        </View>
+                                    )}
+                                    
                                     {item.route === '/business/subscription' && showTrialWarning && (
                                         <View style={{ backgroundColor: '#ef4444', width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', marginLeft: 'auto', marginRight: 8 }}>
                                             <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold', fontFamily: 'Nunito Sans' }}>!</Text>
                                         </View>
                                     )}
-                                    {active && (
+                                    {active && !isLockedPremium && (
                                         <View style={[styles.activeIndicator, { backgroundColor: colors.primary.DEFAULT }]} />
                                     )}
                                 </TouchableOpacity>

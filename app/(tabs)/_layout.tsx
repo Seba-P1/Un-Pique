@@ -29,7 +29,8 @@ import {
     Tag,
     ClipboardList,
     CircleUser,
-    ShieldCheck
+    ShieldCheck,
+    Crown
 } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -59,8 +60,11 @@ const EXTRA_ITEMS_BASE = [
     { key: 'configuracion', label: 'Configuración', icon: Settings, route: '/settings' },
 ];
 
-function getExtraItems(roles: string[] = []) {
+function getExtraItems(roles: string[] = [], isLoggedIn: boolean = false) {
     const items = [...EXTRA_ITEMS_BASE];
+    if (isLoggedIn) {
+        items.unshift({ key: 'club-un-pique', label: 'Club Un Pique', icon: Crown, route: '/loyalty' });
+    }
     if (roles.includes('business_owner')) {
         items.push({ key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business' });
     }
@@ -78,7 +82,7 @@ function DesktopSidebar() {
     const router = useRouter();
     const pathname = usePathname();
     const { theme, toggleTheme } = useThemeStore();
-    const { signOut, profile } = useAuthStore();
+    const { signOut, profile, user } = useAuthStore();
     const [collapsed, setCollapsed] = useState(false);
 
     const isActive = (key: string) => {
@@ -163,7 +167,7 @@ function DesktopSidebar() {
                 {/* Extra Options */}
                 <View style={[styles.section, { marginTop: 12 }]}>
                     {!collapsed && <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>MAS OPCIONES</Text>}
-                    {getExtraItems(profile?.roles).map((item) => (
+                    {getExtraItems(profile?.roles, !!user).map((item) => (
                         <Pressable
                             key={item.key}
                             style={({ pressed }) => [
@@ -220,7 +224,7 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
     const router = useRouter();
     const pathname = usePathname();
     const { theme, toggleTheme } = useThemeStore();
-    const { signOut, profile } = useAuthStore();
+    const { signOut, profile, user } = useAuthStore();
     const insets = useSafeAreaInsets();
 
     const logoSource = theme === 'dark'
@@ -274,7 +278,7 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
 
                         {/* Extra Items Section */}
                         <Text style={[styles.drawerSectionTitle, { color: tc.textMuted, marginTop: 16 }]}>MÁS OPCIONES</Text>
-                        {getExtraItems(profile?.roles).map((item) => {
+                        {getExtraItems(profile?.roles, !!user).map((item) => {
                             const active = isActive(item.key);
                             return (
                                 <TouchableOpacity
