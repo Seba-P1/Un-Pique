@@ -37,6 +37,10 @@ function ProductCardCinematic({ item, index, onPress, cardWidth }: ProductCardCi
     const translateAnim = useRef(new Animated.Value(20)).current;
     const scaleAnim = useRef(new Animated.Value(1)).current;
 
+    // Taste-Skill — micro-animación de entrada de la pill:
+    const pillAnim = useRef(new Animated.Value(0)).current;
+    const pillScale = useRef(new Animated.Value(0.88)).current;
+
     useEffect(() => {
         Animated.parallel([
             Animated.timing(opacityAnim, {
@@ -46,6 +50,20 @@ function ProductCardCinematic({ item, index, onPress, cardWidth }: ProductCardCi
             Animated.timing(translateAnim, {
                 toValue: 0, duration: 350,
                 delay: index * 80, useNativeDriver: true,
+            }),
+            // Disparar después del entry stagger de la tarjeta
+            Animated.timing(pillAnim, {
+                toValue: 1,
+                duration: 300,
+                delay: index * 80 + 200,
+                useNativeDriver: true,
+            }),
+            Animated.spring(pillScale, {
+                toValue: 1,
+                stiffness: 180,
+                damping: 14,
+                delay: index * 80 + 200,
+                useNativeDriver: true,
             }),
         ]).start();
     }, []);
@@ -65,9 +83,37 @@ function ProductCardCinematic({ item, index, onPress, cardWidth }: ProductCardCi
     const imageUri = item.image_url ?? item.image ?? item.photo_url;
 
     const contentBlock = (
-        <>
-            <View style={cinematicStyles.overlay} />
-            <View style={cinematicStyles.content}>
+        <Animated.View style={{
+            opacity: pillAnim,
+            transform: [{ scale: pillScale }],
+            position: 'absolute',
+            bottom: 10,
+            left: 8,
+            right: 8,
+        }}>
+            <View style={{
+                // Liquid Glass Refraction (Taste-Skill):
+                ...(Platform.OS === 'web' ? {
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    backgroundColor: 'rgba(0,0,0,0.45)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.15)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.3)',
+                } as any : {
+                    backgroundColor: 'rgba(0,0,0,0.52)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.12)',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 6,
+                }),
+                borderRadius: 14,
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+            }}>
                 <Text style={cinematicStyles.title} numberOfLines={2}>
                     {item.name ?? item.title}
                 </Text>
@@ -80,7 +126,7 @@ function ProductCardCinematic({ item, index, onPress, cardWidth }: ProductCardCi
                     ${item.price ?? item.precio ?? ''}
                 </Text>
             </View>
-        </>
+        </Animated.View>
     );
 
     return (
@@ -110,35 +156,30 @@ function ProductCardCinematic({ item, index, onPress, cardWidth }: ProductCardCi
 }
 
 const cinematicStyles = StyleSheet.create({
-    overlay: {
-        position: 'absolute',
-        bottom: 0, left: 0, right: 0,
-        height: '65%' as any,
-        backgroundColor: 'rgba(0,0,0,0.62)',
-    },
-    content: {
-        position: 'absolute',
-        bottom: 12, left: 10, right: 10,
-    },
     title: {
-        fontSize: 14, fontWeight: 'bold', color: '#fff', textAlign: 'center',
-        textShadowColor: 'rgba(0,0,0,0.9)',
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#fff',
+        textAlign: 'center',
+        textShadowColor: 'rgba(0,0,0,0.6)',
         textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
+        textShadowRadius: 3,
     },
     business: {
-        fontSize: 11, color: 'rgba(255,255,255,0.75)', textAlign: 'center',
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.8)',
+        textAlign: 'center',
         marginTop: 2,
-        textShadowColor: 'rgba(0,0,0,0.9)',
+        textShadowColor: 'rgba(0,0,0,0.6)',
         textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+        textShadowRadius: 2,
     },
     price: {
-        fontSize: 13, fontWeight: 'bold', color: '#FF6B35', textAlign: 'center',
-        marginTop: 4,
-        textShadowColor: 'rgba(0,0,0,0.9)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#FF6B35',
+        textAlign: 'center',
+        marginTop: 3,
     },
 });
 
