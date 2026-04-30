@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, Animated, Image, TouchableOpacity,
     StatusBar, Platform, FlatList, Pressable, Linking, Alert, Share,
+    Modal, TextInput, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Clock, Star, MapPin, Search, Share2, Heart, ShoppingCart } from 'lucide-react-native';
@@ -12,6 +13,10 @@ import { useCartStore } from '../../stores/cartStore';
 import { useBusinessStore } from '../../stores/businessStore';
 import { useProductStore } from '../../stores/productStore';
 import { useFavoritesStore } from '../../stores/favoritesStore';
+import { useSocialStore } from '../../stores/socialStore';
+import { useLocationStore } from '../../stores/locationStore';
+import { supabase } from '../../lib/supabase';
+import { showAlert } from '../../utils/alert';
 import { Skeleton } from '../../components/ui/Skeleton';
 import BusinessMap from '../../components/shop/BusinessMap';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -22,8 +27,8 @@ import { AppHeader } from '../../components/ui/AppHeader';
 const HEADER_HEIGHT = 280;
 
 // ─── BusinessInfoCard ────────────────────────────────────────────
-function BusinessInfoCard({ business, isBusinessFavorite, onFavorite, tc }: {
-    business: any; isBusinessFavorite: boolean; onFavorite: () => void; tc: any;
+function BusinessInfoCard({ business, isBusinessFavorite, onFavorite, onShare, tc }: {
+    business: any; isBusinessFavorite: boolean; onFavorite: () => void; onShare?: () => void; tc: any;
 }) {
     const isOpen = business?.is_open && checkIsBusinessOpen(business?.schedule);
     const scheduleList = business ? getFormattedScheduleList(business.schedule) : [];
@@ -78,11 +83,24 @@ function BusinessInfoCard({ business, isBusinessFavorite, onFavorite, tc }: {
             {business.logo_url && (
                 <Image source={{ uri: business.logo_url }} style={cardStyles.logo} />
             )}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, gap: 8 }}>
                 <Text style={[cardStyles.name, { color: tc.text }]}>{business.name}</Text>
-                <TouchableOpacity style={[cardStyles.heartBtn, { backgroundColor: tc.bgHover }]} onPress={onFavorite}>
+                {/* Favorito */}
+                <TouchableOpacity
+                    style={[cardStyles.heartBtn, { backgroundColor: tc.bgHover }]}
+                    onPress={onFavorite}
+                >
                     <Heart size={18} color={isBusinessFavorite ? '#ef4444' : tc.textMuted} fill={isBusinessFavorite ? '#ef4444' : 'transparent'} />
                 </TouchableOpacity>
+                {/* Compartir */}
+                {onShare && (
+                    <TouchableOpacity
+                        style={[cardStyles.heartBtn, { backgroundColor: tc.bgHover }]}
+                        onPress={onShare}
+                    >
+                        <Share2 size={18} color={tc.textMuted} />
+                    </TouchableOpacity>
+                )}
             </View>
             {(business.category || business.type) && (
                 <View style={cardStyles.categoryBadge}>
@@ -169,6 +187,43 @@ export default function BusinessDetailScreen() {
     const { items } = useCartStore();
     const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
     const isFav = useFavoritesStore((s) => s.isFavorite);
+
+    const [shareModalVisible, setShareModalVisible] = useState(false);
+    const [shareComment, setShareComment] = useState('');
+    const [sharing, setSharing] = useState(false);
+
+    const submitShare = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                showAlert('Iniciá sesión', 'Necesitás estar logueado para compartir');
+                return;
+            }
+            setSharing(true);
+            const localityId = useLocationStore.getState().currentLocality?.id;
+            if (!localityId) {
+                showAlert('Error', 'No se pudo determinar tu localidad.');
+                setSharing(false);
+                return;
+            }
+            const businessName = business?.name || 'Local';
+            const businessId = business?.id || '';
+            const postContent = shareComment
+                ? shareComment + '\n\n[business:' + businessId + ':' + businessName + ']'
+                : '[business:' + businessId + ':' + businessName + ']';
+
+            await useSocialStore.getState().createPost(
+                postContent.trim(), [], localityId
+            );
+            showAlert('¡Listo!', 'El local fue compartido en tu muro');
+            setShareModalVisible(false);
+            setShareComment('');
+        } catch (err: any) {
+            showAlert('Error', 'No se pudo compartir: ' + (err?.message || ''));
+        } finally {
+            setSharing(false);
+        }
+    };
 
     // ── Entry Card Animation ─────────────────────────────────────
     const cardAnim = useRef(new Animated.Value(0)).current;
@@ -368,7 +423,7 @@ export default function BusinessDetailScreen() {
                                 ...(Platform.OS === 'web' ? { position: 'sticky' as any, top: 80, alignSelf: 'flex-start' as any, height: 'fit-content' as any } : { alignSelf: 'flex-start' as any }),
                             }}>
                                 <Animated.View style={{ opacity: cardAnim, transform: [{ translateY: cardSlide }] }}>
-                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} tc={tc} />
+                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} onShare={() => setShareModalVisible(true)} tc={tc} />
                                 </Animated.View>
                             </View>
                             {/* Right column */}
@@ -384,7 +439,7 @@ export default function BusinessDetailScreen() {
                         <>
                             <View style={{ marginTop: -50, marginHorizontal: 12 }}>
                                 <Animated.View style={{ opacity: cardAnim, transform: [{ translateY: cardSlide }] }}>
-                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} tc={tc} />
+                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} onShare={() => setShareModalVisible(true)} tc={tc} />
                                 </Animated.View>
                             </View>
                             {renderTabs()}
@@ -407,6 +462,86 @@ export default function BusinessDetailScreen() {
                     {cartCount > 0 ? (<View style={styles.floatingBadge}><Text style={styles.floatingBadgeText}>{cartCount}</Text></View>) : (<View style={styles.iconSpacer} />)}
                 </TouchableOpacity>
             </View>
+
+            <Modal visible={shareModalVisible} transparent animationType="fade">
+                <View style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end',
+                    alignItems: 'center',
+                    paddingHorizontal: Platform.OS === 'web' ? 20 : 0,
+                    paddingVertical: Platform.OS === 'web' ? 20 : 0,
+                }}>
+                    <View style={{
+                        width: '100%',
+                        maxWidth: 440,
+                        borderRadius: Platform.OS === 'web' ? 20 : 0,
+                        borderTopLeftRadius: 24,
+                        borderTopRightRadius: 24,
+                        padding: 24,
+                        paddingBottom: Platform.OS === 'web' ? 24 : 40,
+                        backgroundColor: tc.bgCard,
+                    }}>
+                        <Text style={{
+                            fontSize: 18, fontWeight: '700',
+                            marginBottom: 16, textAlign: 'center',
+                            color: tc.text,
+                        }}>
+                            Compartir en tu muro
+                        </Text>
+                        <TextInput
+                            style={{
+                                borderWidth: 1,
+                                borderRadius: 14,
+                                padding: 14,
+                                minHeight: 80,
+                                textAlignVertical: 'top',
+                                fontSize: 15,
+                                marginBottom: 16,
+                                borderColor: tc.borderLight,
+                                color: tc.text,
+                                backgroundColor: tc.bg,
+                            }}
+                            placeholder="Agregá un comentario (opcional)..."
+                            placeholderTextColor={tc.textMuted}
+                            value={shareComment}
+                            onChangeText={setShareComment}
+                            multiline
+                        />
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <TouchableOpacity
+                                style={{
+                                    flex: 1, padding: 14, borderRadius: 14,
+                                    alignItems: 'center', justifyContent: 'center',
+                                    borderWidth: 1, borderColor: tc.borderLight,
+                                }}
+                                onPress={() => setShareModalVisible(false)}
+                                disabled={sharing}
+                            >
+                                <Text style={{ color: tc.text, fontWeight: '600' }}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{
+                                    flex: 1, padding: 14, borderRadius: 14,
+                                    alignItems: 'center', justifyContent: 'center',
+                                    backgroundColor: '#FF6B35',
+                                }}
+                                onPress={submitShare}
+                                disabled={sharing}
+                            >
+                                {sharing ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <Share2 size={16} color="#fff" />
+                                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Publicar</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }

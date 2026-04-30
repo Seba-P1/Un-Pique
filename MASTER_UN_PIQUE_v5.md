@@ -43,6 +43,8 @@
 | /shop/[slug] con datos reales | ✅ |
 | Búsqueda inline en Sabor Local | ✅ |
 | Componentes StoryViewer y CreateStoryModal creados | ✅ |
+| Compartir locales/servicios en muro interno | ✅ |
+| Renderizado tarjetas locales en Social Feed | ✅ |
 
 ---
 

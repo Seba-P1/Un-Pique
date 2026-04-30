@@ -196,7 +196,9 @@ function BusinessHorizontalList({ data, loading }: { data: Business[]; loading: 
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.horizontalList}
-            renderItem={({ item }) => <BusinessCardWide business={item} />}
+            renderItem={({ item }) => (
+                <BusinessCardWide business={item} />
+            )}
         />
     );
 }

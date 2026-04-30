@@ -1,13 +1,17 @@
-import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Image, Pressable, Animated, Platform } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, Image, Pressable, Animated, Platform, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Star, Bike, MapPin, Heart } from 'lucide-react-native';
+import { Star, Bike, MapPin, Heart, Share2 } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { Business } from '../../stores/businessStore';
 import { useFavoritesStore } from '../../stores/favoritesStore';
 import { checkIsBusinessOpen } from '../../utils/schedule';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSocialStore } from '../../stores/socialStore';
+import { useLocationStore } from '../../stores/locationStore';
+import { supabase } from '../../lib/supabase';
+import { showAlert } from '../../utils/alert';
 
 const CATEGORY_MAP: Record<string, string> = {
     restaurant: 'Restaurante',
@@ -47,6 +51,41 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
     const router = useRouter();
     const scale = useRef(new Animated.Value(1)).current;
 
+    const [shareModalVisible, setShareModalVisible] = useState(false);
+    const [shareComment, setShareComment] = useState('');
+    const [sharing, setSharing] = useState(false);
+
+    const submitShare = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                showAlert('Iniciá sesión', 'Necesitás estar logueado para compartir');
+                return;
+            }
+            setSharing(true);
+            const localityId = useLocationStore.getState().currentLocality?.id;
+            if (!localityId) {
+                showAlert('Error', 'No se pudo determinar tu localidad.');
+                setSharing(false);
+                return;
+            }
+            const postContent = shareComment
+                ? shareComment + '\n\n[business:' + business.id + ':' + business.name + ']'
+                : '[business:' + business.id + ':' + business.name + ']';
+
+            await useSocialStore.getState().createPost(
+                postContent.trim(), [], localityId
+            );
+            showAlert('¡Listo!', 'El local fue compartido en tu muro');
+            setShareModalVisible(false);
+            setShareComment('');
+        } catch (err: any) {
+            showAlert('Error', 'No se pudo compartir: ' + (err?.message || ''));
+        } finally {
+            setSharing(false);
+        }
+    };
+
     const primaryColor = colors?.primary?.DEFAULT || '#FF6B35';
     const isOpen = business.is_open && checkIsBusinessOpen(business.schedule);
     const coverUri = business.cover_url || (business as any).image;
@@ -68,8 +107,9 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
     };
 
     return (
-        <Pressable
-            onPress={handlePress}
+        <>
+            <Pressable
+                onPress={handlePress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             style={styles.pressable}
@@ -123,6 +163,20 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
                             color={liked ? '#ef4444' : '#ffffff'}
                             fill={liked ? '#ef4444' : 'transparent'}
                         />
+                    </Pressable>
+
+                    {/* Share button below favorite */}
+                    <Pressable
+                        style={({ pressed }) => [
+                            styles.shareCircle,
+                            pressed && { transform: [{ scale: 0.9 }] }
+                        ]}
+                        onPress={(e) => {
+                            e.stopPropagation?.();
+                            setShareModalVisible(true);
+                        }}
+                    >
+                        <Share2 size={14} color="#ffffff" />
                     </Pressable>
 
                     {/* Logo superpuesto en bottom-left */}
@@ -185,6 +239,96 @@ export function BusinessCardWide({ business }: BusinessCardWideProps) {
                 </View>
             </Animated.View>
         </Pressable>
+
+        <Modal visible={shareModalVisible} transparent animationType="fade">
+            <View style={{
+                flex: 1,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end',
+                alignItems: 'center',
+                paddingHorizontal: Platform.OS === 'web' ? 20 : 0,
+                paddingVertical: Platform.OS === 'web' ? 20 : 0,
+            }}>
+                <View style={{
+                    width: '100%',
+                    maxWidth: 440,
+                    borderTopLeftRadius: 24,
+                    borderTopRightRadius: 24,
+                    borderRadius: Platform.OS === 'web' ? 20 : 0,
+                    padding: 24,
+                    paddingBottom: Platform.OS === 'web' ? 24 : 40,
+                    backgroundColor: tc.bgCard,
+                }}>
+                        <Text style={{
+                            fontSize: 18, fontWeight: '700',
+                            marginBottom: 16, textAlign: 'center',
+                            color: tc.text,
+                        }}>
+                            Compartir en tu muro
+                        </Text>
+                        <TextInput
+                            style={{
+                                borderWidth: 1,
+                                borderRadius: 14,
+                                padding: 14,
+                                minHeight: 80,
+                                textAlignVertical: 'top',
+                                fontSize: 15,
+                                marginBottom: 16,
+                                borderColor: tc.borderLight,
+                                color: tc.text,
+                                backgroundColor: tc.bg,
+                            }}
+                            placeholder="Agregá un comentario (opcional)..."
+                            placeholderTextColor={tc.textMuted}
+                            value={shareComment}
+                            onChangeText={setShareComment}
+                            multiline
+                        />
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <Pressable
+                                style={{
+                                    flex: 1, padding: 14, borderRadius: 14,
+                                    alignItems: 'center', justifyContent: 'center',
+                                    borderWidth: 1, borderColor: tc.borderLight,
+                                }}
+                                onPress={() => {
+                                    setShareModalVisible(false);
+                                    setShareComment('');
+                                }}
+                                disabled={sharing}
+                            >
+                                <Text style={{ color: tc.text, fontWeight: '600' }}>
+                                    Cancelar
+                                </Text>
+                            </Pressable>
+                            <Pressable
+                                style={{
+                                    flex: 1, padding: 14, borderRadius: 14,
+                                    alignItems: 'center', justifyContent: 'center',
+                                    backgroundColor: '#FF6B35',
+                                }}
+                                onPress={submitShare}
+                                disabled={sharing}
+                            >
+                                {sharing ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : (
+                                    <View style={{
+                                        flexDirection: 'row', alignItems: 'center', gap: 8
+                                    }}>
+                                        <Share2 size={16} color="#fff" />
+                                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                                            Publicar
+                                        </Text>
+                                    </View>
+                                )}
+                            </Pressable>
+                        </View>
+                    </View>
+            </View>
+        </Modal>
+        </>
     );
 }
 
@@ -240,6 +384,18 @@ const styles = StyleSheet.create({
     favoriteButton: {
         position: 'absolute',
         top: 8,
+        right: 8,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 3,
+    },
+    shareCircle: {
+        position: 'absolute',
+        top: 46, // 8 + 30 + 8
         right: 8,
         width: 30,
         height: 30,

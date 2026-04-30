@@ -2,11 +2,11 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image,
+  ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Check, ChevronRight, ChevronLeft, ImageIcon, X } from 'lucide-react-native';
+import { ArrowLeft, Check, ChevronRight, ChevronLeft, ChevronDown, ImageIcon, X } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useListingStore } from '../../stores/listingStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -24,6 +24,7 @@ const SERVICE_CATEGORIES = [
 export default function PublishServiceScreen() {
   const tc = useThemeColors();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const { createListing, saving } = useListingStore();
 
@@ -36,6 +37,7 @@ export default function PublishServiceScreen() {
   const [hourlyRate, setHourlyRate] = useState('');
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const canGoNext = step === 1
     ? title.trim().length > 0 && category.length > 0
@@ -100,26 +102,90 @@ export default function PublishServiceScreen() {
       />
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Categoría *</Text>
-      <View style={styles.categoriesGrid}>
-        {SERVICE_CATEGORIES.map((cat) => (
-          <TouchableOpacity
-            key={cat}
-            style={[
-              styles.categoryChip,
-              { backgroundColor: tc.bgInput, borderColor: tc.borderLight },
-              category === cat && { backgroundColor: tc.primary, borderColor: tc.primary },
-            ]}
-            onPress={() => setCategory(cat)}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.categoryChipText,
-              { color: tc.textSecondary },
-              category === cat && { color: '#fff' },
-            ]}>{cat}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+
+      {/* Category dropdown trigger */}
+      <TouchableOpacity
+        style={[styles.input, {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: tc.bgInput,
+          borderColor: tc.borderLight,
+        }]}
+        onPress={() => setCategoryModalVisible(true)}
+      >
+        <Text style={{ color: category ? tc.text : tc.textMuted, fontSize: 15 }}>
+          {category || 'Seleccioná una categoría...'}
+        </Text>
+        <ChevronDown size={18} color={tc.textMuted} />
+      </TouchableOpacity>
+
+      {/* Category modal */}
+      <Modal
+        visible={categoryModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCategoryModalVisible(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'flex-end',
+        }}>
+          <View style={{
+            backgroundColor: tc.bgCard,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: '70%',
+          }}>
+            {/* Handle */}
+            <View style={{
+              width: 40, height: 4, borderRadius: 2,
+              backgroundColor: tc.borderLight,
+              alignSelf: 'center', marginTop: 12, marginBottom: 8,
+            }} />
+            <Text style={{
+              fontSize: 17, fontWeight: '700',
+              color: tc.text, textAlign: 'center',
+              paddingBottom: 16, borderBottomWidth: 1,
+              borderBottomColor: tc.borderLight,
+            }}>
+              Categoría del servicio
+            </Text>
+            <ScrollView contentContainerStyle={{ paddingVertical: 8 }}>
+              {SERVICE_CATEGORIES.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingHorizontal: 24,
+                    paddingVertical: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: tc.borderLight,
+                  }}
+                  onPress={() => {
+                    setCategory(cat);
+                    setCategoryModalVisible(false);
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 15,
+                    color: category === cat ? '#FF6B35' : tc.text,
+                    fontWeight: category === cat ? '700' : '400',
+                  }}>
+                    {cat}
+                  </Text>
+                  {category === cat && (
+                    <Check size={18} color="#FF6B35" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Descripción</Text>
       <TextInput
@@ -223,54 +289,106 @@ export default function PublishServiceScreen() {
 
         {/* Progress bar */}
         <View style={[styles.progressBar, { backgroundColor: tc.bgInput }]}>
-          <View style={[styles.progressFill, { backgroundColor: tc.primary, width: step === 1 ? '50%' : '100%' }]} />
+          <View style={[styles.progressFill, { backgroundColor: '#FF6B35', width: step === 1 ? '50%' : '100%' }]} />
         </View>
 
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {step === 1 ? renderStep1() : renderStep2()}
         </ScrollView>
 
-        {/* Footer buttons */}
-        <View style={[styles.footer, { borderTopColor: tc.borderLight, backgroundColor: tc.bg }]}>
+        {/* Floating footer buttons */}
+        <View style={{
+          position: 'absolute',
+          bottom: Math.max(insets.bottom + 10, 20),
+          left: 20,
+          right: 20,
+          flexDirection: 'row',
+          gap: 12,
+          zIndex: 20,
+        }}>
           {step === 2 && (
             <TouchableOpacity
-              style={[styles.secondaryBtn, { borderColor: tc.borderLight }]}
+              style={[
+                {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  borderRadius: 50,
+                  gap: 4,
+                  borderWidth: 1,
+                  borderColor: tc.borderLight,
+                  backgroundColor: tc.bgCard,
+                },
+                Platform.OS === 'web' ? {
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                } as any : {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 10,
+                  elevation: 6,
+                },
+              ]}
               onPress={() => setStep(1)}
             >
               <ChevronLeft size={18} color={tc.textSecondary} />
-              <Text style={[styles.secondaryBtnText, { color: tc.textSecondary }]}>Atrás</Text>
+              <Text style={{ color: tc.textSecondary, fontWeight: '700', fontSize: 15 }}>
+                Atrás
+              </Text>
             </TouchableOpacity>
           )}
+
           <TouchableOpacity
             style={[
-              styles.primaryBtn,
-              { backgroundColor: canGoNext ? tc.primary : tc.bgInput },
-              step === 1 && { flex: 1 },
+              {
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 16,
+                borderRadius: 50,
+                gap: 6,
+                backgroundColor: canGoNext ? '#FF6B35' : tc.bgInput,
+              },
+              canGoNext && Platform.OS === 'web' ? {
+                boxShadow: '0 6px 20px rgba(255,107,53,0.4)',
+              } as any : canGoNext ? {
+                shadowColor: '#FF6B35',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.4,
+                shadowRadius: 16,
+                elevation: 10,
+              } : {},
             ]}
             onPress={() => {
               if (step === 1) setStep(2);
               else handleSubmit();
             }}
             disabled={!canGoNext || saving || uploadingImages}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
             {saving || uploadingImages ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
-                <Text style={[styles.primaryBtnText, { color: canGoNext ? '#fff' : tc.textMuted }]}>
+                <Text style={{
+                  color: canGoNext ? '#fff' : tc.textMuted,
+                  fontSize: 15,
+                  fontWeight: '800',
+                }}>
                   {step === 1 ? 'Siguiente' : 'Publicar'}
                 </Text>
-                {step === 1 ? (
-                  <ChevronRight size={18} color={canGoNext ? '#fff' : tc.textMuted} />
-                ) : (
-                  <Check size={18} color={canGoNext ? '#fff' : tc.textMuted} />
-                )}
+                {step === 1
+                  ? <ChevronRight size={18} color={canGoNext ? '#fff' : tc.textMuted} />
+                  : <Check size={18} color={canGoNext ? '#fff' : tc.textMuted} />
+                }
               </>
             )}
           </TouchableOpacity>
@@ -292,7 +410,7 @@ const styles = StyleSheet.create({
   stepIndicator: { fontSize: 13, fontWeight: '600' },
   progressBar: { height: 3, width: '100%' },
   progressFill: { height: '100%', borderRadius: 2 },
-  scrollContent: { padding: 20, paddingBottom: 40 },
+  scrollContent: { padding: 20, paddingBottom: 120 },
   stepContent: { gap: 4 },
   stepTitle: { fontSize: 22, fontWeight: '800', marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', marginTop: 12, marginBottom: 6 },
@@ -301,24 +419,6 @@ const styles = StyleSheet.create({
     borderRadius: 12, borderWidth: 1,
   },
   textArea: { height: 100, textAlignVertical: 'top' },
-  categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
-  },
-  categoryChipText: { fontSize: 13, fontWeight: '600' },
-  footer: {
-    flexDirection: 'row', padding: 16, gap: 12, borderTopWidth: 1,
-  },
-  secondaryBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 20, paddingVertical: 14, borderRadius: 14, borderWidth: 1, gap: 4,
-  },
-  secondaryBtnText: { fontSize: 15, fontWeight: '700' },
-  primaryBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 14, borderRadius: 14, gap: 6,
-  },
-  primaryBtnText: { fontSize: 15, fontWeight: '800' },
   imagePickerBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed',

@@ -16,7 +16,7 @@ export default function DirectoryLayout() {
             }}
         >
             <Stack.Screen name="index" options={{ title: 'Directorio', headerShown: true }} />
-            <Stack.Screen name="[id]" options={{ title: 'Detalle', headerShown: true, headerBackTitle: 'Volver' }} />
+            <Stack.Screen name="[id]" options={{ title: 'Detalle', headerShown: false }} />
         </Stack>
     );
 }

@@ -129,7 +129,6 @@ export default function ProfileScreen() {
                     leftIcon="menu"
                     rightButtons={['notifications']}
                     scrollY={scrollY}
-                    bgColor="transparent"
                 />
             </View>
 
@@ -421,7 +420,7 @@ function SettingsView({ tc, router, hasListings, showRolesSection, hasBusinessRo
                     />
                 )}
                 <NavPacket icon={ShoppingBag} label="Mis Pedidos" tc={tc} onPress={() => router.push('/orders' as any)} />
-                {hasListings && <NavPacket icon={Briefcase} label="Mis Publicaciones" tc={tc} onPress={() => router.push('/my-listings' as any)} />}
+                <NavPacket icon={Briefcase} label="Mis Publicaciones" tc={tc} onPress={() => router.push('/my-listings' as any)} />
                 <NavPacket icon={Bell} label="Notificaciones" tc={tc} onPress={() => router.push('/notifications' as any)} />
                 <NavPacket icon={Settings} label="Configuración" tc={tc} highlight onPress={() => router.push('/settings')} />
                 <NavPacket icon={HelpCircle} label="Ayuda" tc={tc} onPress={() => router.push('/help' as any)} />

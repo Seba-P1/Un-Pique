@@ -20,7 +20,6 @@ export interface AppHeaderProps {
     onSearchSubmit?: (query: string) => void; // Triggered only on ENTER
     searchPlaceholder?: string;
     scrollY?: Animated.Value;
-    bgColor?: string;
 }
 
 export function AppHeader({
@@ -32,8 +31,7 @@ export function AppHeader({
     onSearch,
     onSearchSubmit,
     searchPlaceholder = 'Buscar...',
-    scrollY,
-    bgColor
+    scrollY
 }: AppHeaderProps) {
     const tc = useThemeColors();
     const router = useRouter();
@@ -60,12 +58,30 @@ export function AppHeader({
 
     const animatedShadowOpacity = borderOpacity.interpolate({
         inputRange: [0, 1],
-        outputRange: [0.25, 0.5]
+        outputRange: [0, 0.5]
     });
 
     const animatedElevation = borderOpacity.interpolate({
         inputRange: [0, 1],
-        outputRange: [8, 16]
+        outputRange: [0, 16]
+    });
+
+    const animatedBg = scrollY ? scrollY.interpolate({
+        inputRange: [0, 50],
+        outputRange: ['rgba(18,18,18,0)', 'rgba(18,18,18,0.92)'],
+        extrapolate: 'clamp'
+    }) : new Animated.Value(1).interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(18,18,18,0.92)', 'rgba(18,18,18,0.92)']
+    });
+
+    const animatedBgLight = scrollY ? scrollY.interpolate({
+        inputRange: [0, 50],
+        outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.92)'],
+        extrapolate: 'clamp'
+    }) : new Animated.Value(1).interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.92)']
     });
 
     const handleLeftIcon = () => {
@@ -186,23 +202,23 @@ export function AppHeader({
     );
 
     return (
-        <View style={{ zIndex: 100, position: 'relative', backgroundColor: bgColor || 'transparent', borderBottomLeftRadius: 20, borderBottomRightRadius: 20, overflow: 'hidden' }}>
+        <View style={{ zIndex: 100, position: 'relative', backgroundColor: 'transparent' }}>
             {/* Header Visual */}
             <Animated.View style={[
                 styles.headerContainer,
                 Platform.OS === 'web' ? {
-                    backgroundColor: tc.isDark ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)',
+                    backgroundColor: tc.isDark ? animatedBg : animatedBgLight,
                     backdropFilter: 'blur(20px)',
                     // @ts-ignore
                     WebkitBackdropFilter: 'blur(20px)',
                     boxShadow: borderOpacity.interpolate({
                         inputRange: [0, 1],
-                        outputRange: ['0 4px 16px rgba(0,0,0,0.25)', '0 8px 32px rgba(0,0,0,0.4)']
-                    }) as any
+                        outputRange: ['0 4px 16px rgba(0,0,0,0)', '0 8px 32px rgba(0,0,0,0.4)']
+                    }) as any,
+                    borderBottomWidth: 1,
+                    borderBottomColor: animatedBorderColor,
                 } as any : {
-                    backgroundColor: tc.isDark ? 'rgba(18,18,18,0.95)' : 'rgba(255,255,255,0.95)'
-                },
-                {
+                    backgroundColor: tc.isDark ? animatedBg : animatedBgLight,
                     borderBottomWidth: 1,
                     borderBottomColor: animatedBorderColor,
                     shadowColor: '#000',
@@ -349,6 +365,7 @@ const styles = StyleSheet.create({
     headerContainer: {
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
+        overflow: 'hidden',
     },
     header: {
         flexDirection: 'row',

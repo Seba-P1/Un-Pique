@@ -176,14 +176,23 @@ export function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComme
     const router = useRouter();
 
     const parseContent = (content: string) => {
-        const match = /\[service:([^:]+):(.+)\]/.exec(content);
-        if (match) {
-            return {
-                text: content.replace(match[0], '').trim(),
-                service: { id: match[1], name: match[2] }
-            };
+        let text = content;
+        let service = null;
+        let business = null;
+
+        const serviceMatch = /\[service:([^:]+):(.+)\]/.exec(text);
+        if (serviceMatch) {
+            text = text.replace(serviceMatch[0], '').trim();
+            service = { id: serviceMatch[1], name: serviceMatch[2] };
         }
-        return { text: content, service: null };
+
+        const businessMatch = /\[business:([^:]+):(.+)\]/.exec(text);
+        if (businessMatch) {
+            text = text.replace(businessMatch[0], '').trim();
+            business = { id: businessMatch[1], name: businessMatch[2] };
+        }
+
+        return { text, service, business };
     };
 
     const parsed = parseContent(item.content);
@@ -228,13 +237,26 @@ export function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComme
                         {parsed.service && (
                             <TouchableOpacity 
                                 style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                                onPress={() => router.push(`/directory/${parsed.service.id}` as any)}
+                                onPress={() => router.push(`/directory/${parsed.service?.id}` as any)}
                             >
                                 <View style={styles.sharedServiceIconRow}>
                                     <Share2 size={14} color={tc.primary} />
                                     <Text style={{ color: tc.primary, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
                                 </View>
-                                <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
+                                <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service?.name}</Text>
+                                <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
+                            </TouchableOpacity>
+                        )}
+                        {parsed.business && (
+                            <TouchableOpacity 
+                                style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
+                                onPress={() => router.push(`/shop/${parsed.business?.id}` as any)}
+                            >
+                                <View style={styles.sharedServiceIconRow}>
+                                    <Share2 size={14} color={tc.primary} />
+                                    <Text style={{ color: tc.primary, fontSize: 12, fontWeight: '700' }}>Local Compartido</Text>
+                                </View>
+                                <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.business?.name}</Text>
                                 <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
                             </TouchableOpacity>
                         )}
@@ -242,17 +264,30 @@ export function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComme
                 </View>
             ) : (
                 <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-                    {!!parsed.text && <Text style={[styles.caption, { color: tc.text, marginBottom: parsed.service ? 8 : 0 }]}>{parsed.text}</Text>}
+                    {!!parsed.text && <Text style={[styles.caption, { color: tc.text, marginBottom: (parsed.service || parsed.business) ? 8 : 0 }]}>{parsed.text}</Text>}
                     {parsed.service && (
                         <TouchableOpacity 
                             style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                            onPress={() => router.push(`/directory/${parsed.service.id}` as any)}
+                            onPress={() => router.push(`/directory/${parsed.service?.id}` as any)}
                         >
                             <View style={styles.sharedServiceIconRow}>
                                 <Share2 size={14} color={tc.primary} />
                                 <Text style={{ color: tc.primary, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
                             </View>
-                            <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
+                            <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service?.name}</Text>
+                            <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
+                        </TouchableOpacity>
+                    )}
+                    {parsed.business && (
+                        <TouchableOpacity 
+                            style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
+                            onPress={() => router.push(`/shop/${parsed.business?.id}` as any)}
+                        >
+                            <View style={styles.sharedServiceIconRow}>
+                                <Share2 size={14} color={tc.primary} />
+                                <Text style={{ color: tc.primary, fontSize: 12, fontWeight: '700' }}>Local Compartido</Text>
+                            </View>
+                            <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.business?.name}</Text>
                             <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
                         </TouchableOpacity>
                     )}
