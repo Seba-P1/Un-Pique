@@ -180,26 +180,7 @@ export default function HomeScreen() {
         setLocationPickerVisible(false);
     };
 
-    const pointsChip = user && loyalty ? (
-        <TouchableOpacity 
-            onPress={() => router.push('/loyalty' as any)} 
-            style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                backgroundColor: '#FFF0E6', 
-                paddingHorizontal: 10, 
-                paddingVertical: 6, 
-                borderRadius: 12, 
-                marginRight: 8,
-                borderWidth: 1,
-                borderColor: 'rgba(255, 107, 53, 0.2)'
-            }}
-        >
-            <Text style={{ color: '#FF6B35', fontFamily: 'NunitoSans-Bold', fontSize: 13 }}>
-                ⭐ {loyalty.available_points} pts
-            </Text>
-        </TouchableOpacity>
-    ) : undefined;
+
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
@@ -208,7 +189,7 @@ export default function HomeScreen() {
                 title="Inicio"
                 leftIcon="menu"
                 rightButtons={['search', 'favorites', 'notifications', 'cart']}
-                rightContent={pointsChip}
+
                 onSearchSubmit={handleSearchSubmit}
                 searchPlaceholder="Buscar negocios, servicios..."
                 scrollY={scrollY}

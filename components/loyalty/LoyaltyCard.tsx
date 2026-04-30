@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Medal, Award, Crown, Zap } from 'lucide-react-native';
 import { UserLoyalty } from '@/stores/loyaltyStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 interface LoyaltyCardProps {
   loyalty: UserLoyalty;
@@ -24,31 +25,32 @@ const TIER_LABELS = {
 };
 
 const { width: windowWidth } = Dimensions.get('window');
-const CARD_WIDTH = Math.min(windowWidth - 32, 360);
+const CARD_WIDTH = Math.min(windowWidth - 24, 380);
 const CARD_HEIGHT = CARD_WIDTH / 1.586; // Tarjeta de crédito aspect ratio
 
 export default function LoyaltyCard({ loyalty, compact = false, onPress }: LoyaltyCardProps) {
   const profile = useAuthStore((s) => s.profile);
   const userName = profile?.full_name ? profile.full_name.substring(0, 20) : 'Usuario';
+  const tc = useThemeColors();
 
-  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  const scaleAnim = useRef(new Animated.Value(0.92)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(-CARD_WIDTH * 1.5)).current;
   const pointsScale = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // Animación de entrada
+  // Animación de entrada de la tarjeta
   useEffect(() => {
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
-        tension: 100,
-        friction: 8,
+        stiffness: 100,
+        damping: 12,
         useNativeDriver: true,
       }),
       Animated.timing(opacityAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start();
@@ -114,70 +116,72 @@ export default function LoyaltyCard({ loyalty, compact = false, onPress }: Loyal
   const shimmerTranslateX = shimmerAnim;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.container, pressed && styles.pressed]}>
-      {/* Tarjeta Visual */}
-      <Animated.View style={[
-        styles.cardContainer,
-        {
-          opacity: opacityAnim,
-          transform: [{ scale: scaleAnim }],
-          width: CARD_WIDTH,
-          height: CARD_HEIGHT,
-        }
-      ]}>
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          {/* Brillo dinámico (Shimmer) */}
-          <Animated.View style={[styles.shimmerWrapper, { transform: [{ translateX: shimmerTranslateX }] }]}>
-            <LinearGradient
-              colors={['transparent', 'rgba(255,255,255,0.15)', 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.shimmer}
-            />
-          </Animated.View>
+    <View style={styles.container}>
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.pressableArea, pressed && styles.pressed]}>
+        {/* Tarjeta Visual */}
+        <Animated.View style={[
+          styles.cardContainer,
+          {
+            opacity: opacityAnim,
+            transform: [{ scale: scaleAnim }],
+            width: CARD_WIDTH,
+            height: CARD_HEIGHT,
+          }
+        ]}>
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradient}
+          >
+            {/* Brillo dinámico (Shimmer) */}
+            <Animated.View style={[styles.shimmerWrapper, { transform: [{ translateX: shimmerTranslateX }] }]}>
+              <LinearGradient
+                colors={['transparent', 'rgba(255,255,255,0.15)', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.shimmer}
+              />
+            </Animated.View>
 
-          {/* Fila Superior */}
-          <View style={styles.topRow}>
-            <View style={styles.logoContainer}>
-              <Zap size={20} color="#FFF" strokeWidth={2.5} />
-              <Text style={styles.logoText}>Un Pique</Text>
+            {/* Fila Superior */}
+            <View style={styles.topRow}>
+              <View style={styles.logoContainer}>
+                <Zap size={20} color="#FFF" strokeWidth={2.5} />
+                <Text style={styles.logoText}>Un Pique</Text>
+              </View>
+              {renderIcon()}
             </View>
-            {renderIcon()}
-          </View>
 
-          {/* Centro: Puntos */}
-          <View style={styles.centerRow}>
-            <Animated.Text style={[styles.pointsText, { transform: [{ scale: pointsScale }] }]}>
-              {loyalty.available_points.toLocaleString('es-AR')}
-            </Animated.Text>
-            <Text style={styles.pointsLabel}>puntos disponibles</Text>
-          </View>
+            {/* Centro: Puntos */}
+            <View style={styles.centerRow}>
+              <Animated.Text style={[styles.pointsText, { transform: [{ scale: pointsScale }] }]}>
+                {loyalty.available_points.toLocaleString('es-AR')}
+              </Animated.Text>
+              <Text style={styles.pointsLabel}>puntos disponibles</Text>
+            </View>
 
-          {/* Fila Inferior */}
-          <View style={styles.bottomRow}>
-            <Text style={styles.userName}>{userName}</Text>
-            <Text style={styles.tierName}>{tierName}</Text>
-          </View>
-        </LinearGradient>
-      </Animated.View>
+            {/* Fila Inferior */}
+            <View style={styles.bottomRow}>
+              <Text style={styles.userName}>{userName}</Text>
+              <Text style={styles.tierName}>{tierName}</Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+      </Pressable>
 
       {/* Barra de Progreso (Oculta si es compact) */}
       {!compact && (
-        <Animated.View style={{ opacity: opacityAnim, width: CARD_WIDTH, marginTop: 24 }}>
+        <Animated.View style={[styles.progressContainer, { opacity: opacityAnim, width: CARD_WIDTH }]}>
           <View style={styles.progressLabels}>
-            <Text style={styles.progressLabelLeft}>Nivel actual: <Text style={styles.progressLabelBold}>{tierName}</Text></Text>
+            <Text style={[styles.progressLabelLeft, { color: tc.textMuted }]}>Nivel actual: <Text style={[styles.progressLabelBold, { color: tc.text }]}>{tierName}</Text></Text>
             <Text style={styles.progressLabelRight}>
               {loyalty.tier === 'gold' 
                 ? 'Nivel máximo' 
                 : `${loyalty.points_to_next_tier?.toLocaleString('es-AR') || 0} para ${loyalty.tier === 'bronze' ? 'PLATA' : 'ORO'}`}
             </Text>
           </View>
-          <View style={styles.progressBarBackground}>
+          <View style={[styles.progressBarBackground, { backgroundColor: tc.border }]}>
             <Animated.View style={[
               styles.progressBarFill, 
               { 
@@ -188,14 +192,19 @@ export default function LoyaltyCard({ loyalty, compact = false, onPress }: Loyal
           </View>
         </Animated.View>
       )}
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
+    width: CARD_WIDTH,
+    maxWidth: '100%',
+    alignSelf: 'center',
     marginVertical: 12,
+  },
+  pressableArea: {
+    alignItems: 'center',
   },
   pressed: {
     opacity: 0.95,
@@ -289,6 +298,12 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
+  progressContainer: {
+    marginTop: 24,
+    width: CARD_WIDTH,
+    maxWidth: '100%',
+    alignSelf: 'center',
+  },
   progressLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -297,11 +312,9 @@ const styles = StyleSheet.create({
   },
   progressLabelLeft: {
     fontSize: 13,
-    color: '#6B7280',
     fontFamily: 'NunitoSans-Regular',
   },
   progressLabelBold: {
-    color: '#1F2937',
     fontFamily: 'NunitoSans-Bold',
   },
   progressLabelRight: {
@@ -311,7 +324,6 @@ const styles = StyleSheet.create({
   },
   progressBarBackground: {
     height: 6,
-    backgroundColor: '#E5E7EB',
     borderRadius: 3,
     overflow: 'hidden',
   },

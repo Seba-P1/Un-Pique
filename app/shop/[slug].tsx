@@ -17,6 +17,7 @@ import BusinessMap from '../../components/shop/BusinessMap';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { checkIsBusinessOpen, getFormattedScheduleList } from '../../utils/schedule';
 import { useResponsive } from '../../hooks/useResponsive';
+import { AppHeader } from '../../components/ui/AppHeader';
 
 const HEADER_HEIGHT = 280;
 
@@ -44,8 +45,36 @@ function BusinessInfoCard({ business, isBusinessFavorite, onFavorite, tc }: {
         }).start();
     }, []);
 
+    const glassStyle = Platform.OS === 'web' ? {
+        backgroundColor: tc.isDark
+        ? 'rgba(255,255,255,0.04)'
+        : 'rgba(255,255,255,0.65)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderWidth: 1,
+        borderColor: tc.isDark
+        ? 'rgba(255,255,255,0.08)'
+        : 'rgba(255,255,255,0.85)',
+        boxShadow: tc.isDark
+        ? '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)'
+        : '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+    } as any : {
+        backgroundColor: tc.isDark
+        ? 'rgba(28,28,30,0.88)'
+        : 'rgba(255,255,255,0.88)',
+        borderWidth: 1,
+        borderColor: tc.isDark
+        ? 'rgba(255,255,255,0.07)'
+        : 'rgba(255,255,255,0.6)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.28,
+        shadowRadius: 20,
+        elevation: 12,
+    };
+
     return (
-        <View style={[cardStyles.container, { backgroundColor: tc.bgCard }]}>
+        <View style={[cardStyles.container, glassStyle]}>
             {business.logo_url && (
                 <Image source={{ uri: business.logo_url }} style={cardStyles.logo} />
             )}
@@ -141,6 +170,24 @@ export default function BusinessDetailScreen() {
     const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
     const isFav = useFavoritesStore((s) => s.isFavorite);
 
+    // ── Entry Card Animation ─────────────────────────────────────
+    const cardAnim = useRef(new Animated.Value(0)).current;
+    const cardSlide = useRef(new Animated.Value(30)).current;
+
+    useEffect(() => {
+        if (!business?.id) return;
+        cardAnim.setValue(0);
+        cardSlide.setValue(30);
+        Animated.parallel([
+            Animated.timing(cardAnim, {
+                toValue: 1, duration: 450, useNativeDriver: true
+            }),
+            Animated.spring(cardSlide, {
+                toValue: 0, stiffness: 110, damping: 13, useNativeDriver: true
+            }),
+        ]).start();
+    }, [business?.id]);
+
     // ── Product stagger animation refs ───────────────────────────
     const animRefs = useRef<{ opacity: Animated.Value; translateY: Animated.Value }[]>([]);
 
@@ -162,18 +209,22 @@ export default function BusinessDetailScreen() {
         });
     }, [products]);
 
+    const hoverScalesRef = useRef<Animated.Value[]>([]);
+    
+    // Ensure hoverScalesRef has enough items
+    if (products?.length) {
+        while (hoverScalesRef.current.length < products.length) {
+            hoverScalesRef.current.push(new Animated.Value(1));
+        }
+    }
+
     const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
     const isOpen = business?.is_open && checkIsBusinessOpen(business?.schedule);
     const scheduleList = business ? getFormattedScheduleList(business.schedule) : [];
     const isBusinessFavorite = business ? isFav('business', business.id) : false;
 
     const handleProductPress = (product: any) => router.push(`/product/${product.id}` as any);
-    const handleSearch = () => Alert.alert('Buscar', 'Función de búsqueda de productos próximamente.');
     const handleFavorite = () => { if (business) toggleFavorite('business', business.id); };
-    const handleShare = async () => {
-        if (!business) return;
-        try { await Share.share({ message: `¡Mira este lugar en Un Pique!\n${business.name} - ${business.description}` }); } catch (e) { console.log(e); }
-    };
 
     if (loadingBusiness) {
         return (
@@ -195,7 +246,6 @@ export default function BusinessDetailScreen() {
         );
     }
 
-    const headerOpacity = scrollY.interpolate({ inputRange: [0, HEADER_HEIGHT - 80], outputRange: [0, 1], extrapolate: 'clamp' });
     const heroHeight = isDesktop ? 340 : HEADER_HEIGHT;
 
     // ── Tabs component ───────────────────────────────────────────
@@ -229,15 +279,30 @@ export default function BusinessDetailScreen() {
                     keyExtractor={(item) => item.id?.toString()}
                     columnWrapperStyle={productCols > 1 ? { gap: 12 } : undefined}
                     contentContainerStyle={{ gap: 12, paddingHorizontal: 16, paddingBottom: 120 }}
-                    renderItem={({ item, index }) => (
-                        <Animated.View style={{
-                            flex: 1,
-                            opacity: animRefs.current[index]?.opacity ?? 1,
-                            transform: [{ translateY: animRefs.current[index]?.translateY ?? 0 }],
-                        }}>
-                            <ProductItem product={item} onPress={() => handleProductPress(item)} />
-                        </Animated.View>
-                    )}
+                    renderItem={({ item, index }) => {
+                        const hoverScale = hoverScalesRef.current[index];
+                        return (
+                            <Animated.View style={{
+                                flex: 1,
+                                opacity: animRefs.current[index]?.opacity ?? 1,
+                                transform: [{ translateY: animRefs.current[index]?.translateY ?? 0 }],
+                            }}>
+                                <Animated.View
+                                    style={{ flex: 1, transform: [{ scale: hoverScale }] }}
+                                    {...(Platform.OS === 'web' ? {
+                                        onMouseEnter: () => Animated.spring(hoverScale, {
+                                            toValue: 1.04, stiffness: 300, damping: 20, useNativeDriver: true
+                                        }).start(),
+                                        onMouseLeave: () => Animated.spring(hoverScale, {
+                                            toValue: 1.0, stiffness: 300, damping: 20, useNativeDriver: true
+                                        }).start(),
+                                    } : {})}
+                                >
+                                    <ProductItem product={item} onPress={() => handleProductPress(item)} />
+                                </Animated.View>
+                            </Animated.View>
+                        );
+                    }}
                 />
             </View>
         );
@@ -273,16 +338,13 @@ export default function BusinessDetailScreen() {
         <View style={[styles.container, { backgroundColor: tc.bg }]}>
             <StatusBar barStyle="light-content" />
 
-            {/* Sticky Top Nav */}
-            <Animated.View style={[styles.stickyNav, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight, opacity: headerOpacity }]} />
-            <SafeAreaView style={styles.navBar} edges={['top']}>
-                <TouchableOpacity style={[styles.circleButton, { backgroundColor: 'rgba(0,0,0,0.45)' }]} onPress={() => router.back()}><ArrowLeft size={20} color="#fff" /></TouchableOpacity>
-                <Animated.Text style={[styles.headerTitle, { opacity: headerOpacity, color: tc.text }]} numberOfLines={1}>{business.name}</Animated.Text>
-                <View style={styles.rightButtons}>
-                    <TouchableOpacity style={[styles.circleButton, { backgroundColor: 'rgba(0,0,0,0.45)' }]} onPress={handleSearch}><Search size={20} color="#fff" /></TouchableOpacity>
-                    <TouchableOpacity style={[styles.circleButton, { backgroundColor: 'rgba(0,0,0,0.45)' }]} onPress={handleShare}><Share2 size={20} color="#fff" /></TouchableOpacity>
-                </View>
-            </SafeAreaView>
+            <AppHeader
+                title={business?.name ?? 'Local'}
+                subtitle="SABOR LOCAL"
+                leftIcon="back"
+                rightButtons={['search', 'favorites']}
+                scrollY={scrollY}
+            />
 
             <Animated.ScrollView
                 onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
@@ -305,7 +367,9 @@ export default function BusinessDetailScreen() {
                                 width: 360, marginRight: 32,
                                 ...(Platform.OS === 'web' ? { position: 'sticky' as any, top: 80, alignSelf: 'flex-start' as any, height: 'fit-content' as any } : { alignSelf: 'flex-start' as any }),
                             }}>
-                                <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} tc={tc} />
+                                <Animated.View style={{ opacity: cardAnim, transform: [{ translateY: cardSlide }] }}>
+                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} tc={tc} />
+                                </Animated.View>
                             </View>
                             {/* Right column */}
                             <View style={{ flex: 1 }}>
@@ -318,8 +382,10 @@ export default function BusinessDetailScreen() {
                     ) : (
                         /* ══ MOBILE: layout original ══════════════════ */
                         <>
-                            <View style={{ marginTop: -50, marginHorizontal: 16 }}>
-                                <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} tc={tc} />
+                            <View style={{ marginTop: -50, marginHorizontal: 12 }}>
+                                <Animated.View style={{ opacity: cardAnim, transform: [{ translateY: cardSlide }] }}>
+                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} tc={tc} />
+                                </Animated.View>
                             </View>
                             {renderTabs()}
                             <View style={styles.content}>
@@ -347,11 +413,6 @@ export default function BusinessDetailScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    stickyNav: { position: 'absolute', top: 0, left: 0, right: 0, height: Platform.OS === 'android' ? 90 : 100, zIndex: 101, borderBottomWidth: 1 },
-    navBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 102, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, height: Platform.OS === 'android' ? 90 : 100, paddingTop: Platform.OS === 'android' ? 40 : 10 },
-    circleButton: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-    rightButtons: { flexDirection: 'row', gap: 10 },
-    headerTitle: { fontFamily: 'Nunito Sans', fontSize: 17, fontWeight: '700', maxWidth: 200, textAlign: 'center' },
     heroBanner: { width: '100%', overflow: 'hidden' },
     tabsContainer: { flexDirection: 'row', borderBottomWidth: 1, marginTop: 0 },
     tab: { flex: 1, alignItems: 'center', paddingVertical: 14, position: 'relative' },
