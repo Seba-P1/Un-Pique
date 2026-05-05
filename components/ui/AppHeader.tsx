@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, useWindowDimensions, Animated } from 'react-native';
-import { ChevronLeft, Search, ShoppingCart, Heart, Bell, X } from 'lucide-react-native';
+import { ChevronLeft, Search, ShoppingCart, Heart, Bell, X, MessageCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useCartStore } from '../../stores/cartStore';
 import { useFavoritesStore } from '../../stores/favoritesStore';
+import { useChatStore } from '../../stores/chatStore';
 import { showAlert } from '../../utils/alert';
 import { openMobileDrawer } from '../../app/(tabs)/_layout';
 
@@ -14,7 +15,7 @@ export interface AppHeaderProps {
     title: string;
     subtitle?: string;
     leftIcon?: 'menu' | 'back' | 'none';
-    rightButtons?: Array<'search' | 'cart' | 'favorites' | 'notifications'>;
+    rightButtons?: Array<'search' | 'cart' | 'favorites' | 'notifications' | 'messages'>;
     rightContent?: React.ReactNode;
     onSearch?: (query: string) => void; // Triggered on every key change
     onSearchSubmit?: (query: string) => void; // Triggered only on ENTER
@@ -44,6 +45,7 @@ export function AppHeader({
 
     const totalCartItems = items.reduce((acc, item) => acc + item.quantity, 0);
     const newFavoritesCount = useFavoritesStore((s) => s.newFavoritesCount);
+    const unreadMessagesCount = useChatStore((s) => s.unreadCount);
 
     const effectiveScrollY = scrollY ?? new Animated.Value(100);
 
@@ -312,6 +314,26 @@ export function AppHeader({
                                             {newFavoritesCount > 0 && (
                                                 <View style={styles.badge}>
                                                     <Text style={styles.badgeText}>{newFavoritesCount > 99 ? '99+' : newFavoritesCount}</Text>
+                                                </View>
+                                            )}
+                                        </Pressable>
+                                    );
+                                }
+                                if (btn === 'messages') {
+                                    return (
+                                        <Pressable
+                                            key="messages"
+                                            style={({ pressed }) => [
+                                                styles.iconButton,
+                                                pressed && styles.iconButtonActive
+                                            ]}
+                                            hitSlop={4}
+                                            onPress={() => router.push('/chat' as any)}
+                                        >
+                                            <MessageCircle size={16} color={tc.text} />
+                                            {unreadMessagesCount > 0 && (
+                                                <View style={styles.badge}>
+                                                    <Text style={styles.badgeText}>{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</Text>
                                                 </View>
                                             )}
                                         </Pressable>

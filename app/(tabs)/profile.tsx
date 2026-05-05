@@ -133,7 +133,7 @@ export default function ProfileScreen() {
                     subtitle="MI CUENTA"
                     title="Mi Perfil"
                     leftIcon="menu"
-                    rightButtons={['notifications']}
+                    rightButtons={['messages', 'notifications']}
                     scrollY={scrollY}
                 />
             </View>
@@ -257,7 +257,7 @@ export default function ProfileScreen() {
                 {/* ====== CONTENT AREA ====== */}
                 <View style={[styles.contentArea, !isMobile && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
                     {activeView === 'wall' ? (
-                        <WallView posts={posts} loading={loadingPosts} tc={tc} isDesktop={isDesktop} isMobile={isMobile} isLiked={isLiked} toggleLike={toggleLike} isSaved={isSaved} toggleSave={toggleSave} router={router} savedPosts={savedPosts} profile={profile} />
+                        <WallView posts={posts} loading={loadingPosts} tc={tc} isDesktop={isDesktop} isMobile={isMobile} isLiked={isLiked} toggleLike={toggleLike} isSaved={isSaved} toggleSave={toggleSave} router={router} savedPosts={savedPosts} profile={profile} userListings={userListings} hasBusinessRole={hasBusinessRole} />
                     ) : (
                         <SettingsView tc={tc} router={router} hasListings={hasListings} showRolesSection={showRolesSection} hasBusinessRole={hasBusinessRole} hasDriverRole={hasDriverRole} currentRole={currentRole} setCurrentRole={setCurrentRole} theme={theme} setTheme={setTheme} handleSignOut={handleSignOut} />
                     )}
@@ -272,8 +272,20 @@ export default function ProfileScreen() {
 // =============================================
 // WALL VIEW — Mi muro integrado
 // =============================================
-function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike, isSaved, toggleSave, router, savedPosts, profile }: any) {
+function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike, isSaved, toggleSave, router, savedPosts, profile, userListings, hasBusinessRole }: any) {
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+    const [myBusiness, setMyBusiness] = useState<any>(null);
+
+    useEffect(() => {
+        if (hasBusinessRole && profile?.id) {
+            supabase.from('businesses')
+                .select('id, name, logo_url, cover_url, category, rating, is_open, slug')
+                .eq('owner_id', profile.id)
+                .single()
+                .then(({ data }) => setMyBusiness(data));
+        }
+    }, [profile, hasBusinessRole]);
+
     const toggleComments = (postId: string) => {
         setExpandedComments(prev => {
             const next = new Set(prev);
@@ -321,6 +333,89 @@ function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike
 
             {/* Feed */}
             <View style={wallStyles.feed}>
+                {/* ====== SECTION: Servicios que ofrezco ====== */}
+                {userListings && userListings.length > 0 && (
+                    <View style={[wallStyles.featureCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                        <View style={wallStyles.featureHeader}>
+                            <Text style={[wallStyles.featureTitle, { color: tc.text }]}>🔧 Servicios y Alojamientos</Text>
+                            <TouchableOpacity onPress={() => router.push('/my-listings' as any)}>
+                                <Text style={[wallStyles.featureLink, { color: colors.primary.DEFAULT }]}>Ver todos &rarr;</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16, paddingBottom: 16 }}>
+                            {userListings.slice(0, 4).map((listing: any) => (
+                                <TouchableOpacity 
+                                    key={listing.id} 
+                                    style={[wallStyles.listingItem, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+                                    onPress={() => router.push(`/directory/${listing.id}` as any)}
+                                    activeOpacity={0.9}
+                                >
+                                    {listing.images?.[0] ? (
+                                        <Image source={{ uri: listing.images[0] }} style={wallStyles.listingImg} resizeMode="cover" />
+                                    ) : (
+                                        <View style={[wallStyles.listingImgPlaceholder, { backgroundColor: tc.bgCard }]}>
+                                            <Briefcase size={24} color={tc.textMuted} />
+                                        </View>
+                                    )}
+                                    <View style={wallStyles.listingContent}>
+                                        <Text style={[wallStyles.listingTitle, { color: tc.text }]} numberOfLines={1}>{listing.title}</Text>
+                                        <Text style={[wallStyles.listingCat, { color: tc.textMuted }]} numberOfLines={1}>{listing.category || listing.accommodation_type}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                            {userListings.length > 4 && (
+                                <TouchableOpacity 
+                                    style={[wallStyles.listingMore, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+                                    onPress={() => router.push('/my-listings' as any)}
+                                >
+                                    <Text style={[wallStyles.listingMoreText, { color: tc.text }]}>+{userListings.length - 4} más</Text>
+                                </TouchableOpacity>
+                            )}
+                        </ScrollView>
+                    </View>
+                )}
+
+                {/* ====== SECTION: Mi negocio en Sabor Local ====== */}
+                {hasBusinessRole && myBusiness && (
+                    <View style={[wallStyles.featureCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight, padding: 16 }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 }}>
+                            <Text style={{ fontSize: 18 }}>🏪</Text>
+                            <Text style={[wallStyles.featureTitle, { color: tc.text }]}>Mi local en Sabor Local</Text>
+                        </View>
+                        <View style={[wallStyles.businessCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }, isMobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                                {myBusiness.logo_url ? (
+                                    <Image source={{ uri: myBusiness.logo_url }} style={wallStyles.businessLogo} />
+                                ) : (
+                                    <View style={[wallStyles.businessLogoPlaceholder, { backgroundColor: tc.bgCard }]}>
+                                        <Store size={24} color={tc.textMuted} />
+                                    </View>
+                                )}
+                                <View style={wallStyles.businessInfo}>
+                                    <Text style={[wallStyles.businessName, { color: tc.text }]} numberOfLines={1}>{myBusiness.name}</Text>
+                                    <Text style={[wallStyles.businessCat, { color: tc.textMuted }]}>{myBusiness.category}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                                        <Text style={{ fontSize: 13, color: tc.textSecondary, fontWeight: '600' }}>⭐ {myBusiness.rating?.toFixed(1) || 'N/A'}</Text>
+                                        <Text style={{ color: tc.textMuted, fontSize: 12 }}>•</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: myBusiness.is_open ? '#22C55E' : '#EF4444' }} />
+                                            <Text style={{ fontSize: 12, color: tc.textSecondary, fontWeight: '600' }}>{myBusiness.is_open ? 'Abierto' : 'Cerrado'}</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+                            <TouchableOpacity 
+                                style={[wallStyles.businessBtn, { backgroundColor: tc.text }, isMobile && { marginTop: 12, alignSelf: 'stretch', alignItems: 'center' }]}
+                                onPress={() => router.push(`/shop/${myBusiness.slug || myBusiness.id}` as any)}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={{ color: tc.bg, fontWeight: '700', fontSize: 14 }}>Ver mi tienda &rarr;</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+
+                {/* ====== PUBLICACIONES ====== */}
                 {posts.length > 0 ? (
                     posts.map((item: Post) => (
                         <PostCard 
@@ -520,6 +615,26 @@ const wallStyles = StyleSheet.create({
     actionLabel: { fontSize: 13, fontWeight: '600' },
     sharedServiceCard: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 4 },
     sharedServiceIconRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    // Features (Services & Business)
+    featureCard: { borderRadius: 16, borderWidth: 1, marginBottom: 8, overflow: 'hidden' },
+    featureHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
+    featureTitle: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+    featureLink: { fontSize: 14, fontWeight: '600' },
+    listingItem: { width: 140, borderRadius: 14, borderWidth: 1, overflow: 'hidden', height: 110 },
+    listingImg: { width: '100%', height: 60 },
+    listingImgPlaceholder: { width: '100%', height: 60, justifyContent: 'center', alignItems: 'center' },
+    listingContent: { padding: 8, justifyContent: 'center' },
+    listingTitle: { fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
+    listingCat: { fontSize: 11, marginTop: 2 },
+    listingMore: { width: 90, borderRadius: 14, borderWidth: 1, height: 110, justifyContent: 'center', alignItems: 'center' },
+    listingMoreText: { fontSize: 14, fontWeight: '700' },
+    businessCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1, padding: 14 },
+    businessLogo: { width: 64, height: 64, borderRadius: 12 },
+    businessLogoPlaceholder: { width: 64, height: 64, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    businessInfo: { flex: 1, justifyContent: 'center' },
+    businessName: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+    businessCat: { fontSize: 13, marginTop: 2 },
+    businessBtn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10, marginLeft: 8 },
 });
 
 // Settings styles

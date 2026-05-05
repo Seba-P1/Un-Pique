@@ -37,6 +37,10 @@ export interface Listing {
   // Relación (join con profiles)
   owner_name?: string;
   owner_avatar?: string;
+  // Reclamo de cuenta (Claim system)
+  claimed_by?: string | null;
+  claim_status?: 'unclaimed' | 'pending' | 'claimed' | 'rejected';
+  owner_user_id?: string;
 }
 
 export type CreateListingInput = Omit<Listing, 'id' | 'rating' | 'reviews_count' | 'is_active' | 'is_verified' | 'created_at' | 'updated_at' | 'owner_name' | 'owner_avatar'>;
@@ -61,6 +65,7 @@ interface ListingState {
   updateListing: (id: string, data: Partial<Listing>) => Promise<boolean>;
   deleteListing: (id: string) => Promise<boolean>;
   toggleListingActive: (id: string, isActive: boolean) => Promise<boolean>;
+  submitClaimRequest: (listingId: string, message: string) => Promise<{ success: boolean; error?: string }>;
   // Selección
   setSelectedListing: (listing: Listing | null) => void;
 }
@@ -92,6 +97,9 @@ const formatListing = (row: Record<string, unknown>): Listing => ({
   locality_id: row.locality_id as string | undefined,
   created_at: row.created_at as string,
   updated_at: row.updated_at as string,
+  claimed_by: row.claimed_by as string | null | undefined,
+  claim_status: row.claim_status as 'unclaimed' | 'pending' | 'claimed' | 'rejected' | undefined,
+  owner_user_id: row.owner_user_id as string | undefined,
 });
 
 export const useListingStore = create<ListingState>((set, get) => ({
@@ -251,5 +259,41 @@ export const useListingStore = create<ListingState>((set, get) => ({
 
   toggleListingActive: async (id, isActive) => {
     return get().updateListing(id, { is_active: isActive });
+  },
+
+  submitClaimRequest: async (listingId, message) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'No autenticado' };
+      
+      const { error } = await supabase
+        .from('listing_claim_requests')
+        .insert({ listing_id: listingId, requester_id: user.id, message });
+      
+      if (error) return { success: false, error: error.message };
+      
+      // Actualizar el listing a 'pending' en la base de datos
+      await supabase
+        .from('listings')
+        .update({ claim_status: 'pending' })
+        .eq('id', listingId);
+      
+      // Actualizar el estado localmente para reflejar el cambio inmediato
+      const { services, accommodations, userListings, selectedListing } = get();
+      
+      const updateList = (list: Listing[]) => list.map(l => l.id === listingId ? { ...l, claim_status: 'pending' as const } : l);
+      
+      set({
+        services: updateList(services),
+        accommodations: updateList(accommodations),
+        userListings: updateList(userListings),
+        selectedListing: selectedListing?.id === listingId ? { ...selectedListing, claim_status: 'pending' } : selectedListing
+      });
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error enviando solicitud de reclamo:', error);
+      return { success: false, error: error.message || 'Error desconocido' };
+    }
   },
 }));

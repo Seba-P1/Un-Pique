@@ -5,7 +5,7 @@ import {
     Modal, TextInput, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Clock, Star, MapPin, Search, Share2, Heart, ShoppingCart } from 'lucide-react-native';
+import { ArrowLeft, Clock, Star, MapPin, Search, Share2, Heart, ShoppingCart, MessageCircle } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
 import { ProductItem } from '../../components/shop';
@@ -15,6 +15,7 @@ import { useProductStore } from '../../stores/productStore';
 import { useFavoritesStore } from '../../stores/favoritesStore';
 import { useSocialStore } from '../../stores/socialStore';
 import { useLocationStore } from '../../stores/locationStore';
+import { useChatStore } from '../../stores/chatStore';
 import { supabase } from '../../lib/supabase';
 import { showAlert } from '../../utils/alert';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -27,8 +28,8 @@ import { AppHeader } from '../../components/ui/AppHeader';
 const HEADER_HEIGHT = 280;
 
 // ─── BusinessInfoCard ────────────────────────────────────────────
-function BusinessInfoCard({ business, isBusinessFavorite, onFavorite, onShare, tc }: {
-    business: any; isBusinessFavorite: boolean; onFavorite: () => void; onShare?: () => void; tc: any;
+function BusinessInfoCard({ business, isBusinessFavorite, onFavorite, onShare, onMessage, tc }: {
+    business: any; isBusinessFavorite: boolean; onFavorite: () => void; onShare?: () => void; onMessage?: () => void; tc: any;
 }) {
     const isOpen = business?.is_open && checkIsBusinessOpen(business?.schedule);
     const scheduleList = business ? getFormattedScheduleList(business.schedule) : [];
@@ -92,6 +93,15 @@ function BusinessInfoCard({ business, isBusinessFavorite, onFavorite, onShare, t
                 >
                     <Heart size={18} color={isBusinessFavorite ? '#ef4444' : tc.textMuted} fill={isBusinessFavorite ? '#ef4444' : 'transparent'} />
                 </TouchableOpacity>
+                {/* Mensaje */}
+                {onMessage && (
+                    <TouchableOpacity
+                        style={[cardStyles.heartBtn, { backgroundColor: tc.bgHover }]}
+                        onPress={onMessage}
+                    >
+                        <MessageCircle size={18} color={tc.textMuted} />
+                    </TouchableOpacity>
+                )}
                 {/* Compartir */}
                 {onShare && (
                     <TouchableOpacity
@@ -230,18 +240,33 @@ export default function BusinessDetailScreen() {
     const cardSlide = useRef(new Animated.Value(30)).current;
 
     useEffect(() => {
-        if (!business?.id) return;
-        cardAnim.setValue(0);
-        cardSlide.setValue(30);
-        Animated.parallel([
-            Animated.timing(cardAnim, {
-                toValue: 1, duration: 450, useNativeDriver: true
-            }),
-            Animated.spring(cardSlide, {
-                toValue: 0, stiffness: 110, damping: 13, useNativeDriver: true
-            }),
-        ]).start();
-    }, [business?.id]);
+        if (!loadingBusiness && business?.id) {
+            cardAnim.setValue(0);
+            cardSlide.setValue(30);
+            Animated.parallel([
+                Animated.timing(cardAnim, {
+                    toValue: 1, duration: 450, useNativeDriver: true
+                }),
+                Animated.spring(cardSlide, {
+                    toValue: 0, stiffness: 110, damping: 13, useNativeDriver: true
+                }),
+            ]).start();
+        }
+    }, [loadingBusiness, business?.id]);
+
+    const handleMessage = async () => {
+        if (!business?.owner_id) {
+            showAlert('No disponible', 'Este local no tiene un usuario dueño asignado para recibir mensajes.');
+            return;
+        }
+        try {
+            const roomId = await useChatStore.getState().createRoom(business.owner_id, business.id);
+            router.push(`/chat/${roomId}` as any);
+        } catch (error) {
+            console.error('Error open chat:', error);
+            showAlert('Error', 'No se pudo iniciar la conversación con este local.');
+        }
+    };
 
     // ── Product stagger animation refs ───────────────────────────
     const animRefs = useRef<{ opacity: Animated.Value; translateY: Animated.Value }[]>([]);
@@ -423,7 +448,7 @@ export default function BusinessDetailScreen() {
                                 ...(Platform.OS === 'web' ? { position: 'sticky' as any, top: 80, alignSelf: 'flex-start' as any, height: 'fit-content' as any } : { alignSelf: 'flex-start' as any }),
                             }}>
                                 <Animated.View style={{ opacity: cardAnim, transform: [{ translateY: cardSlide }] }}>
-                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} onShare={() => setShareModalVisible(true)} tc={tc} />
+                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} onShare={() => setShareModalVisible(true)} onMessage={handleMessage} tc={tc} />
                                 </Animated.View>
                             </View>
                             {/* Right column */}
@@ -439,7 +464,7 @@ export default function BusinessDetailScreen() {
                         <>
                             <View style={{ marginTop: -50, marginHorizontal: 12 }}>
                                 <Animated.View style={{ opacity: cardAnim, transform: [{ translateY: cardSlide }] }}>
-                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} onShare={() => setShareModalVisible(true)} tc={tc} />
+                                    <BusinessInfoCard business={business} isBusinessFavorite={isBusinessFavorite} onFavorite={handleFavorite} onShare={() => setShareModalVisible(true)} onMessage={handleMessage} tc={tc} />
                                 </Animated.View>
                             </View>
                             {renderTabs()}

@@ -59,7 +59,7 @@ export default function ServicesScreen() {
                 subtitle="SERVICIOS"
                 title="Para tu puerta"
                 leftIcon="menu"
-                rightButtons={['search', 'favorites', 'notifications']}
+                rightButtons={['search', 'favorites', 'messages', 'notifications']}
                 scrollY={scrollY}
             />
 

@@ -12,7 +12,8 @@ import { showAlert } from '../../utils/alert';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
-import type { Listing } from '../../stores/listingStore';
+import { useListingStore, type Listing } from '../../stores/listingStore';
+import { useAuthStore } from '../../stores/authStore';
 import { useFavoritesStore } from '../../stores/favoritesStore';
 import { useLocationStore } from '../../stores/locationStore';
 import { useSocialStore } from '../../stores/socialStore';
@@ -30,6 +31,12 @@ export default function ServiceDetailScreen() {
     const [sharing, setSharing] = useState(false);
     const [shareModalVisible, setShareModalVisible] = useState(false);
     const [shareComment, setShareComment] = useState('');
+
+    // Reclamo de cuenta (Claim system)
+    const { user } = useAuthStore();
+    const [claimModalVisible, setClaimModalVisible] = useState(false);
+    const [claimMessage, setClaimMessage] = useState('');
+    const [claiming, setClaiming] = useState(false);
 
     const scrollY = useRef(new Animated.Value(0)).current;
     const cardAnim = useRef(new Animated.Value(0)).current;
@@ -207,6 +214,20 @@ export default function ServiceDetailScreen() {
         }
     };
 
+    const handleSubmitClaim = async () => {
+        if (!listing) return;
+        setClaiming(true);
+        const { success, error } = await useListingStore.getState().submitClaimRequest(listing.id, claimMessage);
+        setClaiming(false);
+        if (success) {
+            showAlert('Solicitud enviada', 'Te notificaremos cuando sea revisada.');
+            setClaimModalVisible(false);
+            setListing({ ...listing, claim_status: 'pending' });
+        } else {
+            showAlert('Error', error || 'No se pudo enviar la solicitud.');
+        }
+    };
+
     const coverImage = listing.images?.[0] || 'https://via.placeholder.com/800x400?text=Sin+imagen';
 
     // ── Shared content blocks ──
@@ -243,6 +264,53 @@ export default function ServiceDetailScreen() {
                     </Animated.ScrollView>
                 </View>
             )}
+
+            {/* Sección de Reclamo */}
+            {(() => {
+                if (!user) return null;
+                
+                if (listing.claim_status === 'pending') {
+                    return (
+                        <View style={[styles.claimBadge, { backgroundColor: tc.isDark ? 'rgba(234,179,8,0.15)' : 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.3)' }]}>
+                            <Text style={{ color: '#EAB308', fontSize: 14, fontWeight: '600' }}>⏳ Solicitud de reclamación pendiente de revisión</Text>
+                        </View>
+                    );
+                }
+                
+                if (listing.claim_status === 'claimed' && listing.claimed_by === user.id) {
+                    return (
+                        <View style={[styles.claimBadge, { backgroundColor: tc.isDark ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)' }]}>
+                            <Text style={{ color: '#22C55E', fontSize: 14, fontWeight: '600' }}>✅ Este servicio es tuyo</Text>
+                        </View>
+                    );
+                }
+
+                const canClaim = (listing.claim_status === 'unclaimed' || listing.claim_status === 'rejected' || !listing.claim_status) && 
+                                 user.id !== listing.user_id && 
+                                 user.id !== listing.claimed_by;
+
+                if (canClaim) {
+                    return (
+                        <View style={[styles.claimCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                <Text style={{ fontSize: 18 }}>🔑</Text>
+                                <Text style={[styles.claimCardTitle, { color: tc.text }]}>¿Sos vos este profesional?</Text>
+                            </View>
+                            <Text style={[styles.claimCardDesc, { color: tc.textSecondary }]}>
+                                Si este servicio te pertenece, podés reclamarlo como tuyo para gestionarlo desde tu perfil.
+                            </Text>
+                            <TouchableOpacity 
+                                style={[styles.claimBtn, { backgroundColor: tc.text }]} 
+                                onPress={() => setClaimModalVisible(true)}
+                                activeOpacity={0.9}
+                            >
+                                <Text style={[styles.claimBtnText, { color: tc.bg }]}>Reclamar este servicio</Text>
+                            </TouchableOpacity>
+                        </View>
+                    );
+                }
+                return null;
+            })()}
         </>
     );
 
@@ -508,6 +576,68 @@ export default function ServiceDetailScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* ══ Claim Modal ══ */}
+            <Modal visible={claimModalVisible} transparent animationType="fade">
+                <View style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end',
+                    alignItems: 'center',
+                    paddingHorizontal: Platform.OS === 'web' ? 20 : 0,
+                    paddingVertical: Platform.OS === 'web' ? 20 : 0,
+                }}>
+                    <View style={{
+                        width: '100%',
+                        maxWidth: 440,
+                        borderRadius: Platform.OS === 'web' ? 20 : 0,
+                        borderTopLeftRadius: 24,
+                        borderTopRightRadius: 24,
+                        padding: 24,
+                        paddingBottom: Platform.OS === 'web' ? 24 : 40,
+                        backgroundColor: tc.bgCard,
+                    }}>
+                        <Text style={{
+                            fontSize: 18, fontWeight: '700',
+                            marginBottom: 16, textAlign: 'center',
+                            color: tc.text,
+                        }}>
+                            Reclamar servicio
+                        </Text>
+                        <Text style={[{ color: tc.textSecondary, marginBottom: 16, fontSize: 15, lineHeight: 22, textAlign: 'center' }]}>
+                            Al reclamar, este servicio aparecerá en tu perfil como tuyo. Si ya hay solicitudes pendientes, los admins lo revisarán.
+                        </Text>
+                        <TextInput
+                            style={[styles.modalInput, { borderColor: tc.borderLight, color: tc.text, backgroundColor: tc.bg }]}
+                            placeholder="¿Por qué querés reclamar este servicio?"
+                            placeholderTextColor={tc.textMuted}
+                            value={claimMessage}
+                            onChangeText={setClaimMessage}
+                            multiline
+                        />
+                        <View style={styles.modalBtns}>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.modalBtnCancel, { borderColor: tc.borderLight }]}
+                                onPress={() => setClaimModalVisible(false)}
+                                disabled={claiming}
+                            >
+                                <Text style={{ color: tc.text, fontWeight: '600' }}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.modalBtnSubmit]}
+                                onPress={handleSubmitClaim}
+                                disabled={claiming}
+                            >
+                                {claiming ? (
+                                    <ActivityIndicator color="#fff" size="small" />
+                                ) : (
+                                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Enviar solicitud</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -566,4 +696,12 @@ const styles = StyleSheet.create({
     modalBtnCancel: { backgroundColor: 'transparent', borderWidth: 1 },
     modalBtnSubmit: { backgroundColor: '#FF6B35' },
     modalBtnTextContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+
+    // Claim
+    claimBadge: { padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 24, alignItems: 'center' },
+    claimCard: { padding: 18, borderRadius: 16, borderWidth: 1, marginBottom: 24 },
+    claimCardTitle: { fontSize: 16, fontWeight: '700' },
+    claimCardDesc: { fontSize: 14, lineHeight: 20, marginBottom: 16 },
+    claimBtn: { paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    claimBtnText: { fontSize: 14, fontWeight: '700' },
 });

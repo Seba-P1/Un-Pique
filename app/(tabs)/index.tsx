@@ -188,7 +188,7 @@ export default function HomeScreen() {
                 subtitle="UN PIQUE"
                 title="Inicio"
                 leftIcon="menu"
-                rightButtons={['search', 'favorites', 'notifications', 'cart']}
+                rightButtons={['search', 'favorites', 'messages', 'notifications', 'cart']}
 
                 onSearchSubmit={handleSearchSubmit}
                 searchPlaceholder="Buscar negocios, servicios..."

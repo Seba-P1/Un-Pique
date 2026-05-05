@@ -181,7 +181,7 @@ export default function SocialScreen() {
                 subtitle="CONECTA"
                 title="Social"
                 leftIcon="menu"
-                rightButtons={['search', 'notifications', 'cart']}
+                rightButtons={['search', 'messages', 'notifications', 'cart']}
                 onSearchSubmit={(text) => router.push(`/search?q=${encodeURIComponent(text)}` as any)}
                 scrollY={scrollY}
             />

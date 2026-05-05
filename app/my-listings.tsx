@@ -90,6 +90,18 @@ export default function MyListingsScreen() {
         <Text style={[styles.cardTitle, { color: tc.text }]}>{listing.title}</Text>
         <Text style={[styles.cardCategory, { color: tc.textMuted }]}>{listing.category}</Text>
 
+        {listing.claim_status === 'pending' && (
+          <View style={{ marginTop: 8, marginBottom: 8, padding: 12, backgroundColor: tc.isDark ? 'rgba(234,179,8,0.1)' : 'rgba(234,179,8,0.05)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(234,179,8,0.3)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: '#EAB308', fontSize: 13, fontWeight: '600', flex: 1 }}>⏳ Alguien solicitó reclamar este servicio</Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: 'rgba(234,179,8,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginLeft: 8 }}
+              onPress={() => showAlert('Solicitud de reclamo', 'Un usuario solicitó reclamar este servicio. Los administradores revisarán la solicitud.')}
+            >
+              <Text style={{ color: '#EAB308', fontSize: 12, fontWeight: '700' }}>Ver</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {listing.address ? (
           <View style={styles.infoRow}>
             <MapPin size={12} color={tc.textMuted} />

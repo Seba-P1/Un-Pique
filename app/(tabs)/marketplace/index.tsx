@@ -314,7 +314,7 @@ export default function DeliveryScreen() {
                 title="Sabor Local"
                 subtitle={headerSubtitle}
                 leftIcon="menu"
-                rightButtons={['search', 'favorites', 'notifications', 'cart']}
+                rightButtons={['search', 'favorites', 'messages', 'notifications', 'cart']}
                 onSearch={setSearchQuery}
                 searchPlaceholder="Buscar restaurantes..."
                 scrollY={scrollY}

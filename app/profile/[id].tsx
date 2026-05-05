@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, Image, FlatList,
     ActivityIndicator, TouchableOpacity, Platform, useWindowDimensions,
-    Pressable, TextInput, RefreshControl
+    Pressable, TextInput, RefreshControl, Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +16,8 @@ import {
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocialStore, Post } from '../../stores/socialStore';
+import { useChatStore } from '../../stores/chatStore';
+import { SharedBusinessCard, SharedServiceCard, SharedAccommodationCard } from '../../components/social/SharedPost';
 import { supabase } from '../../lib/supabase';
 import { formatDistanceToNow, format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -49,6 +51,11 @@ export default function UserProfileScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followersCount, setFollowersCount] = useState(0);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [messageLoading, setMessageLoading] = useState(false);
+    const { createRoom } = useChatStore();
 
     const isOwnProfile = user?.id === id;
     const isDesktop = width >= 1024;
@@ -85,6 +92,24 @@ export default function UserProfileScreen() {
             const userPosts = await fetchUserPosts(id!);
             setPosts(userPosts);
 
+            // Fetch followers count
+            const { count: followers } = await supabase
+                .from('user_follows')
+                .select('*', { count: 'exact', head: true })
+                .eq('following_id', id);
+            setFollowersCount(followers || 0);
+
+            // Check if current user is following
+            if (user?.id) {
+                const { data: followData } = await supabase
+                    .from('user_follows')
+                    .select('id')
+                    .eq('follower_id', user.id)
+                    .eq('following_id', id)
+                    .maybeSingle();
+                setIsFollowing(!!followData);
+            }
+
             // Load saved posts if own profile
             if (user?.id === id && savedPosts.length > 0) {
                 const saved = await fetchSavedPosts(savedPosts);
@@ -100,6 +125,83 @@ export default function UserProfileScreen() {
         setRefreshing(true);
         await loadProfile();
         setRefreshing(false);
+    };
+
+    const handleFollowToggle = async () => {
+        if (!user) {
+            showAlert('Iniciá sesión', 'Necesitás una cuenta para interactuar.');
+            return;
+        }
+
+        if (isFollowing) {
+            if (Platform.OS === 'web') {
+                if (window.confirm(`¿Dejar de seguir a ${profileData?.full_name}?`)) executeUnfollow();
+            } else {
+                Alert.alert(
+                    'Dejar de seguir',
+                    `¿Estás seguro que querés dejar de seguir a ${profileData?.full_name}?`,
+                    [
+                        { text: 'Cancelar', style: 'cancel' },
+                        { text: 'Dejar de seguir', style: 'destructive', onPress: executeUnfollow }
+                    ]
+                );
+            }
+        } else {
+            executeFollow();
+        }
+    };
+
+    const executeFollow = async () => {
+        setActionLoading(true);
+        setIsFollowing(true);
+        setFollowersCount(prev => prev + 1);
+
+        const { error } = await supabase
+            .from('user_follows')
+            .insert({ follower_id: user!.id, following_id: id });
+
+        if (error) {
+            setIsFollowing(false);
+            setFollowersCount(prev => prev - 1);
+            showAlert('Error', 'No se pudo seguir al usuario.');
+        }
+        setActionLoading(false);
+    };
+
+    const executeUnfollow = async () => {
+        setActionLoading(true);
+        setIsFollowing(false);
+        setFollowersCount(prev => Math.max(0, prev - 1));
+
+        const { error } = await supabase
+            .from('user_follows')
+            .delete()
+            .eq('follower_id', user!.id)
+            .eq('following_id', id);
+
+        if (error) {
+            setIsFollowing(true);
+            setFollowersCount(prev => prev + 1);
+            showAlert('Error', 'No se pudo dejar de seguir al usuario.');
+        }
+        setActionLoading(false);
+    };
+
+    const handleMessage = async () => {
+        if (!user) {
+            showAlert('Iniciá sesión', 'Necesitás una cuenta para enviar mensajes.');
+            return;
+        }
+        setMessageLoading(true);
+        try {
+            const roomId = await createRoom(id!);
+            router.push(`/chat/${roomId}` as any);
+        } catch (error) {
+            console.error('Error open chat:', error);
+            showAlert('Error', 'No se pudo abrir la conversación.');
+        } finally {
+            setMessageLoading(false);
+        }
     };
 
     // Extract photos from posts
@@ -200,6 +302,9 @@ export default function UserProfileScreen() {
                                 )}
                             </View>
                             <View style={styles.statsRow}>
+                                <Text style={[styles.statNumber, { color: tc.text }]}>{followersCount}</Text>
+                                <Text style={[styles.statLabel, { color: tc.textMuted }]}>seguidores</Text>
+                                <Text style={[styles.statLabel, { color: tc.textMuted, marginHorizontal: 2 }]}>•</Text>
                                 <Text style={[styles.statNumber, { color: tc.text }]}>{posts.length}</Text>
                                 <Text style={[styles.statLabel, { color: tc.textMuted }]}>publicaciones</Text>
                             </View>
@@ -217,13 +322,37 @@ export default function UserProfileScreen() {
                                 </TouchableOpacity>
                             ) : (
                                 <>
-                                    <TouchableOpacity style={[styles.followBtn, { backgroundColor: colors.primary.DEFAULT }]}>
-                                        <UserPlus size={16} color="#fff" />
-                                        <Text style={styles.followBtnText}>Seguir</Text>
+                                    <TouchableOpacity 
+                                        style={[styles.followBtn, isFollowing ? { backgroundColor: 'transparent', borderWidth: 1, borderColor: tc.borderLight } : { backgroundColor: colors.primary.DEFAULT }]}
+                                        onPress={handleFollowToggle}
+                                        disabled={actionLoading}
+                                        activeOpacity={0.8}
+                                    >
+                                        {actionLoading ? (
+                                            <ActivityIndicator size="small" color={isFollowing ? tc.text : "#fff"} />
+                                        ) : isFollowing ? (
+                                            <Text style={[styles.followBtnText, { color: tc.text }]}>Siguiendo ✓</Text>
+                                        ) : (
+                                            <>
+                                                <UserPlus size={16} color="#fff" />
+                                                <Text style={styles.followBtnText}>Seguir</Text>
+                                            </>
+                                        )}
                                     </TouchableOpacity>
-                                    <TouchableOpacity style={[styles.messageBtn, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}>
-                                        <MessageCircle size={16} color={tc.text} />
-                                        <Text style={[styles.messageBtnText, { color: tc.text }]}>Mensaje</Text>
+                                    <TouchableOpacity 
+                                        style={[styles.messageBtn, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+                                        onPress={handleMessage}
+                                        disabled={messageLoading}
+                                        activeOpacity={0.8}
+                                    >
+                                        {messageLoading ? (
+                                            <ActivityIndicator size="small" color={tc.text} />
+                                        ) : (
+                                            <>
+                                                <MessageCircle size={16} color={tc.text} />
+                                                <Text style={[styles.messageBtnText, { color: tc.text }]}>Mensaje</Text>
+                                            </>
+                                        )}
                                     </TouchableOpacity>
                                 </>
                             )}
@@ -233,7 +362,7 @@ export default function UserProfileScreen() {
 
                 {/* ====== TAB NAVIGATION ====== */}
                 <View style={[styles.tabBar, { borderBottomColor: tc.borderLight, backgroundColor: 'transparent', maxWidth: isMobile ? undefined : contentMaxWidth, alignSelf: isMobile ? undefined : 'center', width: isMobile ? '100%' : '100%' }]}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabScroll, { flexGrow: 1, justifyContent: 'center' }]}>
                         {tabs.map((tab) => (
                             <Pressable
                                 key={tab.key}
@@ -401,6 +530,35 @@ function WallPostCard({ post, tc, isLiked, toggleLike, isSaved, toggleSave, rout
     const liked = isLiked(post.id);
     const saved = isSaved(post.id);
 
+    const parseContent = (content: string) => {
+        let text = content || '';
+        let service = null;
+        let business = null;
+        let accommodation = null;
+
+        const serviceMatch = /\[service:([^:\]]+):([^\]]+)\]/.exec(text);
+        if (serviceMatch) {
+            text = text.replace(serviceMatch[0], '').trim();
+            service = { id: serviceMatch[1], name: serviceMatch[2] };
+        }
+
+        const businessMatch = /\[business:([^:\]]+):([^\]]+)\]/.exec(text);
+        if (businessMatch) {
+            text = text.replace(businessMatch[0], '').trim();
+            business = { id: businessMatch[1], name: businessMatch[2] };
+        }
+
+        const accommodationMatch = /\[accommodation:([^:\]]+):([^\]]+)\]/.exec(text);
+        if (accommodationMatch) {
+            text = text.replace(accommodationMatch[0], '').trim();
+            accommodation = { id: accommodationMatch[1], name: accommodationMatch[2] };
+        }
+
+        return { text, service, business, accommodation };
+    };
+
+    const parsed = parseContent(post.content);
+
     return (
         <View style={[wallStyles.card, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
             {/* Header */}
@@ -423,7 +581,18 @@ function WallPostCard({ post, tc, isLiked, toggleLike, isSaved, toggleSave, rout
             </View>
 
             {/* Content */}
-            <Text style={[wallStyles.content, { color: tc.text }]}>{post.content}</Text>
+            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+                {!!parsed.text && <Text style={[wallStyles.content, { color: tc.text }]}>{parsed.text}</Text>}
+                {parsed.service && (
+                    <SharedServiceCard serviceId={parsed.service.id} serviceName={parsed.service.name} tc={tc} router={router} />
+                )}
+                {parsed.business && (
+                    <SharedBusinessCard businessId={parsed.business.id} businessName={parsed.business.name} tc={tc} router={router} />
+                )}
+                {parsed.accommodation && (
+                    <SharedAccommodationCard accommodationId={parsed.accommodation.id} accommodationName={parsed.accommodation.name} tc={tc} router={router} />
+                )}
+            </View>
 
             {/* Image */}
             {post.media_urls && post.media_urls.length > 0 && (
@@ -564,7 +733,7 @@ const wallStyles = StyleSheet.create({
     avatar: { width: 40, height: 40, borderRadius: 20 },
     authorName: { fontSize: 14, fontWeight: '700' },
     postTime: { fontSize: 12 },
-    content: { fontSize: 14, lineHeight: 21, paddingHorizontal: 14, paddingBottom: 12 },
+    content: { fontSize: 14, lineHeight: 21, paddingBottom: 8 },
     postImage: { width: '100%', height: 300 },
     stats: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 0.5 },
     statItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },

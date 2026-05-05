@@ -42,6 +42,7 @@ export interface Business {
     commission_rate?: number;
     mp_preapproval_id?: string | null;
     mp_payer_email?: string | null;
+    owner_id?: string | null;
 }
 
 interface BusinessState {
@@ -93,6 +94,7 @@ const formatBusiness = (b: any): Business => ({
     commission_rate: b.commission_rate,
     mp_preapproval_id: b.mp_preapproval_id ?? null,
     mp_payer_email: b.mp_payer_email ?? null,
+    owner_id: b.owner_id ?? null,
 });
 
 export const useBusinessStore = create<BusinessState>((set, get) => ({
