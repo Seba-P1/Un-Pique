@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Pressable, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send } from 'lucide-react-native';
+import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Send, Store, Briefcase, ChevronRight, Home } from 'lucide-react-native';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
@@ -9,6 +9,261 @@ import { useSocialStore, Post } from '../../stores/socialStore';
 import { showAlert } from '../../utils/alert';
 import colors from '../../constants/colors';
 import { useRouter } from 'expo-router';
+
+const BUSINESS_CATEGORY_MAP: Record<string, string> = {
+    restaurant: 'Restaurante', cafe: 'Café', bakery: 'Panadería',
+    pharmacy: 'Farmacia', supermarket: 'Supermercado',
+    minimarket: 'Minimercado', clothing: 'Ropa', shoes: 'Calzado',
+    electronics: 'Electrónica', gym: 'Gimnasio',
+    beauty_salon: 'Salón de Belleza', barbershop: 'Barbería',
+    spa: 'Spa', auto_repair: 'Mecánica', auto_parts: 'Repuestos',
+    health_clinic: 'Clínica', dentist: 'Odontología',
+    veterinary: 'Veterinaria', laundry: 'Lavandería',
+    hardware_store: 'Ferretería', bookstore: 'Librería',
+    toys: 'Juguetería', pets: 'Mascotas', services: 'Servicios',
+    furniture: 'Mueblería', other: 'Otros',
+};
+
+/* ═══════════════════════════════════════════════════════
+   SharedBusinessCard – fetches real business data
+   ═══════════════════════════════════════════════════════ */
+export function SharedBusinessCard({ businessId, businessName, tc, router }: { businessId: string; businessName: string; tc: any; router: any }) {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                console.log('[SharedBusinessCard] fetching id:', businessId);
+                const { data: biz, error } = await supabase
+                    .from('businesses')
+                    .select('id, name, logo_url, cover_url, category, rating, is_open, slug')
+                    .eq('id', businessId)
+                    .single();
+                console.log('[SharedBusinessCard] result:', biz, error);
+                if (!error && biz) setData(biz);
+            } catch (_) { /* silent */ }
+            setLoading(false);
+        })();
+    }, [businessId]);
+
+    const handlePress = () => {
+        if (data) {
+            router.push(`/shop/${data.slug || data.id}` as any);
+        } else {
+            router.push(`/shop/${businessId}` as any);
+        }
+    };
+
+    return (
+        <View style={{ marginTop: 8 }}>
+            <View style={sharedStyles.labelRow}>
+                <Text style={{ fontSize: 16 }}>🏪</Text>
+                <Text style={[sharedStyles.labelText, { color: tc.primary }]}>Local compartido</Text>
+            </View>
+
+            {loading ? (
+                <View style={[sharedStyles.skeleton, { backgroundColor: tc.bgInput }]} />
+            ) : !data ? (
+                <TouchableOpacity style={[sharedStyles.fallbackCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]} onPress={handlePress}>
+                    <Store size={20} color={tc.textSecondary} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={[sharedStyles.fallbackName, { color: tc.text }]}>{businessName}</Text>
+                        <Text style={{ color: tc.primary, fontSize: 13, fontWeight: '600', marginTop: 2 }}>Ver negocio →</Text>
+                    </View>
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity style={[sharedStyles.richCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]} onPress={handlePress} activeOpacity={0.7}>
+                    {data.logo_url ? (
+                        <Image source={{ uri: data.logo_url }} style={sharedStyles.richImage} />
+                    ) : (
+                        <View style={[sharedStyles.richImage, sharedStyles.iconPlaceholder, { backgroundColor: tc.bgHover }]}>
+                            <Store size={28} color={tc.textMuted} />
+                        </View>
+                    )}
+                    <View style={sharedStyles.richContent}>
+                        <Text style={[sharedStyles.richName, { color: tc.text }]} numberOfLines={1}>{data.name}</Text>
+                        <Text style={[sharedStyles.richCategory, { color: tc.textSecondary }]} numberOfLines={1}>
+                            {BUSINESS_CATEGORY_MAP[data.category] || data.category}
+                        </Text>
+                        <View style={sharedStyles.richFooter}>
+                            <View style={[sharedStyles.openBadge, { backgroundColor: data.is_open ? '#22c55e' : '#ef4444' }]}>
+                                <Text style={sharedStyles.openBadgeText}>{data.is_open ? 'Abierto' : 'Cerrado'}</Text>
+                            </View>
+                            {data.rating > 0 && (
+                                <Text style={[sharedStyles.ratingText, { color: tc.text }]}>⭐ {Number(data.rating).toFixed(1)}</Text>
+                            )}
+                        </View>
+                    </View>
+                    <ChevronRight size={18} color={tc.textMuted} />
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}
+
+/* ═══════════════════════════════════════════════════════
+   SharedServiceCard – fetches real listing/service data
+   ═══════════════════════════════════════════════════════ */
+export function SharedServiceCard({ serviceId, serviceName, tc, router }: { serviceId: string; serviceName: string; tc: any; router: any }) {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data: svc, error } = await supabase
+                    .from('listings')
+                    .select('id, title, category, phone, rating, images, description')
+                    .eq('id', serviceId)
+                    .eq('type', 'service')
+                    .single();
+                if (!error && svc) setData(svc);
+            } catch (_) { /* silent */ }
+            setLoading(false);
+        })();
+    }, [serviceId]);
+
+    const handlePress = () => {
+        router.push(`/directory/${serviceId}` as any);
+    };
+
+    const firstImage = data?.images && data.images.length > 0 ? data.images[0] : null;
+
+    return (
+        <View style={{ marginTop: 8 }}>
+            <View style={sharedStyles.labelRow}>
+                <Text style={{ fontSize: 16 }}>🔧</Text>
+                <Text style={[sharedStyles.labelText, { color: tc.primary }]}>Servicio compartido</Text>
+            </View>
+
+            {loading ? (
+                <View style={[sharedStyles.skeleton, { backgroundColor: tc.bgInput }]} />
+            ) : !data ? (
+                <TouchableOpacity style={[sharedStyles.fallbackCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]} onPress={handlePress}>
+                    <Briefcase size={20} color={tc.textSecondary} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={[sharedStyles.fallbackName, { color: tc.text }]}>{serviceName}</Text>
+                        <Text style={{ color: tc.primary, fontSize: 13, fontWeight: '600', marginTop: 2 }}>Ver servicio →</Text>
+                    </View>
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity style={[sharedStyles.richCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]} onPress={handlePress} activeOpacity={0.7}>
+                    {firstImage ? (
+                        <Image source={{ uri: firstImage }} style={sharedStyles.richImage} />
+                    ) : (
+                        <View style={[sharedStyles.richImage, sharedStyles.iconPlaceholder, { backgroundColor: tc.bgHover }]}>
+                            <Briefcase size={28} color={tc.textMuted} />
+                        </View>
+                    )}
+                    <View style={sharedStyles.richContent}>
+                        <Text style={[sharedStyles.richName, { color: tc.text }]} numberOfLines={1}>{data.title}</Text>
+                        <Text style={[sharedStyles.richCategory, { color: tc.textSecondary }]} numberOfLines={1}>
+                            {data.category || 'Servicio'}
+                        </Text>
+                        <View style={sharedStyles.richFooter}>
+                            {data.rating > 0 && (
+                                <Text style={[sharedStyles.ratingText, { color: tc.text }]}>⭐ {Number(data.rating).toFixed(1)}</Text>
+                            )}
+                        </View>
+                    </View>
+                    <ChevronRight size={18} color={tc.textMuted} />
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}
+
+/* ═══════════════════════════════════════════════════════
+   SharedAccommodationCard – fetches accommodation data
+   ═══════════════════════════════════════════════════════ */
+export function SharedAccommodationCard({ accommodationId, accommodationName, tc, router }: { accommodationId: string; accommodationName: string; tc: any; router: any }) {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data: acc, error } = await supabase
+                    .from('listings')
+                    .select('id, title, category, rating, images, description')
+                    .eq('id', accommodationId)
+                    .eq('type', 'accommodation')
+                    .single();
+                if (!error && acc) setData(acc);
+            } catch (_) { /* silent */ }
+            setLoading(false);
+        })();
+    }, [accommodationId]);
+
+    const handlePress = () => {
+        router.push(`/directory/${accommodationId}` as any);
+    };
+
+    const firstImage = data?.images && data.images.length > 0 ? data.images[0] : null;
+
+    return (
+        <View style={{ marginTop: 8 }}>
+            <View style={sharedStyles.labelRow}>
+                <Text style={{ fontSize: 16 }}>🏠</Text>
+                <Text style={[sharedStyles.labelText, { color: tc.primary }]}>Alojamiento compartido</Text>
+            </View>
+
+            {loading ? (
+                <View style={[sharedStyles.skeleton, { backgroundColor: tc.bgInput }]} />
+            ) : !data ? (
+                <TouchableOpacity style={[sharedStyles.fallbackCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]} onPress={handlePress}>
+                    <Home size={20} color={tc.textSecondary} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={[sharedStyles.fallbackName, { color: tc.text }]}>{accommodationName}</Text>
+                        <Text style={{ color: tc.primary, fontSize: 13, fontWeight: '600', marginTop: 2 }}>Ver alojamiento →</Text>
+                    </View>
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity style={[sharedStyles.richCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]} onPress={handlePress} activeOpacity={0.7}>
+                    {firstImage ? (
+                        <Image source={{ uri: firstImage }} style={sharedStyles.richImage} />
+                    ) : (
+                        <View style={[sharedStyles.richImage, sharedStyles.iconPlaceholder, { backgroundColor: tc.bgHover }]}>
+                            <Home size={28} color={tc.textMuted} />
+                        </View>
+                    )}
+                    <View style={sharedStyles.richContent}>
+                        <Text style={[sharedStyles.richName, { color: tc.text }]} numberOfLines={1}>{data.title}</Text>
+                        <Text style={[sharedStyles.richCategory, { color: tc.textSecondary }]} numberOfLines={1}>
+                            {data.category || 'Alojamiento'}
+                        </Text>
+                        <View style={sharedStyles.richFooter}>
+                            {data.rating > 0 && (
+                                <Text style={[sharedStyles.ratingText, { color: tc.text }]}>⭐ {Number(data.rating).toFixed(1)}</Text>
+                            )}
+                        </View>
+                    </View>
+                    <ChevronRight size={18} color={tc.textMuted} />
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}
+
+/* Shared styles for the rich entity cards */
+const sharedStyles = StyleSheet.create({
+    labelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+    labelText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+    skeleton: { height: 64, borderRadius: 12, width: '100%' },
+    fallbackCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: 1 },
+    fallbackName: { fontSize: 14, fontWeight: '700' },
+    richCard: { flexDirection: 'row', alignItems: 'center', height: 80, borderRadius: 12, borderWidth: 1, paddingHorizontal: 8, overflow: 'hidden' },
+    richImage: { width: 64, height: 64, borderRadius: 8 },
+    iconPlaceholder: { justifyContent: 'center', alignItems: 'center' },
+    richContent: { flex: 1, marginLeft: 12, justifyContent: 'center', paddingVertical: 4 },
+    richName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+    richCategory: { fontSize: 12, fontWeight: '500', marginBottom: 4 },
+    richFooter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    openBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    openBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+    ratingText: { fontSize: 12, fontWeight: '600' },
+});
 
 export function InlineComments({ postId, tc, visible }: { postId: string; tc: any; visible: boolean }) {
     const { user } = useAuthStore();
@@ -176,23 +431,31 @@ export function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComme
     const router = useRouter();
 
     const parseContent = (content: string) => {
+        console.log('[parseContent] input:', content);
         let text = content;
         let service = null;
         let business = null;
+        let accommodation = null;
 
-        const serviceMatch = /\[service:([^:]+):(.+)\]/.exec(text);
+        const serviceMatch = /\[service:([^:\]]+):([^\]]+)\]/.exec(text);
         if (serviceMatch) {
             text = text.replace(serviceMatch[0], '').trim();
             service = { id: serviceMatch[1], name: serviceMatch[2] };
         }
 
-        const businessMatch = /\[business:([^:]+):(.+)\]/.exec(text);
+        const businessMatch = /\[business:([^:\]]+):([^\]]+)\]/.exec(text);
         if (businessMatch) {
             text = text.replace(businessMatch[0], '').trim();
             business = { id: businessMatch[1], name: businessMatch[2] };
         }
 
-        return { text, service, business };
+        const accommodationMatch = /\[accommodation:([^:\]]+):([^\]]+)\]/.exec(text);
+        if (accommodationMatch) {
+            text = text.replace(accommodationMatch[0], '').trim();
+            accommodation = { id: accommodationMatch[1], name: accommodationMatch[2] };
+        }
+
+        return { text, service, business, accommodation };
     };
 
     const parsed = parseContent(item.content);
@@ -235,61 +498,27 @@ export function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComme
                     <View style={{ flex: 1 }}>
                         {!!parsed.text && <Text style={[styles.caption, { color: tc.text }]}>{parsed.text}</Text>}
                         {parsed.service && (
-                            <TouchableOpacity 
-                                style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                                onPress={() => router.push(`/directory/${parsed.service?.id}` as any)}
-                            >
-                                <View style={styles.sharedServiceIconRow}>
-                                    <Share2 size={14} color={tc.primary} />
-                                    <Text style={{ color: tc.primary, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
-                                </View>
-                                <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service?.name}</Text>
-                                <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
-                            </TouchableOpacity>
+                            <SharedServiceCard serviceId={parsed.service.id} serviceName={parsed.service.name} tc={tc} router={router} />
                         )}
                         {parsed.business && (
-                            <TouchableOpacity 
-                                style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                                onPress={() => router.push(`/shop/${parsed.business?.id}` as any)}
-                            >
-                                <View style={styles.sharedServiceIconRow}>
-                                    <Share2 size={14} color={tc.primary} />
-                                    <Text style={{ color: tc.primary, fontSize: 12, fontWeight: '700' }}>Local Compartido</Text>
-                                </View>
-                                <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.business?.name}</Text>
-                                <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
-                            </TouchableOpacity>
+                            <SharedBusinessCard businessId={parsed.business.id} businessName={parsed.business.name} tc={tc} router={router} />
+                        )}
+                        {parsed.accommodation && (
+                            <SharedAccommodationCard accommodationId={parsed.accommodation.id} accommodationName={parsed.accommodation.name} tc={tc} router={router} />
                         )}
                     </View>
                 </View>
             ) : (
                 <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-                    {!!parsed.text && <Text style={[styles.caption, { color: tc.text, marginBottom: (parsed.service || parsed.business) ? 8 : 0 }]}>{parsed.text}</Text>}
+                    {!!parsed.text && <Text style={[styles.caption, { color: tc.text, marginBottom: (parsed.service || parsed.business || parsed.accommodation) ? 8 : 0 }]}>{parsed.text}</Text>}
                     {parsed.service && (
-                        <TouchableOpacity 
-                            style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                            onPress={() => router.push(`/directory/${parsed.service?.id}` as any)}
-                        >
-                            <View style={styles.sharedServiceIconRow}>
-                                <Share2 size={14} color={tc.primary} />
-                                <Text style={{ color: tc.primary, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
-                            </View>
-                            <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service?.name}</Text>
-                            <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
-                        </TouchableOpacity>
+                        <SharedServiceCard serviceId={parsed.service.id} serviceName={parsed.service.name} tc={tc} router={router} />
                     )}
                     {parsed.business && (
-                        <TouchableOpacity 
-                            style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                            onPress={() => router.push(`/shop/${parsed.business?.id}` as any)}
-                        >
-                            <View style={styles.sharedServiceIconRow}>
-                                <Share2 size={14} color={tc.primary} />
-                                <Text style={{ color: tc.primary, fontSize: 12, fontWeight: '700' }}>Local Compartido</Text>
-                            </View>
-                            <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.business?.name}</Text>
-                            <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
-                        </TouchableOpacity>
+                        <SharedBusinessCard businessId={parsed.business.id} businessName={parsed.business.name} tc={tc} router={router} />
+                    )}
+                    {parsed.accommodation && (
+                        <SharedAccommodationCard accommodationId={parsed.accommodation.id} accommodationName={parsed.accommodation.name} tc={tc} router={router} />
                     )}
                 </View>
             )}
@@ -385,6 +614,4 @@ const styles = StyleSheet.create({
     commentInputRow: { flexDirection: 'row', alignItems: 'center', padding: 8, borderTopWidth: 0.5, gap: 8 },
     commentInput: { flex: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, fontSize: 13, minHeight: 34 },
     sendBtn: { padding: 6 },
-    sharedServiceCard: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 4 },
-    sharedServiceIconRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

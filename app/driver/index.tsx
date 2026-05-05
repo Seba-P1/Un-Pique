@@ -40,9 +40,9 @@ export default function DriverDashboard() {
                     <Text style={[styles.businessName, { color: tc.text }]}>{item.business?.name || 'Comercio Desconocido'}</Text>
                     <Text style={[styles.orderId, { color: tc.textMuted }]}>#{item.id.slice(0, 8)}</Text>
                 </View>
-                <View style={[styles.statusBadge, item.status === 'delivering' ? styles.statusBlue : styles.statusOrange]}>
-                    <Text style={[styles.statusText, item.status === 'delivering' ? styles.textBlue : styles.textOrange]}>
-                        {item.status === 'delivering' ? 'En Camino' : 'Retirar'}
+                <View style={[styles.statusBadge, item.status === 'in_transit' ? styles.statusBlue : styles.statusOrange]}>
+                    <Text style={[styles.statusText, item.status === 'in_transit' ? styles.textBlue : styles.textOrange]}>
+                        {item.status === 'in_transit' ? 'En Camino' : 'Retirar'}
                     </Text>
                 </View>
             </View>

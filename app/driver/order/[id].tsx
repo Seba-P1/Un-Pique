@@ -27,14 +27,14 @@ export default function OrderDetailScreen() {
     }
 
     const handleAction = () => {
-        if (order.status === 'ready_for_pickup') {
+        if (order.status === 'ready') {
             acceptOrder.mutate(order.id, {
                 onSuccess: () => {
                     showAlert('¡Pedido Asignado!', 'Dirigite al comercio.');
                     refetch();
                 }
             });
-        } else if (order.status === 'delivering' || order.status === 'picked_up') {
+        } else if (order.status === 'in_transit') {
             updateOrderStatus.mutate({ orderId: order.id, status: 'delivered' }, {
                 onSuccess: () => {
                     showAlert('¡Excelente trabajo!', 'Pedido entregado con éxito.');
@@ -45,8 +45,8 @@ export default function OrderDetailScreen() {
     };
 
     const getActionTitle = () => {
-        if (order.status === 'ready_for_pickup') return 'Aceptar Pedido';
-        if (order.status === 'delivering' || order.status === 'picked_up') return 'Confirmar Entrega';
+        if (order.status === 'ready') return 'Aceptar Pedido';
+        if (order.status === 'in_transit') return 'Confirmar Entrega';
         return 'Completado';
     };
 
@@ -64,7 +64,7 @@ export default function OrderDetailScreen() {
                 <View style={[styles.section, { backgroundColor: tc.bgCard }]}>
                     <Text style={[styles.statusTitle, { color: tc.text }]}>Estado: {order.status.replace('_', ' ').toUpperCase()}</Text>
                     <Text style={[styles.statusDesc, { color: tc.textSecondary }]}>
-                        {order.status === 'ready_for_pickup' ? 'Esperando repartidor' : 'Pedido en curso'}
+                        {order.status === 'ready' ? 'Esperando repartidor' : 'Pedido en curso'}
                     </Text>
                 </View>
 

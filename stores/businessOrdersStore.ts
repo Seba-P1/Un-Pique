@@ -7,7 +7,7 @@ export interface Order {
     user_id: string;
     total_amount: number;
     delivery_fee: number;
-    status: 'pending' | 'preparing' | 'ready' | 'in_delivery' | 'delivered' | 'cancelled';
+    status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'in_transit' | 'delivered' | 'completed' | 'cancelled';
     payment_status: 'pending' | 'approved' | 'rejected';
     payment_method: string;
     address: string;
@@ -42,7 +42,7 @@ export interface OrderStats {
     pending: number;
     preparing: number;
     ready: number;
-    in_delivery: number;
+    in_transit: number;
     delivered: number;
     cancelled: number;
     total_revenue: number;
@@ -116,7 +116,7 @@ export const useBusinessOrdersStore = create<BusinessOrdersState>((set, get) => 
                 pending: data.pending_orders || 0,
                 preparing: data.preparing_orders || 0,
                 ready: data.ready_orders || 0,
-                in_delivery: data.in_delivery_orders || 0,
+                in_transit: data.in_transit_orders || 0,
                 delivered: data.delivered_orders || 0,
                 cancelled: data.cancelled_orders || 0,
                 total_revenue: data.total_revenue || 0,

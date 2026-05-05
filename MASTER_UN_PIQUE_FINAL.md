@@ -50,26 +50,20 @@ Un Pique es un marketplace hyperlocal diseñado para ciudades de menos de 35.000
 | **Gestión DB** | Conexión a Supabase, Guardar Configuración, Dashboard Estadísticas reales. |
 | **Checkout** | Métodos de Pago (Efectivo y MercadoPago UI), Carrito con `delivery_fee` real, UI Pedidos Pill. |
 | **Tiendas** | `/shop/[slug]` unificado (sin colisiones con `/product/`), Sabor Local con 6 secciones, Búsqueda inline. |
-| **Social Feed** | Parser dual UI (`[service:id]` y `[business:id]`), Avatar fallback en posts, Historias activas. |
+| **Social Feed** | Parser dual UI (`[service:id]` y `[business:id]`), Avatar fallback en posts, Historias activas, Integración de Misiones en Muro. |
 | **UX & Cards** | `BusinessCardWide` / `Compact` (estilo PedidosYa), ProductCards con glassmorphism, Banner Parallax. |
-| **Perfiles** | Banner de Mi Perfil editable (image picker + upload a `avatars/covers`), Sistema de Favoritos parcial (Like en tienda), Compartir negocios a muro interno. |
+| **Perfiles** | Banner de Mi Perfil editable (image picker + upload a `avatars/covers`), Sistema de Favoritos completo (Pantalla `/favorites` unificada), Compartir negocios a muro interno. |
+| **Loyalty Club** | UI Completa del Club Un Pique, Canje de puntos con QR, Misiones de Usuario y Panel de Vendedor para gestión de misiones/claims. |
 | **Loyalty DB** | Todos los 14 Scripts de Supabase de Loyalty implementados (Tiers, Missions, Claims, Triggers, etc.). |
 
 ---
 
 ## 5. FEATURES PENDIENTES & BUGS ⏳
 
-### FASE 1: FAVORITOS UI
-*   **FEATURE:** Sistema de Favoritos completo (Pantalla `/favorites`). Ya hay persistencia en perfil local, falta la pantalla unificada y UI de lista de guardados.
-
-### FASE 2: CLUB UN PIQUE (FRONTEND LOYALTY)
-Todo el backend está completo (Base de Datos, Triggers y CRON Jobs). Falta construir la interfaz gráfica de toda esta sección gamificada.
-*   `stores/missionsStore.ts`
-*   `LoyaltyCard.tsx` (Componente visual principal)
-*   **Pantalla de Usuarios:** `app/loyalty/index.tsx` (Club Un Pique) y `app/loyalty/missions.tsx` (Listado de Misiones).
-*   **Pantalla de Vendedores:** `app/business/missions.tsx` (Panel de gestión para crear misiones locales).
-*   Integración del código QR para validación y canje.
-*   Mostrar integración del club en Home, Perfil y Social.
+### FASE 3: PULIDO Y LANZAMIENTO
+*   **BUG:** Revisar navegación en Web para evitar que el `Drawer` intente abrirse como componente nativo (usar el DesktopSidebar).
+*   **FEATURE:** Sistema de notificaciones Push para avisar al usuario cuando su misión fue aprobada.
+*   **UX:** Implementar Skeleton Loaders en la pantalla de Social para mejorar la percepción de carga.
 
 ### DECISIONES PENDIENTES
 *   Clearing de puntos inter-local (Cómo Un Pique balancea los puntos canjeados cruzados) → **Post V1**.

@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 export interface Order {
     id: string;
     created_at: string;
-    status: 'pending' | 'preparing' | 'ready_for_pickup' | 'picked_up' | 'delivering' | 'delivered' | 'cancelled';
+    status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'in_transit' | 'delivered' | 'completed' | 'cancelled';
     total_amount: number;
     delivery_fee: number;
     business_id: string;
@@ -26,7 +26,7 @@ export const useDriverOrders = () => {
     const queryClient = useQueryClient();
 
     // Fetch orders assigned to current driver OR available orders in current locality
-    // For simplicity, we'll just fetch orders assigned to driver AND ready_for_pickup orders in general
+    // For simplicity, we'll just fetch orders assigned to driver AND ready orders in general
     // In a real app, you filter by locality/radius
 
     return useQuery({
@@ -39,7 +39,7 @@ export const useDriverOrders = () => {
                 .from('orders')
                 .select('*, business:businesses(name, address, logo_url)')
                 .eq('driver_id', user.id)
-                .in('status', ['picked_up', 'delivering'])
+                .in('status', ['in_transit'])
                 .order('created_at', { ascending: false });
 
             if (assignedError) throw assignedError;
@@ -49,7 +49,7 @@ export const useDriverOrders = () => {
                 .from('orders')
                 .select('*, business:businesses(name, address, logo_url)')
                 .is('driver_id', null)
-                .eq('status', 'ready_for_pickup')
+                .eq('status', 'ready')
                 .order('created_at', { ascending: false });
 
             if (availableError) throw availableError;
@@ -113,7 +113,7 @@ export const useOrderMutations = () => {
                 .from('orders')
                 .update({
                     driver_id: user.id,
-                    status: 'delivering' // Or 'picked_up' if they are at the store. Let's say accepting means "I'm taking it"
+                    status: 'in_transit' // Accepting means the driver is taking it — order is now in transit
                 })
                 .eq('id', orderId);
 

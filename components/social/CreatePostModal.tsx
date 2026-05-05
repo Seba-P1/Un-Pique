@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback } from 'react-native';
 import { X, Image as ImageIcon, Loader, Send } from 'lucide-react-native';
 import colors from '../../constants/colors';
@@ -14,9 +14,10 @@ import { uploadImage } from '../../services/imageUpload';
 interface CreatePostModalProps {
     visible: boolean;
     onClose: () => void;
+    editPost?: any | null;
 }
 
-export function CreatePostModal({ visible, onClose }: CreatePostModalProps) {
+export function CreatePostModal({ visible, onClose, editPost }: CreatePostModalProps) {
     const { createPost } = useSocialStore();
     const { currentLocality } = useLocationStore();
     const { user } = useAuthStore();
@@ -24,6 +25,17 @@ export function CreatePostModal({ visible, onClose }: CreatePostModalProps) {
     const [content, setContent] = useState('');
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+
+    // Pre-fill when editing
+    useEffect(() => {
+        if (editPost && visible) {
+            setContent(editPost.content || '');
+            setSelectedImage(editPost.media_urls?.[0] || null);
+        } else if (!visible) {
+            setContent('');
+            setSelectedImage(null);
+        }
+    }, [editPost, visible]);
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -72,18 +84,33 @@ export function CreatePostModal({ visible, onClose }: CreatePostModalProps) {
         try {
             let mediaUrls: string[] = [];
             if (selectedImage) {
-                const publicUrl = await uploadImageCustom(selectedImage);
-                mediaUrls.push(publicUrl);
+                // If the image is an existing URL (editing), keep it; otherwise upload
+                if (selectedImage.startsWith('http')) {
+                    mediaUrls.push(selectedImage);
+                } else {
+                    const publicUrl = await uploadImageCustom(selectedImage);
+                    mediaUrls.push(publicUrl);
+                }
             }
 
-            await createPost(content, mediaUrls, currentLocality.id);
+            if (editPost) {
+                // UPDATE existing post
+                const { error } = await supabase
+                    .from('posts')
+                    .update({ content, media_urls: mediaUrls })
+                    .eq('id', editPost.id);
+                if (error) throw error;
+            } else {
+                // CREATE new post
+                await createPost(content, mediaUrls, currentLocality!.id);
+            }
 
             setContent('');
             setSelectedImage(null);
             onClose();
         } catch (error: any) {
-            showAlert('Error', 'No se pudo crear la publicación. Intenta de nuevo.');
-            console.error('Error creating post:', error);
+            showAlert('Error', editPost ? 'No se pudo actualizar la publicación.' : 'No se pudo crear la publicación. Intenta de nuevo.');
+            console.error('Error creating/updating post:', error);
         } finally {
             setUploading(false);
         }
@@ -113,7 +140,7 @@ export function CreatePostModal({ visible, onClose }: CreatePostModalProps) {
                         >
                             {/* Header */}
                             <View style={[styles.header, { borderBottomColor: tc.borderLight }]}>
-                                <Text style={[styles.headerTitle, { color: tc.text }]}>Crear publicación</Text>
+                                <Text style={[styles.headerTitle, { color: tc.text }]}>{editPost ? 'Editar publicación' : 'Crear publicación'}</Text>
                                 <TouchableOpacity onPress={handleClose} disabled={uploading} style={styles.closeButton}>
                                     <X size={24} color={tc.text} />
                                 </TouchableOpacity>

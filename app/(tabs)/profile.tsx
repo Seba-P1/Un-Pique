@@ -72,6 +72,7 @@ export default function ProfileScreen() {
     };
 
     const [tempCoverUrl, setTempCoverUrl] = useState<string | null>(null);
+    const [uploadingCover, setUploadingCover] = useState(false);
 
     const handleEditCover = async () => {
         try {
@@ -85,8 +86,9 @@ export default function ProfileScreen() {
             if (!result.canceled && result.assets && result.assets[0]) {
                 const imgUrl = result.assets[0].uri;
                 setTempCoverUrl(imgUrl);
+                setUploadingCover(true);
 
-                const uploadRes = await uploadImage(imgUrl, 'covers', user?.id, { maxWidth: 1200, maxHeight: 800, quality: 0.8 });
+                const uploadRes = await uploadImage(imgUrl, 'covers', user?.id || 'misc', { maxWidth: 1200, maxHeight: 800, quality: 0.8 });
                 const publicUrl = uploadRes.url;
 
                 const { error: dbError } = await supabase
@@ -96,14 +98,17 @@ export default function ProfileScreen() {
 
                 if (dbError) {
                     console.warn('cover_url update failed (column may not exist yet):', dbError.message);
+                    showAlert('Error en base de datos', dbError.message);
                 } else {
                     await fetchProfile();
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             showAlert('Error', 'No se pudo subir la imagen');
             setTempCoverUrl(null);
+        } finally {
+            setUploadingCover(false);
         }
     };
 
@@ -141,21 +146,34 @@ export default function ProfileScreen() {
                 scrollEventThrottle={16}
             >
                 {/* ====== COVER PHOTO ====== */}
-                <View style={[styles.coverContainer, { height: coverHeight }]}>
+                <View style={[styles.coverContainer, { height: coverHeight, backgroundColor: tc.bgInput }]}>
                     {(tempCoverUrl || profile?.cover_url) ? (
                         <Image 
                             source={{ uri: tempCoverUrl || profile?.cover_url }} 
                             style={StyleSheet.absoluteFillObject} 
                             resizeMode="cover"
                         />
-                    ) : null}
+                    ) : (
+                        <View style={[StyleSheet.absoluteFillObject, { justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={{ color: tc.textMuted, fontSize: 14, fontWeight: '500' }}>Toca para cambiar el banner</Text>
+                        </View>
+                    )}
                     <LinearGradient
                         colors={[(tempCoverUrl || profile?.cover_url) ? 'transparent' : colors.primary.DEFAULT + '50', tc.bg]}
                         style={StyleSheet.absoluteFillObject}
+                        pointerEvents="none"
                     />
-                    <TouchableOpacity style={[styles.editCoverBtn, { backgroundColor: 'rgba(0,0,0,0.35)' }]} onPress={handleEditCover}>
-                        <Camera size={15} color="#fff" />
-                        {!isMobile && <Text style={styles.editCoverText}>Editar portada</Text>}
+                    <TouchableOpacity 
+                        style={[styles.editCoverBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} 
+                        onPress={handleEditCover}
+                        disabled={uploadingCover}
+                    >
+                        {uploadingCover ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <Camera size={15} color="#fff" />
+                        )}
+                        {!isMobile && <Text style={styles.editCoverText}>{uploadingCover ? 'Subiendo...' : 'Editar portada'}</Text>}
                     </TouchableOpacity>
                 </View>
 

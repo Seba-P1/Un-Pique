@@ -11,10 +11,12 @@ import { useBusinessStore } from '../../stores/businessStore';
 
 const STATUS_CONFIG = {
     pending: { label: 'Pendiente', color: colors.warning, icon: Clock, action: 'Aceptar' },
+    confirmed: { label: 'Confirmado', color: colors.warning, icon: CheckCircle, action: 'Iniciar preparación' },
     preparing: { label: 'Preparando', color: colors.info, icon: Package, action: 'Marcar Listo' },
     ready: { label: 'Listo', color: colors.success, icon: CheckCircle, action: 'En Camino' },
-    in_delivery: { label: 'En Camino', color: colors.primary.DEFAULT, icon: Bike, action: 'Entregar' },
+    in_transit: { label: 'En Camino', color: colors.primary.DEFAULT, icon: Bike, action: 'Entregar' },
     delivered: { label: 'Entregado', color: colors.success, icon: CheckCircle, action: null },
+    completed: { label: 'Completado', color: colors.success, icon: CheckCircle, action: null },
     cancelled: { label: 'Cancelado', color: colors.danger, icon: XCircle, action: null },
 };
 
@@ -70,11 +72,13 @@ export default function BusinessOrdersScreen() {
 
     const getNextStatus = (currentStatus: Order['status']): Order['status'] | null => {
         const flow: Record<Order['status'], Order['status'] | null> = {
-            pending: 'preparing',
+            pending: 'confirmed',
+            confirmed: 'preparing',
             preparing: 'ready',
-            ready: 'in_delivery',
-            in_delivery: 'delivered',
+            ready: 'in_transit',
+            in_transit: 'delivered',
             delivered: null,
+            completed: null,
             cancelled: null,
         };
         return flow[currentStatus];
@@ -169,7 +173,7 @@ export default function BusinessOrdersScreen() {
                                 <Text style={styles.actionButtonText}>En Camino</Text>
                             </TouchableOpacity>
                         )}
-                        {order.status === 'in_delivery' && (
+                        {order.status === 'in_transit' && (
                             <TouchableOpacity
                                 style={[styles.actionButton, { backgroundColor: colors.success }]}
                                 onPress={() => handleStatusChange(order)}

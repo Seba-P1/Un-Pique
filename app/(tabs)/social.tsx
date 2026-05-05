@@ -8,19 +8,20 @@ import {
     FlatList, TextInput, Platform, ScrollView, Modal, TouchableWithoutFeedback,
     Animated as RNAnimated, NativeScrollEvent, NativeSyntheticEvent, Pressable, Alert
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Heart, MessageCircle, Share2, MoreHorizontal, Search, Plus, Send,
     ImageIcon, Tag, MapPin, Bookmark, Calendar, TrendingUp, UserPlus,
-    CheckCircle, Bell, ShoppingCart, X
+    CheckCircle, Bell, ShoppingCart, X, Edit3, Trash2, Link, Flag, EyeOff
 } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useSocialStore, Post } from '../../stores/socialStore';
 import { useChatStore, ChatRoom } from '../../stores/chatStore';
 import { useLocationStore } from '../../stores/locationStore';
 import { useAuthStore } from '../../stores/authStore';
-import { CreatePostModal } from '../../components/social';
+import { CreatePostModal, SharedBusinessCard, SharedServiceCard, SharedAccommodationCard } from '../../components/social';
 import { CreateStoryModal } from '../../components/home';
 import { useRouter } from 'expo-router';
 import { AppHeader } from '../../components/ui/AppHeader';
@@ -32,20 +33,122 @@ import { showAlert } from '../../utils/alert';
 import { glassStyle } from '../../utils/glass';
 
 // =============================================
-// HELPER: Menú de opciones de un post
+// MENÚ DE OPCIONES DE UN POST (Bottom Sheet)
 // =============================================
+function PostOptionsMenu({ post, visible, onClose, tc, userId, onDelete, onEdit }: {
+    post: Post | null;
+    visible: boolean;
+    onClose: () => void;
+    tc: ReturnType<typeof useThemeColors>;
+    userId?: string;
+    onDelete: (postId: string) => void;
+    onEdit: (post: Post) => void;
+}) {
+    if (!post || !visible) return null;
 
-const showPostMenu = (post: Post) => {
-    if (Platform.OS === 'web') {
-        showAlert('Opciones', 'Reportar publicación / Copiar contenido — Próximamente');
-    } else {
-        Alert.alert('Opciones', undefined, [
-            { text: 'Reportar publicación', onPress: () => showAlert('Reportado', 'Gracias por tu reporte. Lo revisaremos pronto.') },
-            { text: 'Copiar contenido', onPress: async () => { /* clipboard */ showAlert('Copiado', 'Contenido copiado al portapapeles.'); } },
-            { text: 'Cancelar', style: 'cancel' },
-        ]);
-    }
-};
+    const isOwner = userId && post.author_id === userId;
+
+    const handleCopyLink = async () => {
+        try {
+            const link = `unpique://post/${post.id}`;
+            if (Platform.OS === 'web' && navigator?.clipboard) {
+                await navigator.clipboard.writeText(link);
+            }
+            showAlert('Copiado', 'Enlace copiado al portapapeles.');
+        } catch {
+            showAlert('Error', 'No se pudo copiar el enlace.');
+        }
+        onClose();
+    };
+
+    const handleDelete = () => {
+        const doDelete = () => {
+            onDelete(post.id);
+            onClose();
+        };
+
+        if (Platform.OS === 'web') {
+            const ok = window.confirm('¿Estás seguro de que querés eliminar esta publicación? Esta acción no se puede deshacer.');
+            if (ok) doDelete();
+        } else {
+            Alert.alert(
+                'Eliminar publicación',
+                '¿Estás seguro? Esta acción no se puede deshacer.',
+                [
+                    { text: 'Cancelar', style: 'cancel' },
+                    { text: 'Eliminar', style: 'destructive', onPress: doDelete },
+                ]
+            );
+        }
+    };
+
+    const handleEdit = () => {
+        onEdit(post);
+        onClose();
+    };
+
+    const handleReport = () => {
+        showAlert('Gracias', 'Gracias por reportar. Revisaremos esta publicación.');
+        onClose();
+    };
+
+    const handleHide = () => {
+        showAlert('Preferencia guardada', 'Verás menos contenido como este.');
+        onClose();
+    };
+
+    const MenuOption = ({ icon, label, onPress, destructive }: { icon: React.ReactNode; label: string; onPress: () => void; destructive?: boolean }) => (
+        <TouchableOpacity style={menuStyles.option} onPress={onPress} activeOpacity={0.6}>
+            {icon}
+            <Text style={[menuStyles.optionText, { color: destructive ? '#ef4444' : tc.text }]}>{label}</Text>
+        </TouchableOpacity>
+    );
+
+    return (
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+            <TouchableWithoutFeedback onPress={onClose}>
+                <View style={menuStyles.overlay}>
+                    <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
+                        <View style={[menuStyles.panel, { backgroundColor: tc.bgCard }]}>
+                            <View style={menuStyles.handle} />
+
+                            {isOwner ? (
+                                <>
+                                    <MenuOption icon={<Edit3 size={20} color={tc.text} />} label="Editar publicación" onPress={handleEdit} />
+                                    <View style={[menuStyles.divider, { backgroundColor: tc.borderLight }]} />
+                                    <MenuOption icon={<Trash2 size={20} color="#ef4444" />} label="Eliminar publicación" onPress={handleDelete} destructive />
+                                    <View style={[menuStyles.divider, { backgroundColor: tc.borderLight }]} />
+                                    <MenuOption icon={<Link size={20} color={tc.text} />} label="Copiar enlace" onPress={handleCopyLink} />
+                                </>
+                            ) : (
+                                <>
+                                    <MenuOption icon={<Flag size={20} color={tc.text} />} label="Reportar publicación" onPress={handleReport} />
+                                    <View style={[menuStyles.divider, { backgroundColor: tc.borderLight }]} />
+                                    <MenuOption icon={<Link size={20} color={tc.text} />} label="Copiar enlace" onPress={handleCopyLink} />
+                                    <View style={[menuStyles.divider, { backgroundColor: tc.borderLight }]} />
+                                    <MenuOption icon={<EyeOff size={20} color={tc.text} />} label="Dejar de ver este tipo de contenido" onPress={handleHide} />
+                                </>
+                            )}
+
+                            <View style={[menuStyles.dividerThick, { backgroundColor: tc.borderLight }]} />
+                            <MenuOption icon={<X size={20} color={tc.textMuted} />} label="Cancelar" onPress={onClose} />
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+            </TouchableWithoutFeedback>
+        </Modal>
+    );
+}
+
+const menuStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    panel: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, paddingBottom: 34 },
+    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(150,150,150,0.3)', alignSelf: 'center', marginBottom: 16 },
+    option: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+    optionText: { fontSize: 16, fontWeight: '500' },
+    divider: { height: 0.5, width: '100%' },
+    dividerThick: { height: 6, width: '100%', marginVertical: 4, borderRadius: 3 },
+});
 
 // =============================================
 // COMPONENTE PRINCIPAL — SocialScreen
@@ -445,6 +548,13 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
     const [repostTarget, setRepostTarget] = useState<Post | null>(null);
 
+    // Post options menu state
+    const [menuPost, setMenuPost] = useState<Post | null>(null);
+    const [menuVisible, setMenuVisible] = useState(false);
+
+    // Edit post state
+    const [editPost, setEditPost] = useState<Post | null>(null);
+
     useEffect(() => {
         if (currentLocality) fetchPosts(currentLocality.id);
     }, [currentLocality]);
@@ -465,6 +575,33 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
         });
     };
 
+    const handleShowMenu = (post: Post) => {
+        setMenuPost(post);
+        setMenuVisible(true);
+    };
+
+    const handleDeletePost = async (postId: string) => {
+        try {
+            const { error } = await supabase.from('posts').delete().eq('id', postId);
+            if (error) throw error;
+            showAlert('Eliminado', 'La publicación fue eliminada.');
+            if (currentLocality) fetchPosts(currentLocality.id);
+        } catch {
+            showAlert('Error', 'No se pudo eliminar la publicación.');
+        }
+    };
+
+    const handleEditPost = (post: Post) => {
+        setEditPost(post);
+        setCreateModalVisible(true);
+    };
+
+    const handleCloseCreateModal = () => {
+        setCreateModalVisible(false);
+        setEditPost(null);
+        if (currentLocality) fetchPosts(currentLocality.id);
+    };
+
     const handleScroll = RNAnimated.event(
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
         { useNativeDriver: false }
@@ -472,7 +609,7 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
 
     const renderItem = useCallback(({ item }: { item: Post }) => {
         return (
-            <PostCard item={item} tc={tc} isDesktop={isDesktop} toggleLike={toggleLike} isLiked={isLiked} toggleComments={toggleComments} expandedComments={expandedComments} currentLocality={currentLocality} onRepost={setRepostTarget} />
+            <PostCard item={item} tc={tc} isDesktop={isDesktop} toggleLike={toggleLike} isLiked={isLiked} toggleComments={toggleComments} expandedComments={expandedComments} currentLocality={currentLocality} onRepost={setRepostTarget} onShowMenu={handleShowMenu} />
         );
     }, [tc, isDesktop, expandedComments, currentLocality]);
 
@@ -494,7 +631,7 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
                 ListHeaderComponent={
                     <View>
                         <LocalStories tc={tc} onAddStory={() => setShowCreateStory(true)} />
-                        <CreatePostBox tc={tc} onPress={() => setCreateModalVisible(true)} />
+                        <CreatePostBox tc={tc} onPress={() => { setEditPost(null); setCreateModalVisible(true); }} />
                     </View>
                 }
                 ListEmptyComponent={!loading ? (
@@ -513,14 +650,23 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
                     styles.fab,
                     pressed && { opacity: 0.85, transform: [{ scale: 0.93 }] },
                 ]}
-                onPress={() => setCreateModalVisible(true)}
+                onPress={() => { setEditPost(null); setCreateModalVisible(true); }}
             >
                 <Plus size={22} color={colors.white} strokeWidth={2.5} />
             </Pressable>
 
-            <CreatePostModal visible={createModalVisible} onClose={() => setCreateModalVisible(false)} />
+            <CreatePostModal visible={createModalVisible} onClose={handleCloseCreateModal} editPost={editPost} />
             <CreateStoryModal visible={showCreateStory} onClose={() => setShowCreateStory(false)} />
             <RepostModal post={repostTarget} onClose={() => setRepostTarget(null)} tc={tc} />
+            <PostOptionsMenu
+                post={menuPost}
+                visible={menuVisible}
+                onClose={() => { setMenuVisible(false); setMenuPost(null); }}
+                tc={tc}
+                userId={user?.id}
+                onDelete={handleDeletePost}
+                onEdit={handleEditPost}
+            />
         </View>
     );
 }
@@ -632,7 +778,7 @@ function RepostModal({ post, onClose, tc }: { post: Post | null; onClose: () => 
 // =============================================
 // POST CARD — Con repost y guardado con feedback
 // =============================================
-function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, expandedComments, currentLocality, onRepost }: any) {
+function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, expandedComments, currentLocality, onRepost, onShowMenu }: any) {
     const { isSaved, toggleSave } = useSocialStore();
     const { user } = useAuthStore();
     const router = useRouter();
@@ -665,14 +811,30 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
     };
 
     const parseContent = (content: string) => {
-        const match = /\[service:([^:]+):(.+)\]/.exec(content);
-        if (match) {
-            return {
-                text: content.replace(match[0], '').trim(),
-                service: { id: match[1], name: match[2] }
-            };
+        let text = content;
+        let service = null;
+        let business = null;
+        let accommodation = null;
+
+        const serviceMatch = /\[service:([^:\]]+):([^\]]+)\]/.exec(text);
+        if (serviceMatch) {
+            text = text.replace(serviceMatch[0], '').trim();
+            service = { id: serviceMatch[1], name: serviceMatch[2] };
         }
-        return { text: content, service: null };
+
+        const businessMatch = /\[business:([^:\]]+):([^\]]+)\]/.exec(text);
+        if (businessMatch) {
+            text = text.replace(businessMatch[0], '').trim();
+            business = { id: businessMatch[1], name: businessMatch[2] };
+        }
+
+        const accommodationMatch = /\[accommodation:([^:\]]+):([^\]]+)\]/.exec(text);
+        if (accommodationMatch) {
+            text = text.replace(accommodationMatch[0], '').trim();
+            accommodation = { id: accommodationMatch[1], name: accommodationMatch[2] };
+        }
+
+        return { text, service, business, accommodation };
     };
 
     const parsed = parseContent(item.content);
@@ -705,7 +867,7 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
                         </View>
                     </View>
                 </Pressable>
-                <Pressable style={({ pressed }) => [styles.moreBtn, pressed && { opacity: 0.6 }]} hitSlop={8} onPress={() => showPostMenu(item)}>
+                <Pressable style={({ pressed }) => [styles.moreBtn, pressed && { opacity: 0.6 }]} hitSlop={8} onPress={() => onShowMenu?.(item)}>
                     <MoreHorizontal size={18} color={tc.textMuted} />
                 </Pressable>
             </View>
@@ -721,35 +883,27 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
                     <View style={{ flex: 1 }}>
                         {!!parsed.text && <Text style={[styles.caption, { color: tc.text }]}>{parsed.text}</Text>}
                         {parsed.service && (
-                            <TouchableOpacity 
-                                style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                                onPress={() => router.push(`/directory/${parsed.service.id}` as any)}
-                            >
-                                <View style={styles.sharedServiceIconRow}>
-                                    <Share2 size={14} color={colors.primary.DEFAULT} />
-                                    <Text style={{ color: colors.primary.DEFAULT, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
-                                </View>
-                                <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
-                                <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
-                            </TouchableOpacity>
+                            <SharedServiceCard serviceId={parsed.service.id} serviceName={parsed.service.name} tc={tc} router={router} />
+                        )}
+                        {parsed.business && (
+                            <SharedBusinessCard businessId={parsed.business.id} businessName={parsed.business.name} tc={tc} router={router} />
+                        )}
+                        {parsed.accommodation && (
+                            <SharedAccommodationCard accommodationId={parsed.accommodation.id} accommodationName={parsed.accommodation.name} tc={tc} router={router} />
                         )}
                     </View>
                 </View>
             ) : (
                 <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-                    {!!parsed.text && <Text style={[styles.caption, { color: tc.text, marginBottom: parsed.service ? 8 : 0 }]}>{parsed.text}</Text>}
+                    {!!parsed.text && <Text style={[styles.caption, { color: tc.text, marginBottom: (parsed.service || parsed.business || parsed.accommodation) ? 8 : 0 }]}>{parsed.text}</Text>}
                     {parsed.service && (
-                        <TouchableOpacity 
-                            style={[styles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                            onPress={() => router.push(`/directory/${parsed.service.id}` as any)}
-                        >
-                            <View style={styles.sharedServiceIconRow}>
-                                <Share2 size={14} color={colors.primary.DEFAULT} />
-                                <Text style={{ color: colors.primary.DEFAULT, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
-                            </View>
-                            <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
-                            <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
-                        </TouchableOpacity>
+                        <SharedServiceCard serviceId={parsed.service.id} serviceName={parsed.service.name} tc={tc} router={router} />
+                    )}
+                    {parsed.business && (
+                        <SharedBusinessCard businessId={parsed.business.id} businessName={parsed.business.name} tc={tc} router={router} />
+                    )}
+                    {parsed.accommodation && (
+                        <SharedAccommodationCard accommodationId={parsed.accommodation.id} accommodationName={parsed.accommodation.name} tc={tc} router={router} />
                     )}
                 </View>
             )}
