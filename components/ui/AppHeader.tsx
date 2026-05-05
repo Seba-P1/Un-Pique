@@ -45,43 +45,22 @@ export function AppHeader({
     const totalCartItems = items.reduce((acc, item) => acc + item.quantity, 0);
     const newFavoritesCount = useFavoritesStore((s) => s.newFavoritesCount);
 
-    const borderOpacity = scrollY ? scrollY.interpolate({
-        inputRange: [0, 10],
-        outputRange: [0, 1],
-        extrapolate: 'clamp'
-    }) : new Animated.Value(0);
+    const effectiveScrollY = scrollY ?? new Animated.Value(100);
 
-    const animatedBorderColor = borderOpacity.interpolate({
-        inputRange: [0, 1],
-        outputRange: tc.isDark ? ['rgba(255,255,255,0)', 'rgba(255,255,255,0.1)'] : ['rgba(0,0,0,0)', 'rgba(0,0,0,0.1)']
+    const headerOpacity = effectiveScrollY.interpolate({
+        inputRange: [0, 80],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
     });
 
-    const animatedShadowOpacity = borderOpacity.interpolate({
+    const animatedShadowOpacity = headerOpacity.interpolate({
         inputRange: [0, 1],
         outputRange: [0, 0.5]
     });
 
-    const animatedElevation = borderOpacity.interpolate({
+    const animatedElevation = headerOpacity.interpolate({
         inputRange: [0, 1],
         outputRange: [0, 16]
-    });
-
-    const animatedBg = scrollY ? scrollY.interpolate({
-        inputRange: [0, 50],
-        outputRange: ['rgba(18,18,18,0)', 'rgba(18,18,18,0.92)'],
-        extrapolate: 'clamp'
-    }) : new Animated.Value(1).interpolate({
-        inputRange: [0, 1],
-        outputRange: ['rgba(18,18,18,0.92)', 'rgba(18,18,18,0.92)']
-    });
-
-    const animatedBgLight = scrollY ? scrollY.interpolate({
-        inputRange: [0, 50],
-        outputRange: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.92)'],
-        extrapolate: 'clamp'
-    }) : new Animated.Value(1).interpolate({
-        inputRange: [0, 1],
-        outputRange: ['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.92)']
     });
 
     const handleLeftIcon = () => {
@@ -203,31 +182,33 @@ export function AppHeader({
 
     return (
         <View style={{ zIndex: 100, position: 'relative', backgroundColor: 'transparent' }}>
-            {/* Header Visual */}
-            <Animated.View style={[
-                styles.headerContainer,
-                Platform.OS === 'web' ? {
-                    backgroundColor: tc.isDark ? animatedBg : animatedBgLight,
-                    backdropFilter: 'blur(20px)',
-                    // @ts-ignore
-                    WebkitBackdropFilter: 'blur(20px)',
-                    boxShadow: borderOpacity.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0 4px 16px rgba(0,0,0,0)', '0 8px 32px rgba(0,0,0,0.4)']
-                    }) as any,
-                    borderBottomWidth: 1,
-                    borderBottomColor: animatedBorderColor,
-                } as any : {
-                    backgroundColor: tc.isDark ? animatedBg : animatedBgLight,
-                    borderBottomWidth: 1,
-                    borderBottomColor: animatedBorderColor,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: animatedShadowOpacity,
-                    shadowRadius: 16,
-                    elevation: animatedElevation,
-                }
-            ]}>
+            <View style={[styles.headerContainer, { backgroundColor: 'transparent', borderBottomWidth: 0 }]}>
+                {/* Fondo animado absoluto (fade in/out en scroll) */}
+                <Animated.View
+                    style={[
+                        StyleSheet.absoluteFillObject,
+                        {
+                            backgroundColor: tc.bgCard,
+                            opacity: headerOpacity,
+                            borderBottomWidth: 1,
+                            borderBottomColor: tc.borderLight,
+                        },
+                        Platform.OS === 'web' ? {
+                            boxShadow: animatedShadowOpacity.interpolate({
+                                inputRange: [0, 0.5],
+                                outputRange: ['0 4px 16px rgba(0,0,0,0)', '0 8px 32px rgba(0,0,0,0.4)']
+                            }) as any
+                        } : {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: animatedShadowOpacity,
+                            shadowRadius: 16,
+                            elevation: animatedElevation,
+                        }
+                    ]}
+                />
+
+                {/* Contenido principal estático */}
                 {searchVisible ? (
                     renderSearchMode()
                 ) : (
@@ -356,7 +337,7 @@ export function AppHeader({
                         </View>
                     </View>
                 )}
-            </Animated.View>
+            </View>
         </View>
     );
 }
