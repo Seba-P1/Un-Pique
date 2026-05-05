@@ -24,6 +24,7 @@ import { supabase } from '../../lib/supabase';
 import { uploadImage } from '../../services/imageUpload';
 import { useLoyaltyStore } from '../../stores/loyaltyStore';
 import LoyaltyCard from '../../components/loyalty/LoyaltyCard';
+import { PostCard } from '../../components/social/SharedPost';
 
 type ProfileView = 'wall' | 'settings';
 
@@ -272,6 +273,15 @@ export default function ProfileScreen() {
 // WALL VIEW — Mi muro integrado
 // =============================================
 function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike, isSaved, toggleSave, router, savedPosts, profile }: any) {
+    const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+    const toggleComments = (postId: string) => {
+        setExpandedComments(prev => {
+            const next = new Set(prev);
+            next.has(postId) ? next.delete(postId) : next.add(postId);
+            return next;
+        });
+    };
+
     if (loading) {
         return (
             <View style={{ padding: 40, alignItems: 'center' }}>
@@ -312,8 +322,19 @@ function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike
             {/* Feed */}
             <View style={wallStyles.feed}>
                 {posts.length > 0 ? (
-                    posts.map((post: Post) => (
-                        <WallPostCard key={post.id} post={post} tc={tc} isLiked={isLiked} toggleLike={toggleLike} isSaved={isSaved} toggleSave={toggleSave} router={router} />
+                    posts.map((item: Post) => (
+                        <PostCard 
+                            key={item.id} 
+                            item={item} 
+                            tc={tc} 
+                            isDesktop={isDesktop} 
+                            toggleLike={toggleLike} 
+                            isLiked={isLiked} 
+                            toggleComments={toggleComments}
+                            expandedComments={expandedComments}
+                            onShowMenu={null}
+                            currentLocality={null}
+                        />
                     ))
                 ) : (
                     <View style={[wallStyles.emptyCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
@@ -327,97 +348,7 @@ function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike
     );
 }
 
-// =============================================
-// POST CARD para el muro
-// =============================================
-function WallPostCard({ post, tc, isLiked, toggleLike, isSaved, toggleSave, router }: any) {
-    const liked = isLiked(post.id);
-    const saved = isSaved(post.id);
-
-    const parseContent = (content: string) => {
-        const match = /\[service:([^:]+):(.+)\]/.exec(content);
-        if (match) {
-            return {
-                text: content.replace(match[0], '').trim(),
-                service: { id: match[1], name: match[2] }
-            };
-        }
-        return { text: content, service: null };
-    };
-
-    const parsed = parseContent(post.content);
-
-    return (
-        <View style={[wallStyles.postCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-            <View style={wallStyles.postHeader}>
-                <Pressable style={[wallStyles.authorRow, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={() => router.push(`/profile/${post.author_id}` as any)}>
-                    <Image source={{ uri: post.author.avatar_url || 'https://via.placeholder.com/40' }} style={wallStyles.postAvatar} />
-                    <View>
-                        <Text style={[wallStyles.postAuthor, { color: tc.text }]}>{post.author.full_name}</Text>
-                        <Text style={[wallStyles.postTime, { color: tc.textMuted }]}>
-                            {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
-                        </Text>
-                    </View>
-                </Pressable>
-                <TouchableOpacity style={{ padding: 4 }}><MoreHorizontal size={18} color={tc.textMuted} /></TouchableOpacity>
-            </View>
-
-            {!!parsed.text && <Text style={[wallStyles.postContent, { color: tc.text }]}>{parsed.text}</Text>}
-            
-            {parsed.service && (
-                <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
-                    <TouchableOpacity 
-                        style={[wallStyles.sharedServiceCard, { backgroundColor: tc.bgHover, borderColor: tc.borderLight }]}
-                        onPress={() => router.push(`/directory/${parsed.service.id}` as any)}
-                    >
-                        <View style={wallStyles.sharedServiceIconRow}>
-                            <Share2 size={14} color={colors.primary.DEFAULT} />
-                            <Text style={{ color: colors.primary.DEFAULT, fontSize: 12, fontWeight: '700' }}>Servicio Compartido</Text>
-                        </View>
-                        <Text style={{ color: tc.text, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{parsed.service.name}</Text>
-                        <Text style={{ color: tc.textSecondary, fontSize: 13, marginTop: 4 }}>Toca para ver el perfil.</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            {post.media_urls && post.media_urls.length > 0 && (
-                <Image source={{ uri: post.media_urls[0] }} style={wallStyles.postImage} resizeMode="cover" />
-            )}
-
-            {(post.likes_count > 0 || post.comments_count > 0) && (
-                <View style={[wallStyles.postStats, { borderBottomColor: tc.borderLight }]}>
-                    {post.likes_count > 0 && (
-                        <View style={wallStyles.statItem}>
-                            <View style={wallStyles.likeBadge}><Heart size={9} color="#fff" fill="#fff" /></View>
-                            <Text style={[wallStyles.statText, { color: tc.textMuted }]}>
-                                {liked ? (post.likes_count > 1 ? `Vos y ${post.likes_count - 1} más` : 'Te gusta') : post.likes_count}
-                            </Text>
-                        </View>
-                    )}
-                    <View style={{ flex: 1 }} />
-                    {post.comments_count > 0 && (
-                        <Text style={[wallStyles.statText, { color: tc.textMuted }]}>{post.comments_count} comentario{post.comments_count > 1 ? 's' : ''}</Text>
-                    )}
-                </View>
-            )}
-
-            <View style={[wallStyles.postActions, { borderTopColor: tc.borderLight }]}>
-                <Pressable style={({ pressed }) => [wallStyles.actionBtn, pressed && { opacity: 0.6 }]} onPress={() => toggleLike(post.id)}>
-                    <Heart size={16} color={liked ? colors.danger : tc.textSecondary} fill={liked ? colors.danger : 'transparent'} />
-                    <Text style={[wallStyles.actionLabel, { color: liked ? colors.danger : tc.textSecondary }]}>Me gusta</Text>
-                </Pressable>
-                <Pressable style={({ pressed }) => [wallStyles.actionBtn, pressed && { opacity: 0.6 }]}>
-                    <MessageCircle size={16} color={tc.textSecondary} />
-                    <Text style={[wallStyles.actionLabel, { color: tc.textSecondary }]}>Comentar</Text>
-                </Pressable>
-                <Pressable style={({ pressed }) => [wallStyles.actionBtn, pressed && { opacity: 0.6 }]} onPress={() => toggleSave(post.id)}>
-                    <Bookmark size={16} color={saved ? colors.primary.DEFAULT : tc.textSecondary} fill={saved ? colors.primary.DEFAULT : 'transparent'} />
-                    <Text style={[wallStyles.actionLabel, { color: saved ? colors.primary.DEFAULT : tc.textSecondary }]}>{saved ? 'Guardado' : 'Guardar'}</Text>
-                </Pressable>
-            </View>
-        </View>
-    );
-}
+// (WallPostCard component removed)
 
 // =============================================
 // SETTINGS VIEW — Cuenta, roles, apariencia
@@ -551,8 +482,8 @@ const styles = StyleSheet.create({
     editBtnText: { fontSize: 14, fontWeight: '600' },
 
     // Tabs
-    tabBar: { flexDirection: 'row', borderBottomWidth: 0.5, borderTopWidth: 0 },
-    tabItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    tabBar: { flexDirection: 'row', borderBottomWidth: 0.5, borderTopWidth: 0, justifyContent: 'center', width: '100%', alignSelf: 'center' },
+    tabItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderBottomWidth: 3, borderBottomColor: 'transparent' },
     tabLabel: { fontSize: 14, fontWeight: '500' },
 
     // Content
