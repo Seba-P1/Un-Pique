@@ -1,5 +1,5 @@
-// Servicio de carga de imágenes — Compresión + Supabase Storage
-// Compatible con Web, iOS y Android
+// services/imageUpload.ts
+// Servicio de carga de imágenes — Compresión Robusta (Web + Mobile)
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Platform } from 'react-native';
@@ -13,8 +13,7 @@ interface UploadResult {
 }
 
 /**
- * Abre el selector de imágenes con compresión
- * En web no necesita permisos, usa input file nativo
+ * Abre el selector de imágenes con compresión básica del picker
  */
 export async function pickImage(options?: {
     aspect?: [number, number];
@@ -22,7 +21,6 @@ export async function pickImage(options?: {
     maxWidth?: number;
 }): Promise<string | null> {
     try {
-        // En web, no pedir permisos (usa el file picker nativo del browser)
         if (Platform.OS !== 'web') {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
@@ -49,7 +47,7 @@ export async function pickImage(options?: {
 }
 
 /**
- * Abre el selector de múltiples imágenes con compresión
+ * Abre el selector de múltiples imágenes
  */
 export async function pickMultipleImages(options?: {
     maxCount?: number;
@@ -82,15 +80,69 @@ export async function pickMultipleImages(options?: {
 }
 
 /**
- * Procesa una imagen antes de subirla: redimensiona y comprime
- * Solo se aplica en iOS/Android. En web se salta.
+ * Compresión Web usando Canvas API
  */
-async function processImageBeforeUpload(
+async function compressImageWeb(
     uri: string,
-    options: { maxWidth?: number; maxHeight?: number; quality?: number } = {}
+    options: { maxWidth?: number; maxHeight?: number; quality?: number }
+): Promise<Blob> {
+    const { maxWidth = 1200, maxHeight = 1200, quality = 0.78 } = options;
+
+    return new Promise((resolve, reject) => {
+        const img = new (window as any).Image();
+        img.crossOrigin = 'anonymous';
+
+        img.onload = () => {
+            let { naturalWidth: w, naturalHeight: h } = img;
+
+            // Redimensionar manteniendo aspect ratio
+            if (w > maxWidth || h > maxHeight) {
+                const ratio = Math.min(maxWidth / w, maxHeight / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error('Canvas context failed'));
+                return;
+            }
+
+            // Fondo blanco (para evitar fondos negros al convertir PNG transparente a JPEG)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+
+            canvas.toBlob(
+                (blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('Canvas toBlob failed'));
+                    }
+                },
+                'image/jpeg',
+                quality
+            );
+        };
+
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = uri;
+    });
+}
+
+/**
+ * Compresión Native usando ImageManipulator
+ */
+async function compressImageNative(
+    uri: string,
+    options: { maxWidth?: number; maxHeight?: number; quality?: number }
 ): Promise<string> {
-    if (Platform.OS === 'web') return uri;
-    const { maxWidth = 1200, maxHeight = 1200, quality = 0.75 } = options;
+    const { maxWidth = 1200, maxHeight = 1200, quality = 0.78 } = options;
     try {
         const result = await ImageManipulator.manipulateAsync(
             uri,
@@ -99,15 +151,13 @@ async function processImageBeforeUpload(
         );
         return result.uri;
     } catch (error) {
-        console.warn('Image processing failed, using original:', error);
+        console.warn('[imageUpload] Compression failed, using original:', error);
         return uri;
     }
 }
 
 /**
- * Sube una imagen a Supabase Storage
- * Funciona correctamente en Web, iOS y Android
- * Comprime automáticamente en móvil antes de subir
+ * Sube una imagen a Supabase Storage con compresión forzada a JPEG
  */
 export async function uploadImage(
     uri: string,
@@ -116,38 +166,39 @@ export async function uploadImage(
     options?: { maxWidth?: number; maxHeight?: number; quality?: number }
 ): Promise<UploadResult> {
     try {
-        const processedUri = await processImageBeforeUpload(uri, options);
         const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
-        let uploadData: any;
-        let finalMimeType = 'image/jpeg';
-        let ext = 'jpg';
+        const fileName = `imagen-${uniqueId}.jpg`;
+        const filePath = folder ? `${folder}/${fileName}` : fileName;
+        let uploadData: File | ArrayBuffer;
 
         if (Platform.OS === 'web') {
-            const response = await fetch(processedUri);
-            const blob = await response.blob();
-            finalMimeType = blob.type || 'image/jpeg';
-            ext = finalMimeType === 'image/png' ? 'png' : 'jpg';
-            uploadData = new File([blob], `imagen-${uniqueId}.${ext}`, { type: finalMimeType });
+            // ── WEB: Canvas API compression ──────────────────────────
+            const blob = await compressImageWeb(uri, options ?? {});
+            uploadData = new File([blob], fileName, { type: 'image/jpeg' });
+
+            const sizeKB = Math.round(blob.size / 1024);
+            console.log(`[imageUpload] web → ${bucket}/${filePath} | ${sizeKB}KB`);
+
         } else {
+            // ── MOBILE: ImageManipulator compression ─────────────────
+            const processedUri = await compressImageNative(uri, options ?? {});
             const response = await fetch(processedUri);
             const blob = await response.blob();
             uploadData = await new Response(blob).arrayBuffer();
-            finalMimeType = 'image/jpeg';
-            ext = 'jpg';
-        }
 
-        const fileName = `imagen-${uniqueId}.${ext}`;
-        const filePath = folder ? `${folder}/${fileName}` : fileName;
+            const sizeKB = Math.round(blob.size / 1024);
+            console.log(`[imageUpload] native → ${bucket}/${filePath} | ${sizeKB}KB`);
+        }
 
         const { error: uploadError } = await supabase.storage
             .from(bucket)
             .upload(filePath, uploadData, {
-                contentType: finalMimeType,
+                contentType: 'image/jpeg', // SIEMPRE jpeg, sin excepciones
                 upsert: true,
             });
 
         if (uploadError) {
-            console.error('Supabase upload error:', uploadError);
+            console.error('[imageUpload] Supabase upload error:', uploadError);
             throw uploadError;
         }
 
@@ -155,12 +206,10 @@ export async function uploadImage(
             .from(bucket)
             .getPublicUrl(filePath);
 
-        return {
-            url: urlData.publicUrl,
-            path: filePath,
-        };
+        return { url: urlData.publicUrl, path: filePath };
+
     } catch (error) {
-        console.error('Error al subir imagen:', error);
+        console.error('[imageUpload] Error al subir imagen:', error);
         throw error;
     }
 }
