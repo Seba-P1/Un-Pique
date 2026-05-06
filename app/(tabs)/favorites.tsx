@@ -1,20 +1,24 @@
-// Favorites Screen — Tabs Negocios/Productos con datos reales de Supabase
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl, Pressable, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Heart, Bookmark } from 'lucide-react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import {
+    View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl,
+    Pressable, Platform, Animated, Image, useWindowDimensions, TouchableOpacity
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+    Heart, Store, ShoppingBag, Wrench, Home, ChevronLeft, ChevronRight,
+    MapPin, Clock, MessageCircle, Star
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useFavoritesStore } from '../../stores/favoritesStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
-import { AppHeader } from '../../components/ui/AppHeader';
-import { BusinessCardCompact } from '../../components/delivery/BusinessCardCompact';
-import { ProductCard } from '../../components/delivery/ProductCard';
 import { supabase } from '../../lib/supabase';
 import { Business } from '../../stores/businessStore';
 import { MarketplaceProduct } from '../../hooks/useMarketplaceData';
+import { Listing } from '../../stores/listingStore';
+import { useResponsive } from '../../hooks/useResponsive';
 
-// ── Business formatter ───────────────────────────────────────────
+// ─── Formatters ───────────────────────────────────────────────────
 const formatBusiness = (b: any): Business => ({
     id: b.id,
     name: b.name,
@@ -24,7 +28,7 @@ const formatBusiness = (b: any): Business => ({
     delivery_time: '30-45 min',
     min_order: b.min_order_amount || 0,
     delivery_fee: b.delivery_fee || 0,
-    image: b.cover_url || b.logo_url || 'https://via.placeholder.com/300',
+    image: b.logo_url || b.cover_url || 'https://via.placeholder.com/300',
     tags: b.tags || [],
     is_open: b.is_open,
     locality_id: b.locality_id,
@@ -56,87 +60,293 @@ const formatProduct = (p: any): MarketplaceProduct => ({
     business_slug: p.businesses?.slug,
 });
 
-type TabType = 'negocios' | 'productos' | 'servicios';
+type TabType = 'negocios' | 'productos' | 'servicios' | 'alojamientos';
+
+const FavoriteCard = ({
+    item,
+    type,
+    index,
+    onRemove,
+    tc,
+    isDesktop,
+    listAnim
+}: {
+    item: any;
+    type: 'business' | 'product' | 'listing' | 'accommodation';
+    index: number;
+    onRemove: (type: any, id: string) => void;
+    tc: any;
+    isDesktop: boolean;
+    listAnim: Animated.Value;
+}) => {
+    const router = useRouter();
+    
+    useEffect(() => {
+        Animated.timing(listAnim, {
+            toValue: 1,
+            duration: 250,
+            delay: index * 50,
+            useNativeDriver: true
+        }).start();
+    }, []);
+
+    const translateY = listAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [12, 0]
+    });
+
+    const isRemoval = useRef(new Animated.Value(0)).current;
+    const handleHeartPress = () => {
+        Animated.sequence([
+            Animated.timing(isRemoval, { toValue: 1.3, duration: 100, useNativeDriver: true }),
+            Animated.timing(isRemoval, { toValue: 1, duration: 100, useNativeDriver: true }),
+        ]).start(() => {
+            onRemove(type, item.id);
+        });
+    };
+
+    const cardStyle: any = [
+        styles.card,
+        { 
+            backgroundColor: tc.bgCard, 
+            borderColor: tc.borderLight,
+            opacity: listAnim, 
+            transform: [
+                { translateY }, 
+                { scale: isRemoval.interpolate({ inputRange: [0, 1, 1.3], outputRange: [1, 1, 1.3] }) }
+            ] 
+        },
+        isDesktop && { width: type === 'accommodation' ? '31%' : '48%' }
+    ];
+
+    if (type === 'business') {
+        const biz = item as Business;
+        return (
+            <Animated.View style={cardStyle}>
+                <TouchableOpacity 
+                    activeOpacity={0.9} 
+                    style={styles.cardRow}
+                    onPress={() => router.push(`/shop/${biz.slug}` as any)}
+                >
+                    <View style={[styles.logoContainer, { backgroundColor: tc.bgInput }]}>
+                        {biz.logo_url ? (
+                            <Image source={{ uri: biz.logo_url }} style={styles.logo} />
+                        ) : (
+                            <Text style={styles.logoPlaceholder}>{biz.name.charAt(0).toUpperCase()}</Text>
+                        )}
+                    </View>
+                    <View style={styles.cardContent}>
+                        <Text style={[styles.cardTitle, { color: tc.text }]} numberOfLines={1}>{biz.name}</Text>
+                        <Text style={[styles.cardSub, { color: tc.textSecondary }]} numberOfLines={1}>{biz.category}</Text>
+                        <View style={styles.cardMeta}>
+                            {biz.delivery_fee > 0 && (
+                                <Text style={[styles.metaText, { color: tc.textSecondary }]}>🛵 Envío ${biz.delivery_fee}</Text>
+                            )}
+                            <View style={styles.statusRow}>
+                                <View style={[styles.statusDot, { backgroundColor: biz.is_open ? '#22C55E' : '#EF4444' }]} />
+                                <Text style={[styles.metaText, { color: tc.textSecondary }]}>{biz.is_open ? 'Abierto' : 'Cerrado'}</Text>
+                            </View>
+                        </View>
+                    </View>
+                    <TouchableOpacity onPress={handleHeartPress} style={styles.heartBtn}>
+                        <Heart size={20} color="#EF4444" fill="#EF4444" />
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Animated.View>
+        );
+    }
+
+    if (type === 'product') {
+        const prod = item as MarketplaceProduct;
+        return (
+            <Animated.View style={cardStyle}>
+                <TouchableOpacity 
+                    activeOpacity={0.9} 
+                    style={styles.cardRow}
+                    onPress={() => router.push(`/product/${prod.id}` as any)}
+                >
+                    <View style={[styles.imageContainer, { backgroundColor: tc.bgInput }]}>
+                        {prod.image_url ? (
+                            <Image source={{ uri: prod.image_url }} style={styles.cardImage} />
+                        ) : (
+                            <ShoppingBag size={24} color={tc.textSecondary} />
+                        )}
+                    </View>
+                    <View style={styles.cardContent}>
+                        <Text style={[styles.cardTitle, { color: tc.text }]} numberOfLines={1}>{prod.name}</Text>
+                        <Text style={[styles.cardSub, { color: tc.textSecondary }]} numberOfLines={1}>{prod.business_name}</Text>
+                        <Text style={[styles.price, { color: '#FF6B35' }]}>${prod.price}</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleHeartPress} style={styles.heartBtn}>
+                        <Heart size={20} color="#EF4444" fill="#EF4444" />
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Animated.View>
+        );
+    }
+
+    if (type === 'listing') {
+        const srv = item as Listing;
+        return (
+            <Animated.View style={cardStyle}>
+                <TouchableOpacity 
+                    activeOpacity={0.9} 
+                    style={styles.cardRow}
+                    onPress={() => router.push(`/directory/${srv.id}` as any)}
+                >
+                    <View style={[styles.avatarContainer, { backgroundColor: tc.bgInput }]}>
+                        {srv.owner_avatar ? (
+                            <Image source={{ uri: srv.owner_avatar }} style={styles.avatar} />
+                        ) : (
+                            <Wrench size={24} color={tc.textSecondary} />
+                        )}
+                    </View>
+                    <View style={styles.cardContent}>
+                        <Text style={[styles.cardTitle, { color: tc.text }]} numberOfLines={1}>{srv.title}</Text>
+                        <Text style={[styles.cardSub, { color: tc.textSecondary }]} numberOfLines={1}>{srv.owner_name || 'Proveedor'}</Text>
+                        <Text style={[styles.specialty, { color: '#FF6B35' }]}>{srv.category}</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleHeartPress} style={styles.heartBtn}>
+                        <Heart size={20} color="#EF4444" fill="#EF4444" />
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Animated.View>
+        );
+    }
+
+    if (type === 'accommodation') {
+        const acc = item as Listing;
+        return (
+            <Animated.View style={[cardStyle, { padding: 0, overflow: 'hidden' }]}>
+                <TouchableOpacity 
+                    activeOpacity={0.9} 
+                    onPress={() => router.push(`/alojamiento` as any)}
+                >
+                    <View style={styles.accHeader}>
+                        {acc.images?.[0] ? (
+                            <Image source={{ uri: acc.images[0] }} style={styles.accImage} />
+                        ) : (
+                            <View style={[styles.accImagePlaceholder, { backgroundColor: tc.bgInput }]}>
+                                <Home size={32} color={tc.textSecondary} />
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.accBody}>
+                        <View style={styles.accTitleRow}>
+                            <Text style={[styles.cardTitle, { color: tc.text, flex: 1 }]} numberOfLines={1}>{acc.title}</Text>
+                            <TouchableOpacity onPress={handleHeartPress} style={styles.heartBtnAcc}>
+                                <Heart size={20} color="#EF4444" fill="#EF4444" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={[styles.cardSub, { color: tc.textSecondary, marginTop: 2 }]}>{acc.accommodation_type || acc.category}</Text>
+                        <View style={styles.accMeta}>
+                            <Text style={[styles.metaText, { color: tc.textSecondary }]}>💰 Consultar</Text>
+                            {acc.max_guests && (
+                                <Text style={[styles.metaText, { color: tc.textSecondary }]}>👥 {acc.max_guests} personas</Text>
+                            )}
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Animated.View>
+        );
+    }
+
+    return null;
+};
 
 export default function FavoritesScreen() {
     const tc = useThemeColors();
     const router = useRouter();
     const { user } = useAuthStore();
-    const { businessIds, productIds, listingIds, loading: loadingFavs, fetchFavorites, tableExists, clearNewFavoritesCount } = useFavoritesStore();
+    const { isDesktop } = useResponsive();
+    const insets = useSafeAreaInsets();
+    const { 
+        businessIds, productIds, listingIds, accommodationIds,
+        loading: loadingFavs, fetchFavorites, tableExists, 
+        clearNewFavoritesCount, toggleFavorite 
+    } = useFavoritesStore();
 
     const [activeTab, setActiveTab] = useState<TabType>('negocios');
     const [businesses, setBusinesses] = useState<Business[]>([]);
     const [products, setProducts] = useState<MarketplaceProduct[]>([]);
-    const [services, setServices] = useState<any[]>([]);
+    const [services, setServices] = useState<Listing[]>([]);
+    const [accommodations, setAccommodations] = useState<Listing[]>([]);
+    
     const [loadingData, setLoadingData] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
-    // ── Fetch businesses by IDs ──────────────────────────────────
+    // ── Animations ───────────────────────────────────────────────
+    const contentOpacity = useRef(new Animated.Value(1)).current;
+    const contentScale = useRef(new Animated.Value(1)).current;
+    const listAnims = useRef<Record<string, Animated.Value>>({}).current;
+
+    const animateTabChange = useCallback(() => {
+        contentOpacity.setValue(1);
+        contentScale.setValue(1);
+        Animated.parallel([
+            Animated.sequence([
+                Animated.timing(contentOpacity, { toValue: 0, duration: 75, useNativeDriver: true }),
+                Animated.timing(contentOpacity, { toValue: 1, duration: 75, useNativeDriver: true }),
+            ]),
+            Animated.sequence([
+                Animated.timing(contentScale, { toValue: 0.97, duration: 75, useNativeDriver: true }),
+                Animated.timing(contentScale, { toValue: 1, duration: 75, useNativeDriver: true }),
+            ])
+        ]).start();
+    }, [contentOpacity, contentScale]);
+
+    useEffect(() => {
+        animateTabChange();
+    }, [activeTab]);
+
+    const getListAnim = (id: string) => {
+        if (!listAnims[id]) {
+            listAnims[id] = new Animated.Value(0);
+        }
+        return listAnims[id];
+    };
+
+    // ── Data Fetching ────────────────────────────────────────────
     const fetchFavBusinesses = useCallback(async () => {
-        if (businessIds.length === 0) {
-            setBusinesses([]);
-            return;
-        }
-        try {
-            const { data, error } = await supabase
-                .from('businesses')
-                .select('*')
-                .in('id', businessIds);
-            if (error) throw error;
-            setBusinesses((data || []).map(formatBusiness));
-        } catch (err) {
-            console.error('[Favorites] Error fetching businesses:', err);
-        }
+        if (businessIds.length === 0) { setBusinesses([]); return; }
+        const { data, error } = await supabase.from('businesses').select('*').in('id', businessIds);
+        if (!error && data) setBusinesses(data.map(formatBusiness));
     }, [businessIds]);
 
-    // ── Fetch products by IDs ────────────────────────────────────
     const fetchFavProducts = useCallback(async () => {
-        if (productIds.length === 0) {
-            setProducts([]);
-            return;
-        }
-        try {
-            const { data, error } = await supabase
-                .from('products')
-                .select('*, businesses!inner(name, slug)')
-                .in('id', productIds);
-            if (error) throw error;
-            setProducts((data || []).map(formatProduct));
-        } catch (err) {
-            console.error('[Favorites] Error fetching products:', err);
-        }
+        if (productIds.length === 0) { setProducts([]); return; }
+        const { data, error } = await supabase.from('products').select('*, businesses!inner(name, slug)').in('id', productIds);
+        if (!error && data) setProducts(data.map(formatProduct));
     }, [productIds]);
 
-    // ── Fetch services by IDs ────────────────────────────────────
-    const fetchFavServices = useCallback(async () => {
-        if (listingIds?.length === 0 || !listingIds) {
-            setServices([]);
-            return;
+    const fetchFavListings = useCallback(async () => {
+        const allListingIds = Array.from(new Set([...(listingIds || []), ...(accommodationIds || [])]));
+        if (allListingIds.length === 0) { setServices([]); setAccommodations([]); return; }
+        
+        const { data, error } = await supabase.from('listings').select('*').in('id', allListingIds);
+        if (!error && data) {
+            const list = data as any[];
+            setServices(list.filter(l => l.type === 'service'));
+            setAccommodations(list.filter(l => l.type === 'accommodation'));
         }
-        try {
-            const { data, error } = await supabase
-                .from('listings')
-                .select('*')
-                .in('id', listingIds);
-            if (error) throw error;
-            setServices(data || []);
-        } catch (err) {
-            console.error('[Favorites] Error fetching services:', err);
-        }
-    }, [listingIds]);
+    }, [listingIds, accommodationIds]);
 
-    // ── Load data when IDs change ────────────────────────────────
-    useEffect(() => {
+    const loadAll = useCallback(async () => {
         setLoadingData(true);
-        Promise.all([fetchFavBusinesses(), fetchFavProducts(), fetchFavServices()])
-            .finally(() => setLoadingData(false));
-    }, [fetchFavBusinesses, fetchFavProducts, fetchFavServices]);
+        await Promise.all([fetchFavBusinesses(), fetchFavProducts(), fetchFavListings()]);
+        setLoadingData(false);
+    }, [fetchFavBusinesses, fetchFavProducts, fetchFavListings]);
 
-    // ── Fetch favorites on mount ─────────────────────────────────
     useEffect(() => {
-        clearNewFavoritesCount();
-        if (user) fetchFavorites();
+        if (user) {
+            clearNewFavoritesCount();
+            fetchFavorites();
+        }
     }, [user]);
+
+    useEffect(() => {
+        if (user) loadAll();
+    }, [businessIds, productIds, listingIds, accommodationIds, user]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -144,269 +354,219 @@ export default function FavoritesScreen() {
         setRefreshing(false);
     };
 
-    // ── Not authenticated ────────────────────────────────────────
+    const handleRemove = async (type: any, id: string) => {
+        // Animation out
+        Animated.timing(getListAnim(id), {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true
+        }).start(async () => {
+            await toggleFavorite(type, id);
+        });
+    };
+
+    // ── Render Helpers ───────────────────────────────────────────
+
+    const renderEmpty = () => {
+        let icon = Store;
+        let title = "";
+        let sub = "Explorá la app y guardá lo que más te guste";
+
+        if (activeTab === 'negocios') { icon = Store; title = "No tenés negocios guardados"; }
+        else if (activeTab === 'productos') { icon = ShoppingBag; title = "No tenés productos guardados"; }
+        else if (activeTab === 'servicios') { icon = Wrench; title = "No tenés servicios guardados"; }
+        else if (activeTab === 'alojamientos') { icon = Home; title = "No tenés alojamientos guardados"; }
+
+        const IconComp = icon as any;
+
+        return (
+            <View style={styles.emptyContainer}>
+                <IconComp size={64} color={tc.borderLight} />
+                <Text style={[styles.emptyTitle, { color: tc.text }]}>{title}</Text>
+                <Text style={[styles.emptySub, { color: tc.textSecondary }]}>{sub}</Text>
+            </View>
+        );
+    };
+
+    // ── Main UI ──────────────────────────────────────────────────
     if (!user) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
-                <AppHeader title="Guardados" subtitle="MIS FAVORITOS" leftIcon="back" />
+            <SafeAreaView style={[styles.root, { backgroundColor: tc.bg }]} edges={['top']}>
+                <View style={styles.header}>
+                    <Text style={[styles.headerPre, { color: tc.textSecondary }]}>MIS FAVORITOS</Text>
+                    <Text style={[styles.headerTitleMain, { color: tc.text }]}>Guardados</Text>
+                </View>
                 <View style={styles.centerContent}>
                     <Heart size={48} color={tc.textMuted} />
                     <Text style={[styles.emptyTitle, { color: tc.text }]}>Iniciá sesión</Text>
-                    <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
+                    <Text style={[styles.emptySub, { color: tc.textSecondary, textAlign: 'center' }]}>
                         Para ver tus favoritos tenés que estar logueado.
                     </Text>
+                    <TouchableOpacity 
+                        style={[styles.loginBtn, { backgroundColor: '#FF6B35' }]}
+                        onPress={() => router.push('/(auth)/login')}
+                    >
+                        <Text style={styles.loginBtnText}>Iniciar Sesión</Text>
+                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         );
     }
 
-    // ── Table doesn't exist ──────────────────────────────────────
-    if (tableExists === false) {
-        return (
-            <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
-                <AppHeader title="Guardados" subtitle="MIS FAVORITOS" leftIcon="back" />
-                <View style={styles.centerContent}>
-                    <Heart size={48} color={tc.textMuted} />
-                    <Text style={[styles.emptyTitle, { color: tc.text }]}>Favoritos disponibles próximamente</Text>
-                    <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
-                        Estamos preparando esta funcionalidad para vos.
-                    </Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
+    const counts = {
+        negocios: businessIds.length,
+        productos: productIds.length,
+        servicios: services.length,
+        alojamientos: accommodations.length,
+    };
+
+    const currentList = activeTab === 'negocios' ? businesses : 
+                        activeTab === 'productos' ? products : 
+                        activeTab === 'servicios' ? services : accommodations;
 
     const isLoading = loadingFavs || loadingData;
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
-            <AppHeader title="Guardados" subtitle="MIS FAVORITOS" leftIcon="back" />
+        <SafeAreaView style={[styles.root, { backgroundColor: tc.bg }]} edges={['top']}>
+            <View style={styles.header}>
+                <Text style={[styles.headerPre, { color: tc.textSecondary }]}>MIS FAVORITOS</Text>
+                <Text style={[styles.headerTitleMain, { color: tc.text }]}>Guardados</Text>
+            </View>
 
-            {/* ── Tab Pills ─────────────────────────────────────── */}
-            <ScrollView 
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={[styles.tabsContainer, { paddingRight: 16 }]}
-                style={{ borderBottomWidth: 1, borderBottomColor: tc.borderLight }}
-            >
-                <Pressable
-                    style={[
-                        styles.tabPill,
-                        activeTab === 'negocios' && [styles.tabPillActive, { backgroundColor: '#FF6B35' }],
-                        activeTab !== 'negocios' && { backgroundColor: tc.bgHover },
-                    ]}
-                    onPress={() => setActiveTab('negocios')}
+            {/* Tabs */}
+            <View>
+                <ScrollView 
+                    horizontal={true}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={[styles.tabsScroll, isDesktop && { justifyContent: 'flex-start', paddingHorizontal: 20 }]}
                 >
-                    <Text style={[
-                        styles.tabPillText,
-                        { color: activeTab === 'negocios' ? '#fff' : tc.textSecondary },
-                    ]}>
-                        Negocios {businessIds.length > 0 ? `(${businessIds.length})` : ''}
-                    </Text>
-                </Pressable>
-                <Pressable
-                    style={[
-                        styles.tabPill,
-                        activeTab === 'productos' && [styles.tabPillActive, { backgroundColor: '#FF6B35' }],
-                        activeTab !== 'productos' && { backgroundColor: tc.bgHover },
-                    ]}
-                    onPress={() => setActiveTab('productos')}
-                >
-                    <Text style={[
-                        styles.tabPillText,
-                        { color: activeTab === 'productos' ? '#fff' : tc.textSecondary },
-                    ]}>
-                        Productos {productIds.length > 0 ? `(${productIds.length})` : ''}
-                    </Text>
-                </Pressable>
-                <Pressable
-                    style={[
-                        styles.tabPill,
-                        activeTab === 'servicios' && [styles.tabPillActive, { backgroundColor: '#FF6B35' }],
-                        activeTab !== 'servicios' && { backgroundColor: tc.bgHover },
-                    ]}
-                    onPress={() => setActiveTab('servicios')}
-                >
-                    <Text style={[
-                        styles.tabPillText,
-                        { color: activeTab === 'servicios' ? '#fff' : tc.textSecondary },
-                    ]}>
-                        Servicios {(listingIds && listingIds.length > 0) ? `(${listingIds.length})` : ''}
-                    </Text>
-                </Pressable>
-            </ScrollView>
+                    {(['negocios', 'productos', 'servicios', 'alojamientos'] as TabType[]).map((tab) => (
+                        <TouchableOpacity
+                            key={tab}
+                            activeOpacity={0.7}
+                            onPress={() => setActiveTab(tab)}
+                            style={[
+                                styles.tabPill,
+                                { backgroundColor: activeTab === tab ? '#FF6B35' : tc.bgInput },
+                                !isDesktop && { paddingHorizontal: 12, paddingVertical: 6 },
+                                isDesktop && { marginRight: 12 }
+                            ]}
+                        >
+                            <Text style={[
+                                styles.tabText,
+                                { color: activeTab === tab ? '#fff' : tc.textSecondary },
+                                !isDesktop && { fontSize: 13 }
+                            ]}>
+                                {tab.charAt(0).toUpperCase() + tab.slice(1)} {counts[tab] > 0 ? `(${counts[tab]})` : ''}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
 
-            {/* ── Content ──────────────────────────────────────── */}
+            {/* Content */}
             {isLoading && !refreshing ? (
                 <View style={styles.centerContent}>
-                    <ActivityIndicator size="large" color={tc.primary} />
+                    <ActivityIndicator size="large" color="#FF6B35" />
                 </View>
             ) : (
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollContent}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={tc.primary} />
-                    }
-                    showsVerticalScrollIndicator={false}
-                >
-                    {activeTab === 'negocios' && (
-                        businesses.length > 0 ? (
-                            <View style={[styles.listContainer, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                                {businesses.map((biz) => (
-                                    <BusinessCardCompact key={biz.id} business={biz} />
+                <Animated.View style={{ flex: 1, opacity: contentOpacity, transform: [{ scale: contentScale }] }}>
+                    <ScrollView
+                        style={styles.scrollView}
+                        contentContainerStyle={styles.scrollContent}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#FF6B35" />}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        {currentList.length > 0 ? (
+                            <View style={[styles.grid, isDesktop && styles.desktopGrid]}>
+                                {currentList.map((item, index) => (
+                                    <FavoriteCard
+                                        key={item.id}
+                                        item={item}
+                                        type={activeTab === 'negocios' ? 'business' : activeTab === 'productos' ? 'product' : activeTab === 'servicios' ? 'listing' : 'accommodation'}
+                                        index={index}
+                                        onRemove={handleRemove}
+                                        tc={tc}
+                                        isDesktop={isDesktop}
+                                        listAnim={getListAnim(item.id)}
+                                    />
                                 ))}
                             </View>
-                        ) : (
-                            <View style={styles.emptyContainer}>
-                                <View style={[styles.emptyIconWrap, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
-                                    <Heart size={40} color="#ef4444" />
-                                </View>
-                                <Text style={[styles.emptyTitle, { color: tc.text }]}>Sin favoritos aún</Text>
-                                <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
-                                    Dale corazón a los negocios que más te gusten para tenerlos siempre a mano.
-                                </Text>
-                            </View>
-                        )
-                    )}
-
-                    {activeTab === 'productos' && (
-                        products.length > 0 ? (
-                            <View style={styles.productsGrid}>
-                                {products.map((prod) => (
-                                    <ProductCard key={prod.id} product={prod} variant="grid" />
-                                ))}
-                            </View>
-                        ) : (
-                            <View style={styles.emptyContainer}>
-                                <View style={[styles.emptyIconWrap, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
-                                    <Heart size={40} color="#ef4444" />
-                                </View>
-                                <Text style={[styles.emptyTitle, { color: tc.text }]}>Sin productos favoritos</Text>
-                                <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
-                                    Marcá los productos que te gustan para encontrarlos rápidamente.
-                                </Text>
-                            </View>
-                        )
-                    )}
-
-                    {activeTab === 'servicios' && (
-                        services.length > 0 ? (
-                            <View style={styles.servicesContainer}>
-                                {services.map((srv) => (
-                                    <Pressable 
-                                        key={srv.id} 
-                                        style={[styles.serviceCard, { backgroundColor: tc.bgCard }]}
-                                        onPress={() => router.push(`/directory/${srv.id}` as any)}
-                                    >
-                                        <Text style={[styles.serviceTitle, { color: tc.text }]}>{srv.title || srv.name}</Text>
-                                        <Text style={[styles.serviceCat, { color: tc.textMuted }]}>{srv.category || 'Servicio'}</Text>
-                                    </Pressable>
-                                ))}
-                            </View>
-                        ) : (
-                            <View style={styles.emptyContainer}>
-                                <View style={[styles.emptyIconWrap, { backgroundColor: 'rgba(239,68,68,0.12)' }]}>
-                                    <Bookmark size={40} color="#ef4444" />
-                                </View>
-                                <Text style={[styles.emptyTitle, { color: tc.text }]}>Sin servicios guardados aún</Text>
-                                <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
-                                    Guardá los servicios de las personas que más confianza te dan.
-                                </Text>
-                            </View>
-                        )
-                    )}
-                </ScrollView>
+                        ) : renderEmpty()}
+                        <View style={{ height: 100 }} />
+                    </ScrollView>
+                </Animated.View>
             )}
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    root: { flex: 1 },
+    header: { paddingHorizontal: 20, paddingTop: 20, marginBottom: 16 },
+    headerPre: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
+    headerTitleMain: { fontSize: 26, fontWeight: 'bold' },
+    
+    tabsScroll: { paddingHorizontal: 20, paddingVertical: 12, gap: 8 },
+    tabPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+    tabText: { fontSize: 14, fontWeight: '600' },
+    
     scrollView: { flex: 1 },
     scrollContent: { paddingBottom: 40 },
-    centerContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 40,
-        gap: 12,
-    },
-    tabsContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        gap: 10,
-    },
-    tabPill: {
-        paddingHorizontal: 18,
-        paddingVertical: 8,
-        borderRadius: 20,
-    },
-    tabPillActive: {},
-    tabPillText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    listContainer: {
-        marginHorizontal: 16,
-        marginTop: 16,
+    
+    grid: { paddingHorizontal: 16 },
+    desktopGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 20 },
+    
+    card: {
         borderRadius: 16,
-        overflow: 'hidden',
+        padding: 14,
+        marginBottom: 10,
         borderWidth: 1,
-    },
-    productsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        paddingHorizontal: 10,
-        paddingTop: 16,
-    },
-    emptyContainer: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 60,
-        paddingHorizontal: 40,
-    },
-    emptyIconWrap: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    emptyText: {
-        fontSize: 14,
-        textAlign: 'center',
-        lineHeight: 22,
-    },
-    servicesContainer: {
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        gap: 12,
-    },
-    serviceCard: {
-        padding: 12,
-        borderRadius: 12,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        shadowRadius: 8,
+        elevation: 2,
     },
-    serviceTitle: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        marginBottom: 4,
-    },
-    serviceCat: {
-        fontSize: 13,
-    },
+    cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    
+    logoContainer: { width: 52, height: 52, borderRadius: 12, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+    logo: { width: '100%', height: '100%' },
+    logoPlaceholder: { fontSize: 20, fontWeight: 'bold', color: '#FF6B35' },
+    
+    imageContainer: { width: 52, height: 52, borderRadius: 12, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+    cardImage: { width: '100%', height: '100%' },
+    
+    avatarContainer: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+    avatar: { width: '100%', height: '100%' },
+    
+    cardContent: { flex: 1 },
+    cardTitle: { fontSize: 15, fontWeight: 'bold' },
+    cardSub: { fontSize: 13, marginTop: 2 },
+    cardMeta: { flexDirection: 'row', marginTop: 6, gap: 12, alignItems: 'center' },
+    metaText: { fontSize: 12 },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    
+    price: { fontSize: 15, fontWeight: '600', marginTop: 6 },
+    specialty: { fontSize: 12, fontWeight: '600', marginTop: 4 },
+    
+    heartBtn: { padding: 4 },
+    
+    // Accommodation specifics
+    accHeader: { width: '100%', height: 120 },
+    accImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+    accImagePlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+    accBody: { padding: 12 },
+    accTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    heartBtnAcc: { padding: 2 },
+    accMeta: { flexDirection: 'row', marginTop: 8, gap: 16 },
+
+    emptyContainer: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
+    emptyTitle: { fontSize: 17, fontWeight: 'bold', marginTop: 16, textAlign: 'center' },
+    emptySub: { fontSize: 14, marginTop: 8, textAlign: 'center' },
+    
+    centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
+    loginBtn: { marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+    loginBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 });

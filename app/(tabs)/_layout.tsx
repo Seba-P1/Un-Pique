@@ -327,7 +327,7 @@ export default function TabsLayout() {
     const [drawerVisible, setDrawerVisible] = useState(false);
 
     const isDark = theme === 'dark';
-    const inactiveColor = tc.textMuted;
+    const inactiveColor = isDark ? '#FFFFFF' : '#000000';
 
     // Wire up global drawer opener for mobile hamburger
     useEffect(() => {

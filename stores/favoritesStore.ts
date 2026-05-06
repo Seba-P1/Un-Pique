@@ -7,14 +7,15 @@ interface FavoritesState {
     businessIds: string[];
     productIds: string[];
     listingIds: string[];
+    accommodationIds: string[];
     newFavoritesCount: number;
     loading: boolean;
     tableExists: boolean | null; // null = unknown, true/false = checked
 
     fetchFavorites: () => Promise<void>;
-    toggleFavorite: (type: 'business' | 'product' | 'listing', id: string) => Promise<void>;
+    toggleFavorite: (type: 'business' | 'product' | 'listing' | 'accommodation', id: string) => Promise<void>;
     clearNewFavoritesCount: () => void;
-    isFavorite: (type: 'business' | 'product' | 'listing', id: string) => boolean;
+    isFavorite: (type: 'business' | 'product' | 'listing' | 'accommodation', id: string) => boolean;
     totalCount: () => number;
     reset: () => void;
 }
@@ -23,6 +24,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     businessIds: [],
     productIds: [],
     listingIds: [],
+    accommodationIds: [],
     newFavoritesCount: 0,
     loading: false,
     tableExists: null,
@@ -55,6 +57,7 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
                 businessIds: (data || []).filter((f: any) => f.business_id).map((f: any) => f.business_id),
                 productIds: (data || []).filter((f: any) => f.product_id).map((f: any) => f.product_id),
                 listingIds: (data || []).filter((f: any) => f.listing_id).map((f: any) => f.listing_id),
+                accommodationIds: (data || []).filter((f: any) => f.accommodation_id).map((f: any) => f.accommodation_id),
                 loading: false,
             });
         } catch (err: any) {
@@ -63,9 +66,11 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
         }
     },
 
-    toggleFavorite: async (type: 'business' | 'product' | 'listing', id: string) => {
+    toggleFavorite: async (type: 'business' | 'product' | 'listing' | 'accommodation', id: string) => {
         const state = get();
-        const list = type === 'business' ? state.businessIds : type === 'product' ? state.productIds : state.listingIds;
+        const list = type === 'business' ? state.businessIds : 
+                     type === 'product' ? state.productIds : 
+                     type === 'listing' ? state.listingIds : state.accommodationIds;
         const isCurrentlyFavorite = list.includes(id);
 
         // Optimistic update
@@ -74,8 +79,10 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
                 set({ businessIds: state.businessIds.filter((x) => x !== id) });
             } else if (type === 'product') {
                 set({ productIds: state.productIds.filter((x) => x !== id) });
-            } else {
+            } else if (type === 'listing') {
                 set({ listingIds: state.listingIds.filter((x) => x !== id) });
+            } else {
+                set({ accommodationIds: state.accommodationIds.filter((x) => x !== id) });
             }
         } else {
             set({ newFavoritesCount: state.newFavoritesCount + 1 });
@@ -83,8 +90,10 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
                 set({ businessIds: [...state.businessIds, id] });
             } else if (type === 'product') {
                 set({ productIds: [...state.productIds, id] });
-            } else {
+            } else if (type === 'listing') {
                 set({ listingIds: [...state.listingIds, id] });
+            } else {
+                set({ accommodationIds: [...state.accommodationIds, id] });
             }
         }
 
@@ -95,7 +104,9 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const column = type === 'business' ? 'business_id' : type === 'product' ? 'product_id' : 'listing_id';
+            const column = type === 'business' ? 'business_id' : 
+                           type === 'product' ? 'product_id' : 
+                           type === 'listing' ? 'listing_id' : 'accommodation_id';
 
             if (isCurrentlyFavorite) {
                 const { error } = await supabase
@@ -123,23 +134,28 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
                     set({ businessIds: [...get().businessIds, id] });
                 } else if (type === 'product') {
                     set({ productIds: [...get().productIds, id] });
-                } else {
+                } else if (type === 'listing') {
                     set({ listingIds: [...get().listingIds, id] });
+                } else {
+                    set({ accommodationIds: [...get().accommodationIds, id] });
                 }
             } else {
                 if (type === 'business') {
                     set({ businessIds: get().businessIds.filter((x) => x !== id) });
                 } else if (type === 'product') {
                     set({ productIds: get().productIds.filter((x) => x !== id) });
-                } else {
+                } else if (type === 'listing') {
                     set({ listingIds: get().listingIds.filter((x) => x !== id) });
+                } else {
+                    set({ accommodationIds: get().accommodationIds.filter((x) => x !== id) });
                 }
             }
         }
     },
 
-    isFavorite: (type: 'business' | 'product' | 'listing', id: string) => {
+    isFavorite: (type: 'business' | 'product' | 'listing' | 'accommodation', id: string) => {
         if (type === 'listing') return get().listingIds.includes(id);
+        if (type === 'accommodation') return get().accommodationIds.includes(id);
         return type === 'business'
             ? get().businessIds.includes(id)
             : get().productIds.includes(id);
@@ -149,10 +165,10 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
 
     totalCount: () => {
         const s = get();
-        return s.businessIds.length + s.productIds.length + s.listingIds.length;
+        return s.businessIds.length + s.productIds.length + s.listingIds.length + s.accommodationIds.length;
     },
 
     reset: () => {
-        set({ businessIds: [], productIds: [], listingIds: [], newFavoritesCount: 0, loading: false, tableExists: null });
+        set({ businessIds: [], productIds: [], listingIds: [], accommodationIds: [], newFavoritesCount: 0, loading: false, tableExists: null });
     },
 }));
