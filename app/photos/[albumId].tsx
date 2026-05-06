@@ -113,6 +113,7 @@ export default function AlbumViewScreen() {
         </View>
       ) : (
         <FlatList
+          key={`photos-grid-${numCols}`}
           numColumns={numCols}
           data={photos}
           keyExtractor={item => item.id}

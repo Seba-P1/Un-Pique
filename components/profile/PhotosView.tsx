@@ -135,6 +135,7 @@ export default function PhotosView({ userId, isOwner }: Props) {
         </View>
       ) : (
         <FlatList
+          key={`photos-grid-${numCols}`}
           numColumns={numCols}
           data={allPhotos}
           keyExtractor={item => item.id}
@@ -236,6 +237,7 @@ export default function PhotosView({ userId, isOwner }: Props) {
         </View>
       ) : (
         <FlatList
+          key={`albums-grid-${numColsAlbums}`}
           numColumns={numColsAlbums}
           data={albums}
           scrollEnabled={false}

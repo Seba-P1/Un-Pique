@@ -178,7 +178,7 @@ export const usePhotosStore = create<PhotosState>((set, get) => ({
         })
         .select().single();
       if (error) throw error;
-      
+
       // BUG 2 FIXED (upload): Incrementar el contador de fotos en el álbum
       if (albumId) {
         await supabase.rpc('increment_album_photo_count', { album_id: albumId });
@@ -214,10 +214,10 @@ export const usePhotosStore = create<PhotosState>((set, get) => ({
         console.error('No tenés permiso para eliminar esta foto.');
         return false;
       }
-      
+
       const { error } = await supabase.from('user_photos').delete().eq('id', photoId);
       if (error) return false;
-      
+
       // BUG 2 FIXED (delete): Decrementar el contador de fotos en el álbum
       if (photo.album_id) {
         await supabase.rpc('decrement_album_photo_count', { album_id: photo.album_id });
