@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, useWindowDimensions, Animated } from 'react-native';
 import { ChevronLeft, Search, ShoppingCart, Heart, Bell, X, MessageCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,8 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { useCartStore } from '../../stores/cartStore';
 import { useFavoritesStore } from '../../stores/favoritesStore';
 import { useChatStore } from '../../stores/chatStore';
+import { useNotificationsStore } from '../../stores/notificationsStore';
+import { useAuthStore } from '../../stores/authStore';
 import { showAlert } from '../../utils/alert';
 import { openMobileDrawer } from '../../app/(tabs)/_layout';
 
@@ -46,6 +48,27 @@ export function AppHeader({
     const totalCartItems = items.reduce((acc, item) => acc + item.quantity, 0);
     const newFavoritesCount = useFavoritesStore((s) => s.newFavoritesCount);
     const unreadMessagesCount = useChatStore((s) => s.unreadCount);
+    const { unreadCount: unreadNotifCount, fetchNotifications, subscribeToNotifications, unsubscribe } = useNotificationsStore();
+    const { user } = useAuthStore();
+
+    // Bell badge scale animation
+    const bellBadgeScale = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (user) {
+            fetchNotifications(user.id);
+            subscribeToNotifications(user.id);
+        }
+        return () => unsubscribe();
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (unreadNotifCount > 0) {
+            Animated.spring(bellBadgeScale, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
+        } else {
+            bellBadgeScale.setValue(0);
+        }
+    }, [unreadNotifCount]);
 
     const effectiveScrollY = scrollY ?? new Animated.Value(100);
 
@@ -348,9 +371,18 @@ export function AppHeader({
                                                 pressed && styles.iconButtonActive
                                             ]}
                                             hitSlop={4}
-                                            onPress={() => showAlert('Próximamente', 'Función de notificaciones')}
+                                            onPress={() => router.push('/notifications' as any)}
                                         >
-                                            <Bell size={16} color={tc.text} />
+                                            <View style={{ position: 'relative' }}>
+                                                <Bell size={16} color={tc.text} />
+                                                {unreadNotifCount > 0 && (
+                                                    <Animated.View style={[styles.badge, { transform: [{ scale: bellBadgeScale }] }]}>
+                                                        <Text style={styles.badgeText}>
+                                                            {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+                                                        </Text>
+                                                    </Animated.View>
+                                                )}
+                                            </View>
                                         </Pressable>
                                     );
                                 }

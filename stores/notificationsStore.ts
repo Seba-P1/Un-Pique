@@ -4,10 +4,11 @@ import { supabase } from '../lib/supabase';
 export interface Notification {
     id: string;
     user_id: string;
-    type: 'order' | 'message' | 'like' | 'comment' | 'service';
+    type: 'order' | 'message' | 'like' | 'comment' | 'service' | 'accommodation' | 'mission' | 'review';
     title: string;
     body: string;
     data?: any;
+    emoji_type?: string;
     is_read: boolean;
     created_at: string;
 }

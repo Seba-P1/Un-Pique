@@ -1,166 +1,163 @@
-// Mis Pedidos — Pantalla completa con tabs, tracking, y detalle
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, useWindowDimensions, RefreshControl, Animated, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-    ArrowLeft, ShoppingBag, Clock, CheckCircle, Bike, Package,
-    ChevronRight, MapPin, Star, RotateCcw, XCircle
-} from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, AlertCircle, Store } from 'lucide-react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
 import colors from '../constants/colors';
-import { showAlert } from '../utils/alert';
+import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../stores/authStore';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any }> = {
-    'Entregado': { color: '#166534', bg: '#dcfce7', icon: CheckCircle },
-    'En camino': { color: '#9a3412', bg: '#fff7ed', icon: Bike },
-    'Preparando': { color: '#1e40af', bg: '#dbeafe', icon: Package },
-    'Cancelado': { color: '#991b1b', bg: '#fee2e2', icon: XCircle },
+type OrderStatus = 'pending' | 'preparing' | 'ready' | 'in_delivery' | 'delivered' | 'completed' | 'cancelled';
+
+const STATUS_CONFIG: Record<OrderStatus, { color: string; bg: string; label: string }> = {
+    pending: { color: '#F59E0B', bg: '#F59E0B20', label: '⏳ Pendiente' },
+    preparing: { color: '#FF6B35', bg: '#FF6B3520', label: '👨‍🍳 Preparando' },
+    ready: { color: '#3B82F6', bg: '#3B82F620', label: '📦 Listo' },
+    in_delivery: { color: '#8B5CF6', bg: '#8B5CF620', label: '🛵 En camino' },
+    delivered: { color: '#22C55E', bg: '#22C55E20', label: '✅ Entregado' },
+    completed: { color: '#22C55E', bg: '#22C55E20', label: '✅ Completado' },
+    cancelled: { color: '#EF4444', bg: '#EF444420', label: '❌ Cancelado' },
 };
-
-const MOCK_ORDERS = [
-    {
-        id: '#1234', store: 'Burger King', storeImg: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=100&h=100&fit=crop',
-        status: 'Entregado', total: '$4.500', date: 'Hoy, 12:30 PM',
-        items: [
-            { name: 'Combo Whopper', qty: 2, price: '$1.800' },
-            { name: 'Papas grandes', qty: 1, price: '$900' },
-        ],
-        address: 'Av. San Martín 450', payMethod: 'Mercado Pago', rating: 4,
-    },
-    {
-        id: '#1230', store: 'Pizzería La Mamma', storeImg: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=100&h=100&fit=crop',
-        status: 'En camino', total: '$8.500', date: 'Hoy, 13:15 PM',
-        items: [
-            { name: 'Pizza Napolitana Grande', qty: 1, price: '$5.500' },
-            { name: 'Empanadas x6', qty: 1, price: '$3.000' },
-        ],
-        address: 'Calle Mitre 1200', payMethod: 'Efectivo', rating: null,
-    },
-    {
-        id: '#1225', store: 'Sushi Go', storeImg: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&h=100&fit=crop',
-        status: 'Preparando', total: '$12.000', date: 'Ayer, 20:00 PM',
-        items: [
-            { name: 'Combo Salmón x30', qty: 1, price: '$10.000' },
-            { name: 'Gyozas x8', qty: 1, price: '$2.000' },
-        ],
-        address: 'Av. Roca 800', payMethod: 'Tarjeta Visa', rating: null,
-    },
-    {
-        id: '#1210', store: 'Heladería Dolce', storeImg: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=100&h=100&fit=crop',
-        status: 'Cancelado', total: '$3.200', date: 'Hace 3 días',
-        items: [
-            { name: '1 Kg Helado (3 gustos)', qty: 1, price: '$3.200' },
-        ],
-        address: 'Calle 9 de Julio 350', payMethod: 'Mercado Pago', rating: null,
-    },
-];
 
 export default function OrdersScreen() {
     const router = useRouter();
     const tc = useThemeColors();
+    const { user } = useAuthStore();
     const { width } = useWindowDimensions();
     const isDesktop = width >= 768;
 
     const [activeTab, setActiveTab] = useState<'todos' | 'activos' | 'completados'>('todos');
-    const [selectedOrder, setSelectedOrder] = useState<typeof MOCK_ORDERS[0] | null>(null);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const filteredOrders = MOCK_ORDERS.filter(order => {
-        if (activeTab === 'activos') return ['En camino', 'Preparando'].includes(order.status);
-        if (activeTab === 'completados') return ['Entregado', 'Cancelado'].includes(order.status);
+    // Animación para el skeleton
+    const fadeAnim = useRef(new Animated.Value(0.4)).current;
+
+    useEffect(() => {
+        if (!user) {
+            router.replace('/(auth)/login');
+            return;
+        }
+        fetchOrders();
+    }, [user]);
+
+    useEffect(() => {
+        if (loading) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(fadeAnim, {
+                        toValue: 0.8,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(fadeAnim, {
+                        toValue: 0.4,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        } else {
+            fadeAnim.stopAnimation();
+        }
+    }, [loading]);
+
+    const fetchOrders = async () => {
+        setLoading(true);
+        setError(false);
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    id, status, total, delivery_fee,
+                    payment_method, payment_status, delivery_address, created_at,
+                    business:businesses(id, name, logo_url, slug),
+                    order_items(id, quantity, unit_price,
+                        product:products(id, name, image_url))
+                `)
+                .eq('customer_id', user?.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setOrders(data || []);
+        } catch (err) {
+            console.error('Error fetching orders:', err);
+            setError(true);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await fetchOrders();
+        setRefreshing(false);
+    }, [user]);
+
+    const filteredOrders = orders.filter(order => {
+        if (activeTab === 'activos') return ['pending', 'preparing', 'ready', 'in_delivery', 'in_transit'].includes(order.status);
+        if (activeTab === 'completados') return ['delivered', 'completed', 'cancelled'].includes(order.status);
         return true;
     });
 
-    const handleReorder = (order: typeof MOCK_ORDERS[0]) => {
-        showAlert('Repetir pedido', `Se agregarán los productos de ${order.store} al carrito.`);
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: 'ARS',
+            minimumFractionDigits: 0,
+        }).format(amount);
     };
 
-    const handleRate = (order: typeof MOCK_ORDERS[0]) => {
-        showAlert('Calificar', `Calificá tu experiencia con ${order.store}. ¡Tu opinión nos importa!`);
-    };
+    const renderLoadingSkeletons = () => (
+        <View style={{ gap: 12 }}>
+            {[1, 2, 3].map(i => (
+                <Animated.View
+                    key={i}
+                    style={{
+                        height: 100,
+                        backgroundColor: tc.bgInput,
+                        borderRadius: 14,
+                        opacity: fadeAnim,
+                        marginHorizontal: 16,
+                        marginBottom: 12,
+                    }}
+                />
+            ))}
+        </View>
+    );
 
-    const handleTrack = (order: typeof MOCK_ORDERS[0]) => {
-        showAlert('Seguimiento', `Tu pedido de ${order.store} está ${order.status.toLowerCase()}. Te avisaremos cuando llegue.`);
-    };
-
-    // Vista de detalle del pedido
-    if (selectedOrder) {
-        const statusConfig = STATUS_CONFIG[selectedOrder.status] || STATUS_CONFIG['Preparando'];
-        const StatusIcon = statusConfig.icon;
+    const renderEmptyState = () => {
+        let msg = 'Todavía no realizaste ningún pedido';
+        if (activeTab === 'activos') msg = 'No tenés pedidos activos en este momento';
+        if (activeTab === 'completados') msg = 'No tenés pedidos completados todavía';
 
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
-                <View style={[styles.header, { borderBottomColor: tc.borderLight }]}>
-                    <TouchableOpacity onPress={() => setSelectedOrder(null)} style={styles.backBtn}>
-                        <ArrowLeft size={24} color={tc.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: tc.text }]}>Pedido {selectedOrder.id}</Text>
-                    <View style={{ width: 40 }} />
-                </View>
-
-                <ScrollView contentContainerStyle={[styles.detailContent, isDesktop && { maxWidth: 600, alignSelf: 'center' }]}>
-                    {/* Estado */}
-                    <View style={[styles.statusCard, { backgroundColor: statusConfig.bg }]}>
-                        <StatusIcon size={28} color={statusConfig.color} />
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.statusLabel, { color: statusConfig.color }]}>{selectedOrder.status}</Text>
-                            <Text style={[styles.statusDate, { color: statusConfig.color + '99' }]}>{selectedOrder.date}</Text>
-                        </View>
-                        {selectedOrder.status === 'En camino' && (
-                            <TouchableOpacity style={[styles.trackBtn, { backgroundColor: statusConfig.color }]} onPress={() => handleTrack(selectedOrder)}>
-                                <Text style={styles.trackBtnText}>Seguir</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-
-                    {/* Tienda */}
-                    <View style={[styles.storeRow, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                        <Image source={{ uri: selectedOrder.storeImg }} style={styles.storeImg} />
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.storeName, { color: tc.text }]}>{selectedOrder.store}</Text>
-                            <Text style={[styles.storeAddr, { color: tc.textMuted }]}>{selectedOrder.address}</Text>
-                        </View>
-                    </View>
-
-                    {/* Items */}
-                    <View style={[styles.itemsCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                        <Text style={[styles.itemsTitle, { color: tc.text }]}>Productos</Text>
-                        {selectedOrder.items.map((item, i) => (
-                            <View key={i} style={[styles.itemRow, i > 0 && { borderTopWidth: 0.5, borderTopColor: tc.borderLight }]}>
-                                <Text style={[styles.itemQty, { color: tc.primary }]}>{item.qty}x</Text>
-                                <Text style={[styles.itemName, { color: tc.text }]}>{item.name}</Text>
-                                <Text style={[styles.itemPrice, { color: tc.textSecondary }]}>{item.price}</Text>
-                            </View>
-                        ))}
-                        <View style={[styles.totalRow, { borderTopColor: tc.borderLight }]}>
-                            <Text style={[styles.totalLabel, { color: tc.text }]}>Total</Text>
-                            <Text style={[styles.totalAmount, { color: tc.text }]}>{selectedOrder.total}</Text>
-                        </View>
-                    </View>
-
-                    {/* Info de pago */}
-                    <View style={[styles.payInfo, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                        <Text style={[styles.payLabel, { color: tc.textMuted }]}>Método de pago</Text>
-                        <Text style={[styles.payValue, { color: tc.text }]}>{selectedOrder.payMethod}</Text>
-                    </View>
-
-                    {/* Acciones */}
-                    <View style={styles.actionsRow}>
-                        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]} onPress={() => handleReorder(selectedOrder)}>
-                            <RotateCcw size={18} color={tc.primary} />
-                            <Text style={[styles.actionBtnText, { color: tc.primary }]}>Repetir pedido</Text>
-                        </TouchableOpacity>
-                        {selectedOrder.status === 'Entregado' && !selectedOrder.rating && (
-                            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary.DEFAULT }]} onPress={() => handleRate(selectedOrder)}>
-                                <Star size={18} color="#fff" />
-                                <Text style={[styles.actionBtnText, { color: '#fff' }]}>Calificar</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </ScrollView>
-            </SafeAreaView>
+            <View style={styles.emptyState}>
+                <ShoppingBag size={48} color={tc.borderLight} />
+                <Text style={[styles.emptyText, { color: tc.textSecondary }]}>{msg}</Text>
+            </View>
         );
-    }
+    };
+
+    const renderErrorState = () => (
+        <View style={styles.emptyState}>
+            <AlertCircle size={48} color="#EF4444" />
+            <Text style={[styles.emptyText, { color: tc.textSecondary, marginBottom: 16 }]}>
+                No se pudieron cargar los pedidos
+            </Text>
+            <TouchableOpacity 
+                style={[styles.retryBtn, { backgroundColor: colors.primary.DEFAULT }]}
+                onPress={fetchOrders}
+            >
+                <Text style={styles.retryBtnText}>Reintentar</Text>
+            </TouchableOpacity>
+        </View>
+    );
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
@@ -187,41 +184,71 @@ export default function OrdersScreen() {
                 ))}
             </View>
 
-            <ScrollView contentContainerStyle={[styles.content, isDesktop && { maxWidth: 700, alignSelf: 'center', width: '100%' }]}>
-                {filteredOrders.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <ShoppingBag size={48} color={tc.textMuted} />
-                        <Text style={[styles.emptyText, { color: tc.textSecondary }]}>No hay pedidos en esta sección</Text>
-                    </View>
+            <ScrollView 
+                contentContainerStyle={[styles.content, isDesktop && { maxWidth: 700, alignSelf: 'center', width: '100%' }]}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary.DEFAULT]} tintColor={colors.primary.DEFAULT} />}
+            >
+                {loading ? (
+                    renderLoadingSkeletons()
+                ) : error ? (
+                    renderErrorState()
+                ) : filteredOrders.length === 0 ? (
+                    renderEmptyState()
                 ) : (
-                    filteredOrders.map((order, i) => {
-                        const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG['Preparando'];
+                    filteredOrders.map((order) => {
+                        const business = order.business;
+                        const items = order.order_items || [];
+                        const itemsText = items.map((i: any) => `${i.quantity}× ${i.product?.name || 'Producto'}`).join(', ');
+                        const cfg = STATUS_CONFIG[order.status as OrderStatus] || STATUS_CONFIG['pending'];
+
                         return (
-                            <TouchableOpacity
-                                key={i}
-                                style={[styles.orderCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}
-                                onPress={() => setSelectedOrder(order)}
-                                activeOpacity={0.8}
-                            >
-                                <View style={styles.cardTop}>
-                                    <Image source={{ uri: order.storeImg }} style={styles.cardStoreImg} />
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[styles.cardStoreName, { color: tc.text }]}>{order.store}</Text>
-                                        <Text style={[styles.cardItems, { color: tc.textMuted }]}>
-                                            {order.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                            <View key={order.id} style={[styles.orderCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                {/* Header */}
+                                <View style={styles.cardHeader}>
+                                    {business?.logo_url ? (
+                                        <Image source={{ uri: business.logo_url }} style={styles.storeLogo} />
+                                    ) : (
+                                        <View style={[styles.storeLogoPlaceholder, { backgroundColor: tc.bgInput }]}>
+                                            <Store size={20} color={tc.textMuted} />
+                                        </View>
+                                    )}
+                                    <View style={styles.cardHeaderCenter}>
+                                        <Text style={[styles.storeName, { color: tc.text }]} numberOfLines={1}>
+                                            {business?.name || 'Negocio'}
+                                        </Text>
+                                        <Text style={[styles.orderDate, { color: tc.textSecondary }]}>
+                                            {order.created_at ? format(new Date(order.created_at), "dd/MM/yyyy · HH:mm") : ''}
                                         </Text>
                                     </View>
-                                    <ChevronRight size={18} color={tc.textMuted} />
+                                    <View style={[styles.statusBadge, { backgroundColor: cfg.bg }]}>
+                                        <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
+                                    </View>
                                 </View>
 
-                                <View style={[styles.cardBottom, { borderTopColor: tc.borderLight }]}>
-                                    <Text style={[styles.cardDate, { color: tc.textMuted }]}>{order.date}</Text>
-                                    <View style={[styles.statusBadge, { backgroundColor: cfg.bg }]}>
-                                        <Text style={[styles.statusText, { color: cfg.color }]}>{order.status}</Text>
-                                    </View>
-                                    <Text style={[styles.cardTotal, { color: tc.text }]}>{order.total}</Text>
+                                {/* Divider */}
+                                <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
+
+                                {/* Items */}
+                                <View style={styles.cardItems}>
+                                    <Text style={[styles.itemsText, { color: tc.textSecondary }]} numberOfLines={2}>
+                                        {itemsText}
+                                    </Text>
                                 </View>
-                            </TouchableOpacity>
+
+                                {/* Footer */}
+                                <View style={styles.cardFooter}>
+                                    <Text style={[styles.totalText, { color: tc.text }]}>
+                                        Total: {formatCurrency(order.total)}
+                                    </Text>
+                                    {order.payment_method && (
+                                        <View style={[styles.payChip, { backgroundColor: tc.bgInput }]}>
+                                            <Text style={[styles.payChipText, { color: tc.textMuted }]}>
+                                                {order.payment_method}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
                         );
                     })
                 )}
@@ -238,44 +265,32 @@ const styles = StyleSheet.create({
     tabBar: { flexDirection: 'row', borderBottomWidth: 1 },
     tab: { flex: 1, paddingVertical: 14, alignItems: 'center' },
     tabText: { fontWeight: '600', fontSize: 14 },
-    content: { padding: 16, gap: 12 },
+    content: { paddingTop: 16, paddingBottom: 40 },
+    
     // Cards
-    orderCard: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
-    cardTop: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-    cardStoreImg: { width: 48, height: 48, borderRadius: 12 },
-    cardStoreName: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
-    cardItems: { fontSize: 13 },
-    cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderTopWidth: 0.5 },
-    cardDate: { fontSize: 12 },
-    cardTotal: { fontSize: 15, fontWeight: '700' },
-    statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-    statusText: { fontSize: 12, fontWeight: 'bold' },
-    // Detail
-    detailContent: { padding: 16, gap: 16 },
-    statusCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, gap: 12 },
-    statusLabel: { fontSize: 18, fontWeight: '800' },
-    statusDate: { fontSize: 12, marginTop: 2 },
-    trackBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-    trackBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-    storeRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1, gap: 12 },
-    storeImg: { width: 48, height: 48, borderRadius: 12 },
-    storeName: { fontSize: 16, fontWeight: '700' },
-    storeAddr: { fontSize: 13, marginTop: 2 },
-    itemsCard: { padding: 16, borderRadius: 16, borderWidth: 1 },
-    itemsTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
-    itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 8 },
-    itemQty: { fontWeight: '800', fontSize: 14, width: 30 },
-    itemName: { flex: 1, fontSize: 14 },
-    itemPrice: { fontSize: 14, fontWeight: '600' },
-    totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 12, marginTop: 8, borderTopWidth: 1 },
-    totalLabel: { fontSize: 16, fontWeight: '700' },
-    totalAmount: { fontSize: 18, fontWeight: '800' },
-    payInfo: { flexDirection: 'row', justifyContent: 'space-between', padding: 14, borderRadius: 16, borderWidth: 1 },
-    payLabel: { fontSize: 13 },
-    payValue: { fontSize: 14, fontWeight: '600' },
-    actionsRow: { flexDirection: 'row', gap: 12 },
-    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, borderWidth: 1, gap: 8 },
-    actionBtnText: { fontWeight: '700', fontSize: 14 },
-    emptyState: { alignItems: 'center', paddingVertical: 60, gap: 12 },
-    emptyText: { fontSize: 16, fontWeight: '600' },
+    orderCard: { borderRadius: 14, borderWidth: 1, marginHorizontal: 16, marginBottom: 12, overflow: 'hidden' },
+    cardHeader: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    storeLogo: { width: 40, height: 40, borderRadius: 8 },
+    storeLogoPlaceholder: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    cardHeaderCenter: { flex: 1 },
+    storeName: { fontSize: 14, fontWeight: '700' },
+    orderDate: { fontSize: 11, marginTop: 2 },
+    statusBadge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+    statusText: { fontSize: 11, fontWeight: 'bold' },
+    
+    divider: { height: 1, width: '100%' },
+    
+    cardItems: { paddingHorizontal: 14, paddingVertical: 10 },
+    itemsText: { fontSize: 13, lineHeight: 18 },
+    
+    cardFooter: { paddingHorizontal: 14, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    totalText: { fontSize: 14, fontWeight: '700' },
+    payChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    payChipText: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
+    
+    // States
+    emptyState: { alignItems: 'center', paddingVertical: 80, paddingHorizontal: 40, gap: 16 },
+    emptyText: { fontSize: 15, fontWeight: '500', textAlign: 'center', lineHeight: 22 },
+    retryBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+    retryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
