@@ -9,6 +9,7 @@ export interface UserPhoto {
   album_id?: string | null;
   post_id?: string | null;
   created_at: string;
+  user_id?: string;
 }
 
 export interface PhotoAlbum {
@@ -177,6 +178,12 @@ export const usePhotosStore = create<PhotosState>((set, get) => ({
         })
         .select().single();
       if (error) throw error;
+      
+      // BUG 2 FIXED (upload): Incrementar el contador de fotos en el álbum
+      if (albumId) {
+        await supabase.rpc('increment_album_photo_count', { album_id: albumId });
+      }
+
       set(state => ({
         allPhotos: [data as UserPhoto, ...state.allPhotos],
         saving: false
@@ -190,13 +197,31 @@ export const usePhotosStore = create<PhotosState>((set, get) => ({
   },
 
   deletePhoto: async (photoId) => {
+    // BUG 3 FIXED: Validation to prevent deleting photos that belong to someone else
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const photo = get().allPhotos.find(p => p.id === photoId);
+    if (!photo) return false;
+
     // Solo borrar de DB si es standalone (las virtuales no están en la tabla)
     if (
       !photoId.startsWith('post_') &&
       photoId !== 'virtual_avatar' &&
       photoId !== 'virtual_cover'
     ) {
-      await supabase.from('user_photos').delete().eq('id', photoId);
+      if (photo.user_id !== user.id) {
+        console.error('No tenés permiso para eliminar esta foto.');
+        return false;
+      }
+      
+      const { error } = await supabase.from('user_photos').delete().eq('id', photoId);
+      if (error) return false;
+      
+      // BUG 2 FIXED (delete): Decrementar el contador de fotos en el álbum
+      if (photo.album_id) {
+        await supabase.rpc('decrement_album_photo_count', { album_id: photo.album_id });
+      }
     }
     set(state => ({
       allPhotos: state.allPhotos.filter(p => p.id !== photoId)

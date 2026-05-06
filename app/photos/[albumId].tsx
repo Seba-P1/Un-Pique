@@ -12,6 +12,7 @@ import { usePhotosStore, UserPhoto } from '../../stores/photosStore';
 import { useAuthStore } from '../../stores/authStore';
 import { pickImage } from '../../services/imageUpload';
 import { PhotoMenuModal, LightboxModal } from '../../components/profile/PhotosView';
+import { supabase } from '../../lib/supabase';
 
 export default function AlbumViewScreen() {
   const params = useLocalSearchParams();
@@ -36,11 +37,18 @@ export default function AlbumViewScreen() {
   const [selectedPhoto, setSelectedPhoto] = useState<UserPhoto | null>(null);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
   const [showAlbumSelector, setShowAlbumSelector] = useState(false);
-
-  const isOwner = user?.id === ownerId || true;
+  const [isOwner, setIsOwner] = useState(false);
 
   const load = async () => {
     setLoading(true);
+    
+    // BUG 1 FIXED: Securely check ownership against DB
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      const { data: album } = await supabase.from('photo_albums').select('user_id').eq('id', albumId).single();
+      setIsOwner(authUser.id === album?.user_id);
+    }
+    
     const result = await fetchAlbumPhotos(albumId);
     setPhotos(result);
     setLoading(false);
