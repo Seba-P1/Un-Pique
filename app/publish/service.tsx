@@ -1,17 +1,18 @@
 // Publicar Servicio — formulario de 2 pasos
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, ChevronRight, ChevronLeft, ChevronDown, ImageIcon, X } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useListingStore } from '../../stores/listingStore';
 import { useAuthStore } from '../../stores/authStore';
 import { showAlert } from '../../utils/alert';
 import { pickMultipleImages, uploadImage } from '../../services/imageUpload';
+import { supabase } from '../../lib/supabase';
 
 const SERVICE_CATEGORIES = [
   'Plomería', 'Electricidad', 'Mecánica', 'Pintura', 'Albañilería',
@@ -27,6 +28,9 @@ export default function PublishServiceScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const { createListing, saving } = useListingStore();
+  const params = useLocalSearchParams();
+  const editId = params.editId as string | undefined;
+  const isEditing = !!editId;
 
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
@@ -38,6 +42,27 @@ export default function PublishServiceScreen() {
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  // Pre-load data for edit mode
+  useEffect(() => {
+    if (!editId) return;
+    setLoadingEdit(true);
+    const load = async () => {
+      const { data } = await supabase.from('listings').select('*').eq('id', editId).single();
+      if (data) {
+        setTitle(data.title || '');
+        setDescription(data.description || '');
+        setCategory(data.category || '');
+        setPhone(data.phone || '');
+        setAddress(data.address || '');
+        setHourlyRate(data.hourly_rate ? String(data.hourly_rate) : '');
+        if (data.images && data.images.length > 0) setImageUris(data.images);
+      }
+      setLoadingEdit(false);
+    };
+    load();
+  }, [editId]);
 
   const canGoNext = step === 1
     ? title.trim().length > 0 && category.length > 0
@@ -64,6 +89,28 @@ export default function PublishServiceScreen() {
         return;
       }
       setUploadingImages(false);
+    }
+
+    if (isEditing) {
+      const { error: updateError } = await supabase.from('listings')
+        .update({
+          title: title.trim(),
+          category,
+          description: description.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+          hourly_rate: hourlyRate ? parseInt(hourlyRate, 10) : null,
+          images: uploadedUrls.length > 0 ? uploadedUrls : imageUris,
+        })
+        .eq('id', editId);
+
+      if (updateError) {
+        showAlert('Error', updateError.message);
+        return;
+      }
+      showAlert('¡Actualizado!', 'Tu servicio fue actualizado correctamente.');
+      router.back();
+      return;
     }
 
     const { data, error } = await createListing({
@@ -283,7 +330,7 @@ export default function PublishServiceScreen() {
           <TouchableOpacity onPress={() => step === 1 ? router.back() : setStep(1)} style={styles.backBtn}>
             <ArrowLeft size={22} color={tc.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: tc.text }]}>Publicar servicio</Text>
+          <Text style={[styles.headerTitle, { color: tc.text }]}>{isEditing ? 'Editar servicio' : 'Publicar servicio'}</Text>
           <Text style={[styles.stepIndicator, { color: tc.textMuted }]}>Paso {step}/2</Text>
         </View>
 
@@ -383,7 +430,7 @@ export default function PublishServiceScreen() {
                   fontSize: 15,
                   fontWeight: '800',
                 }}>
-                  {step === 1 ? 'Siguiente' : 'Publicar'}
+                  {step === 1 ? 'Siguiente' : isEditing ? 'Guardar' : 'Publicar'}
                 </Text>
                 {step === 1
                   ? <ChevronRight size={18} color={canGoNext ? '#fff' : tc.textMuted} />

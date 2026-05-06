@@ -2,13 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Platform, Alert,
+  ActivityIndicator, Platform, Alert, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-  ArrowLeft, Plus, Wrench, Home as HomeIcon,
-  Pause, Play, Trash2, Edit3, MapPin, Phone,
+  ArrowLeft, Plus, Wrench, Home as HomeIcon, Briefcase,
+  Pause, Play, Trash2, Edit3, MapPin, Phone, X as XIcon,
 } from 'lucide-react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { useListingStore } from '../stores/listingStore';
@@ -26,6 +26,7 @@ export default function MyListingsScreen() {
   const { user } = useAuthStore();
   const { userListings, loading, fetchUserListings, toggleListingActive, deleteListing } = useListingStore();
   const [filter, setFilter] = useState<'all' | 'service' | 'accommodation'>('all');
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     if (user) fetchUserListings();
@@ -60,6 +61,20 @@ export default function MyListingsScreen() {
         ],
       );
     }
+  };
+
+  const handleEdit = (listing: Listing) => {
+    if (listing.type === 'service') {
+      router.push({ pathname: '/publish/service', params: { editId: listing.id } } as any);
+    } else {
+      router.push({ pathname: '/publish/accommodation', params: { editId: listing.id } } as any);
+    }
+  };
+
+  const handleAdd = () => {
+    if (filter === 'service') { router.push('/publish/service' as any); return; }
+    if (filter === 'accommodation') { router.push('/publish/accommodation' as any); return; }
+    setShowAddModal(true);
   };
 
   const renderListingCard = (listing: Listing) => {
@@ -130,6 +145,14 @@ export default function MyListingsScreen() {
             <Text style={[styles.actionText, { color: tc.textSecondary }]}>
               {listing.is_active ? 'Pausar' : 'Activar'}
             </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: tc.bgInput }]}
+            onPress={() => handleEdit(listing)}
+          >
+            {renderIcon(Edit3, 16, tc.text)}
+            <Text style={[styles.actionText, { color: tc.text }]}>Editar</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -234,23 +257,56 @@ export default function MyListingsScreen() {
             backgroundColor: tc.primary,
             ...(Platform.OS === 'web' ? { boxShadow: '0px 6px 20px rgba(255,107,53,0.4)' } : {}),
           }]}
-          onPress={() => {
-            if (Platform.OS === 'web') {
-              const choice = window.confirm('¿Querés publicar un servicio? (OK = Servicio, Cancelar = Alojamiento)');
-              router.push(choice ? '/publish/service' as any : '/publish/accommodation' as any);
-            } else {
-              Alert.alert('¿Qué querés publicar?', '', [
-                { text: 'Servicio', onPress: () => router.push('/publish/service' as any) },
-                { text: 'Alojamiento', onPress: () => router.push('/publish/accommodation' as any) },
-                { text: 'Cancelar', style: 'cancel' },
-              ]);
-            }
-          }}
+          onPress={handleAdd}
           activeOpacity={0.85}
         >
           <Plus size={24} color="#fff" strokeWidth={3} />
         </TouchableOpacity>
       )}
+
+      {/* Modal para tab "Todas" */}
+      <Modal
+        visible={showAddModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, Platform.OS === 'web' && { backdropFilter: 'blur(4px)' } as any]}
+          activeOpacity={1}
+          onPress={() => setShowAddModal(false)}
+        >
+          <View style={[styles.modalPanel, { backgroundColor: tc.bgCard }]}>
+            <Text style={[styles.modalTitle, { color: tc.text }]}>¿Qué querés agregar?</Text>
+            <Text style={[styles.modalSubtext, { color: tc.textSecondary }]}>Elegí el tipo de publicación</Text>
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: '#FF6B3510', borderColor: '#FF6B35', borderWidth: 1 }]}
+                onPress={() => { setShowAddModal(false); router.push('/publish/service' as any); }}
+              >
+                <Briefcase size={18} color="#FF6B35" />
+                <Text style={[styles.modalBtnText, { color: '#FF6B35' }]}>🔧 Servicio profesional</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: tc.bgInput, borderColor: tc.borderLight, borderWidth: 1 }]}
+                onPress={() => { setShowAddModal(false); router.push('/publish/accommodation' as any); }}
+              >
+                <HomeIcon size={18} color={tc.text} />
+                <Text style={[styles.modalBtnText, { color: tc.text }]}>🏠 Alojamiento</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setShowAddModal(false)}
+              >
+                <Text style={[styles.modalCancelText, { color: tc.textSecondary }]}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -310,4 +366,26 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: 24, right: 24, width: 56, height: 56,
     borderRadius: 28, justifyContent: 'center', alignItems: 'center', zIndex: 50,
   },
+  // Modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalPanel: {
+    width: 280, borderRadius: 20, padding: 24,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.3)' } as any : {
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3, shadowRadius: 20, elevation: 20,
+    }),
+  },
+  modalTitle: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  modalSubtext: { fontSize: 13, textAlign: 'center', marginTop: 4 },
+  modalBtns: { marginTop: 20, gap: 10 },
+  modalBtn: {
+    height: 52, borderRadius: 12, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  modalBtnText: { fontSize: 15, fontWeight: '700' },
+  modalCancelBtn: { height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  modalCancelText: { fontSize: 14 },
 });

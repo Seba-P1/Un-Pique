@@ -1,11 +1,11 @@
 // Publicar Alojamiento — formulario de 2 pasos
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Check, ChevronRight, ChevronLeft,
   Wifi, Car, Coffee, Tv, Snowflake, Users, Waves, ImageIcon, X,
@@ -15,6 +15,7 @@ import { useListingStore } from '../../stores/listingStore';
 import { useAuthStore } from '../../stores/authStore';
 import { showAlert } from '../../utils/alert';
 import { pickMultipleImages, uploadImage } from '../../services/imageUpload';
+import { supabase } from '../../lib/supabase';
 
 const ACCOMMODATION_TYPES = [
   'Hotel', 'Cabaña', 'Departamento', 'Casa',
@@ -39,6 +40,9 @@ export default function PublishAccommodationScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { createListing, saving } = useListingStore();
+  const params = useLocalSearchParams();
+  const editId = params.editId as string | undefined;
+  const isEditing = !!editId;
 
   const [step, setStep] = useState(1);
   // Paso 1
@@ -54,6 +58,30 @@ export default function PublishAccommodationScreen() {
   const [checkOut, setCheckOut] = useState('10:00');
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  // Pre-load data for edit mode
+  useEffect(() => {
+    if (!editId) return;
+    setLoadingEdit(true);
+    const load = async () => {
+      const { data } = await supabase.from('listings').select('*').eq('id', editId).single();
+      if (data) {
+        setTitle(data.title || '');
+        setDescription(data.description || '');
+        setAccommodationType(data.accommodation_type || data.category || '');
+        setPhone(data.phone || '');
+        setAddress(data.address || '');
+        setAmenities(data.amenities || []);
+        setMaxGuests(data.max_guests ? String(data.max_guests) : '');
+        setCheckIn(data.check_in || '14:00');
+        setCheckOut(data.check_out || '10:00');
+        if (data.images && data.images.length > 0) setImageUris(data.images);
+      }
+      setLoadingEdit(false);
+    };
+    load();
+  }, [editId]);
 
   const canGoNext = step === 1
     ? title.trim().length > 0 && accommodationType.length > 0
@@ -86,6 +114,32 @@ export default function PublishAccommodationScreen() {
         return;
       }
       setUploadingImages(false);
+    }
+
+    if (isEditing) {
+      const { error: updateError } = await supabase.from('listings')
+        .update({
+          title: title.trim(),
+          category: accommodationType,
+          accommodation_type: accommodationType,
+          description: description.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+          amenities,
+          max_guests: maxGuests ? parseInt(maxGuests, 10) : null,
+          check_in: checkIn,
+          check_out: checkOut,
+          images: uploadedUrls.length > 0 ? uploadedUrls : imageUris,
+        })
+        .eq('id', editId);
+
+      if (updateError) {
+        showAlert('Error', updateError.message);
+        return;
+      }
+      showAlert('¡Actualizado!', 'Tu alojamiento fue actualizado correctamente.');
+      router.back();
+      return;
     }
 
     const { data, error } = await createListing({
@@ -295,7 +349,7 @@ export default function PublishAccommodationScreen() {
           <TouchableOpacity onPress={() => step === 1 ? router.back() : setStep(1)} style={styles.backBtn}>
             <ArrowLeft size={22} color={tc.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: tc.text }]}>Publicar alojamiento</Text>
+          <Text style={[styles.headerTitle, { color: tc.text }]}>{isEditing ? 'Editar alojamiento' : 'Publicar alojamiento'}</Text>
           <Text style={[styles.stepIndicator, { color: tc.textMuted }]}>Paso {step}/2</Text>
         </View>
 
@@ -342,7 +396,7 @@ export default function PublishAccommodationScreen() {
             ) : (
               <>
                 <Text style={[styles.primaryBtnText, { color: canGoNext ? '#fff' : tc.textMuted }]}>
-                  {step === 1 ? 'Siguiente' : 'Publicar'}
+                  {step === 1 ? 'Siguiente' : isEditing ? 'Guardar' : 'Publicar'}
                 </Text>
                 {step === 1 ? (
                   <ChevronRight size={18} color={canGoNext ? '#fff' : tc.textMuted} />
