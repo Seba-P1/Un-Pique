@@ -5,7 +5,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 
-type StorageBucket = 'avatars' | 'products' | 'businesses' | 'listings' | 'posts' | 'stories' | 'covers' | 'chats';
+type StorageBucket = 'avatars' | 'products' | 'businesses' | 'listings' | 'posts' | 'stories' | 'covers' | 'chats' | 'photos';
 
 interface UploadResult {
     url: string;

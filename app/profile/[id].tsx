@@ -23,6 +23,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import colors from '../../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import PhotosView from '../../components/profile/PhotosView';
 import { showAlert } from '../../utils/alert';
 
 interface UserProfile {
@@ -579,6 +580,7 @@ export default function UserProfileScreen() {
                         </View>
                     )}
 
+                    {activeTab === 'info' && (
                         <View style={{ gap: 16 }}>
                             <View style={[styles.infoCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
                                 <Text style={[styles.infoTitle, { color: tc.text }]}>Información general</Text>
@@ -656,20 +658,10 @@ export default function UserProfileScreen() {
                                 </View>
                             )}
                         </View>
+                    )}
 
                     {activeTab === 'photos' && (
-                        <View style={[styles.photosTabContainer, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                            <Text style={[styles.infoTitle, { color: tc.text }]}>Fotos</Text>
-                            {allPhotos.length > 0 ? (
-                                <View style={styles.photosFullGrid}>
-                                    {allPhotos.map((url, i) => (
-                                        <Image key={i} source={{ uri: url }} style={[styles.photoFull, isMobile && { width: '48%' }]} />
-                                    ))}
-                                </View>
-                            ) : (
-                                <Text style={{ color: tc.textMuted, fontSize: 14, padding: 20, textAlign: 'center' }}>No hay fotos para mostrar</Text>
-                            )}
-                        </View>
+                        <PhotosView userId={id} isOwner={isOwnProfile} />
                     )}
 
                     {activeTab === 'saved' && isOwnProfile && (

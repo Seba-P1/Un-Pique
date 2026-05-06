@@ -10,7 +10,7 @@ import {
     User, Settings, LogOut, MapPin, ShoppingBag, Bell, HelpCircle,
     ChevronRight, Store, Bike, Sun, Moon, Monitor,
     MessageCircle, Bookmark, Briefcase, Camera, Edit3, Grid3X3,
-    Heart, MoreHorizontal, BookmarkCheck, Share2
+    Heart, MoreHorizontal, BookmarkCheck, Share2, Image as ImageIcon
 } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { showAlert } from '../../utils/alert';
@@ -25,8 +25,9 @@ import { uploadImage } from '../../services/imageUpload';
 import { useLoyaltyStore } from '../../stores/loyaltyStore';
 import LoyaltyCard from '../../components/loyalty/LoyaltyCard';
 import { PostCard } from '../../components/social/SharedPost';
+import PhotosView from '../../components/profile/PhotosView';
 
-type ProfileView = 'wall' | 'settings';
+type ProfileView = 'wall' | 'photos' | 'settings';
 
 export default function ProfileScreen() {
     const { user, profile, signOut, currentRole, setCurrentRole, fetchProfile } = useAuthStore();
@@ -262,6 +263,13 @@ export default function ProfileScreen() {
                         <Text style={[styles.tabLabel, { color: activeView === 'wall' ? colors.primary.DEFAULT : tc.textMuted }, activeView === 'wall' && { fontWeight: '700' }]}>Mi Muro</Text>
                     </Pressable>
                     <Pressable
+                        style={[styles.tabItem, activeView === 'photos' && { borderBottomColor: colors.primary.DEFAULT, borderBottomWidth: 3 }]}
+                        onPress={() => setActiveView('photos')}
+                    >
+                        <ImageIcon size={16} color={activeView === 'photos' ? colors.primary.DEFAULT : tc.textMuted} />
+                        <Text style={[styles.tabLabel, { color: activeView === 'photos' ? colors.primary.DEFAULT : tc.textMuted }, activeView === 'photos' && { fontWeight: '700' }]}>Fotos</Text>
+                    </Pressable>
+                    <Pressable
                         style={[styles.tabItem, activeView === 'settings' && { borderBottomColor: colors.primary.DEFAULT, borderBottomWidth: 3 }]}
                         onPress={() => setActiveView('settings')}
                     >
@@ -274,6 +282,8 @@ export default function ProfileScreen() {
                 <View style={[styles.contentArea, !isMobile && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
                     {activeView === 'wall' ? (
                         <WallView posts={posts} loading={loadingPosts} tc={tc} isDesktop={isDesktop} isMobile={isMobile} isLiked={isLiked} toggleLike={toggleLike} isSaved={isSaved} toggleSave={toggleSave} router={router} savedPosts={savedPosts} profile={profile} userListings={userListings} hasBusinessRole={hasBusinessRole} />
+                    ) : activeView === 'photos' ? (
+                        <PhotosView userId={user?.id || ''} isOwner={true} />
                     ) : (
                         <SettingsView tc={tc} router={router} hasListings={hasListings} showRolesSection={showRolesSection} hasBusinessRole={hasBusinessRole} hasDriverRole={hasDriverRole} currentRole={currentRole} setCurrentRole={setCurrentRole} theme={theme} setTheme={setTheme} handleSignOut={handleSignOut} isMobile={isMobile} />
                     )}
