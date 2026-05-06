@@ -26,8 +26,10 @@ const ChatImage = ({ url, onPress }: { url: string, onPress: (url: string) => vo
                 style={{ width: size.width, height: size.height, borderRadius: 12 }}
                 resizeMode="cover"
                 onLoad={(e) => {
-                    const { width, height } = e.nativeEvent.source;
-                    const ratio = height / width;
+                    if (Platform.OS === 'web') return;
+                    const source = e.nativeEvent?.source;
+                    if (!source?.width || !source?.height) return;
+                    const ratio = source.height / source.width;
                     setSize({ width: 220, height: Math.min(Math.round(220 * ratio), 300) });
                 }} />
         </TouchableOpacity>
@@ -49,6 +51,7 @@ export default function ChatDetailScreen() {
     const [initialLoading, setInitialLoading] = useState(true);
     const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
     const [showChatMenu, setShowChatMenu] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     
     const recording = useRef<Audio.Recording | null>(null);
     const flatListRef = useRef<FlatList>(null);
@@ -80,6 +83,7 @@ export default function ChatDetailScreen() {
             await fetchMessages(id);
             subscribeToRoom(id);
             markMessagesAsRead(id);
+            
             setInitialLoading(false);
             
             fetchRooms(user.id);
@@ -119,22 +123,11 @@ export default function ChatDetailScreen() {
     };
 
     const handleDeleteChat = () => {
+        const userId = user?.id;
+        if (!userId || !id) return;
+        
         setShowChatMenu(false);
-        Alert.alert(
-            'Eliminar conversación',
-            'Se eliminará para vos. El otro usuario seguirá viendo los mensajes.',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                { 
-                    text: 'Eliminar', 
-                    style: 'destructive', 
-                    onPress: () => {
-                        // TODO: Implement deleted_for_user_id array column in chat_rooms table
-                        router.replace('/chat' as any);
-                    }
-                }
-            ]
-        );
+        setShowDeleteConfirm(true);
     };
 
     const handleSend = async () => {
@@ -465,6 +458,65 @@ export default function ChatDetailScreen() {
                     </View>
                 )}
             </KeyboardAvoidingView>
+
+            {showDeleteConfirm && (
+                <View style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    justifyContent: 'center', alignItems: 'center',
+                    zIndex: 999
+                }}>
+                    <View style={{
+                        backgroundColor: tc.bgCard,
+                        borderRadius: 16,
+                        padding: 24,
+                        width: 300,
+                        gap: 16
+                    }}>
+                        <Text style={{ fontSize: 17, fontWeight: '700', color: tc.text }}>
+                            Eliminar conversación
+                        </Text>
+                        <Text style={{ fontSize: 14, color: tc.textMuted }}>
+                            Se eliminará para vos. El otro usuario seguirá viendo los mensajes.
+                        </Text>
+                        <View style={{ flexDirection: 'row', gap: 12, justifyContent: 'flex-end' }}>
+                            <TouchableOpacity
+                                onPress={() => setShowDeleteConfirm(false)}
+                                style={{ padding: 10 }}>
+                                <Text style={{ color: tc.textMuted, fontSize: 15 }}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={async () => {
+                                    setShowDeleteConfirm(false);
+                                    const userId = user?.id;
+                                    if (!userId || !id) return;
+                                    console.log('Deleting chat:', { roomId: id, userId });
+
+                                    const { error } = await supabase.rpc('append_to_deleted_chats', {
+                                        room_id: id,
+                                        user_id: userId
+                                    });
+                                    if (error) {
+                                        console.error('RPC error:', error);
+                                    } else {
+                                        await useChatStore.getState().fetchRooms(userId);
+                                        router.replace('/chat' as any);
+                                    }
+                                }}
+                                style={{
+                                    backgroundColor: '#ef4444',
+                                    paddingHorizontal: 16,
+                                    paddingVertical: 10,
+                                    borderRadius: 8
+                                }}>
+                                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
+                                    Eliminar
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 }

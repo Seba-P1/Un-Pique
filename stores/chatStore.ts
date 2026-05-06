@@ -75,6 +75,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 .from('chat_rooms')
                 .select('*, chat_messages!inner(id, created_at)')
                 .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
+                .not('deleted_by_user_ids', 'cs', `{"${userId}"}`)
                 .order('last_message_at', { ascending: false });
 
             if (error) throw error;
@@ -122,7 +123,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
                 if (business) {
                     displayUser = {
-                        id: otherUserId, // Mantenemos el ID del otro usuario para la lógica, pero mostramos info del local
+                        id: otherUserId,
                         full_name: business.name,
                         avatar_url: business.logo_url
                     };
@@ -134,6 +135,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 };
             });
 
+            // For rooms with cleared_at, fetch the latest visible message
+            const roomsWithClearedAt = rooms.filter((r: any) => r.cleared_at?.[userId]);
+            if (roomsWithClearedAt.length > 0) {
+                await Promise.all(roomsWithClearedAt.map(async (room: any) => {
+                    const clearedAt = room.cleared_at[userId];
+                    const { data: latestMsg } = await supabase
+                        .from('chat_messages')
+                        .select('content, created_at')
+                        .eq('room_id', room.id)
+                        .gt('created_at', clearedAt)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (latestMsg) {
+                        room.last_message = latestMsg.content;
+                        room.last_message_at = latestMsg.created_at;
+                    } else {
+                        // No messages after cleared_at — show empty state
+                        room.last_message = '';
+                        room.last_message_at = room.created_at;
+                    }
+                }));
+            }
+
             set({ rooms, loading: false });
         } catch (error: any) {
             set({ error: error.message, loading: false });
@@ -143,11 +169,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     fetchMessages: async (roomId: string) => {
         try {
-            const { data, error } = await supabase
+            const { data: { user } } = await supabase.auth.getUser();
+            const userId = user?.id;
+
+            const { data: room } = await supabase
+                .from('chat_rooms')
+                .select('cleared_at')
+                .eq('id', roomId)
+                .single();
+                
+            const clearedAt = userId && room?.cleared_at ? room.cleared_at[userId] : null;
+
+            let query = supabase
                 .from('chat_messages')
                 .select('*')
-                .eq('room_id', roomId)
-                .order('created_at', { ascending: true });
+                .eq('room_id', roomId);
+
+            if (clearedAt) {
+                query = query.gt('created_at', clearedAt);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: true });
 
             if (error) throw error;
 

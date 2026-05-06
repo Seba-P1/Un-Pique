@@ -10,6 +10,7 @@ import { useChatStore, ChatRoom } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import colors from '../../constants/colors';
+import { supabase } from '../../lib/supabase';
 
 const getRelativeTime = (dateStr?: string) => {
     if (!dateStr) return '';
@@ -86,6 +87,8 @@ export default function ChatListScreen() {
     const { rooms, loading, fetchRooms, fetchUnreadCount } = useChatStore();
     const { user } = useAuthStore();
     const [menuRoom, setMenuRoom] = useState<ChatRoom | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -105,22 +108,12 @@ export default function ChatListScreen() {
     };
 
     const handleDeleteChat = () => {
-        if (!menuRoom) return;
+        const userId = user?.id;
+        if (!menuRoom || !userId) return;
+        
+        setRoomToDelete(menuRoom.id);
         setMenuRoom(null);
-        Alert.alert(
-            'Eliminar conversación',
-            'Se eliminará para vos. El otro usuario seguirá viendo los mensajes.',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                { 
-                    text: 'Eliminar', 
-                    style: 'destructive', 
-                    onPress: () => {
-                        // TODO: Implement soft delete with deleted_by_user_ids array column in chat_rooms
-                    }
-                }
-            ]
-        );
+        setShowDeleteConfirm(true);
     };
 
     return (
@@ -170,6 +163,74 @@ export default function ChatListScreen() {
                     </Pressable>
                 </Pressable>
             </Modal>
+
+            {showDeleteConfirm && (
+                <View style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    justifyContent: 'center', alignItems: 'center',
+                    zIndex: 999
+                }}>
+                    <View style={{
+                        backgroundColor: tc.bgCard,
+                        borderRadius: 16,
+                        padding: 24,
+                        width: 300,
+                        gap: 16
+                    }}>
+                        <Text style={{ fontSize: 17, fontWeight: '700', color: tc.text }}>
+                            Eliminar conversación
+                        </Text>
+                        <Text style={{ fontSize: 14, color: tc.textMuted }}>
+                            Se eliminará para vos. El otro usuario seguirá viendo los mensajes.
+                        </Text>
+                        <View style={{ flexDirection: 'row', gap: 12, justifyContent: 'flex-end' }}>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowDeleteConfirm(false);
+                                    setRoomToDelete(null);
+                                }}
+                                style={{ padding: 10 }}>
+                                <Text style={{ color: tc.textMuted, fontSize: 15 }}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={async () => {
+                                    setShowDeleteConfirm(false);
+                                    const userId = user?.id;
+                                    
+                                    if (!userId || !roomToDelete) {
+                                        setRoomToDelete(null);
+                                        return;
+                                    }
+                                    
+                                    console.log('Index deleting:', { roomId: roomToDelete, userId });
+
+                                    const { error } = await supabase.rpc('append_to_deleted_chats', {
+                                        room_id: roomToDelete,
+                                        user_id: userId
+                                    });
+                                    setRoomToDelete(null);
+                                    
+                                    if (error) {
+                                        console.error('RPC error:', error);
+                                    } else {
+                                        await useChatStore.getState().fetchRooms(userId);
+                                    }
+                                }}
+                                style={{
+                                    backgroundColor: '#ef4444',
+                                    paddingHorizontal: 16,
+                                    paddingVertical: 10,
+                                    borderRadius: 8
+                                }}>
+                                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
+                                    Eliminar
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
