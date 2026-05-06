@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Linking, Modal, Pressable, Animated, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Send, Smile, Paperclip, Image as ImageIcon, Mic, Info, FileText } from 'lucide-react-native';
+import { ArrowLeft, Send, Smile, Paperclip, Image as ImageIcon, Mic, MoreVertical, FileText, X, Trash2, User } from 'lucide-react-native';
 import { Audio } from 'expo-av';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -12,11 +12,27 @@ import { useChatStore, ChatMessage } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { supabase } from '../../lib/supabase';
-import { pickAndUploadImage } from '../../services/imageUpload';
+import { pickImage, uploadImage } from '../../services/imageUpload';
 import { pickAndUploadFile, uploadAudioFile } from '../../services/fileUpload';
 import AudioPlayer from '../../components/chat/AudioPlayer';
 
 const EMOJIS = ['😀','😂','🥰','😎','🤔','😢','😡','👍','👎','❤️','🔥','✨','🎉','🙏','💪','🤝','🍕','🍔','☕','🎵','📍','🏠','🔑','💡','⭐','💰','📱','🚗','🌟','👋'];
+
+const ChatImage = ({ url, onPress }: { url: string, onPress: (url: string) => void }) => {
+    const [size, setSize] = useState({ width: 220, height: 165 });
+    return (
+        <TouchableOpacity onPress={() => onPress(url)} activeOpacity={0.9}>
+            <Image source={{ uri: url }}
+                style={{ width: size.width, height: size.height, borderRadius: 12 }}
+                resizeMode="cover"
+                onLoad={(e) => {
+                    const { width, height } = e.nativeEvent.source;
+                    const ratio = height / width;
+                    setSize({ width: 220, height: Math.min(Math.round(220 * ratio), 300) });
+                }} />
+        </TouchableOpacity>
+    );
+};
 
 export default function ChatDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,10 +47,16 @@ export default function ChatDetailScreen() {
     const [isRecording, setIsRecording] = useState(false);
     const [sendingMedia, setSendingMedia] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
+    const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+    const [showChatMenu, setShowChatMenu] = useState(false);
     
     const recording = useRef<Audio.Recording | null>(null);
     const flatListRef = useRef<FlatList>(null);
     const pulseAnim = useRef(new Animated.Value(1)).current;
+    const pulseDotAnim = useRef(new Animated.Value(1)).current;
+    const recordingTimer = useRef<NodeJS.Timeout | number | null>(null);
+    const cancelRecordingRef = useRef(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
 
     const roomMessages = messages[id] || [];
 
@@ -81,19 +103,38 @@ export default function ChatDetailScreen() {
         if (isRecording) {
             Animated.loop(
                 Animated.sequence([
-                    Animated.timing(pulseAnim, { toValue: 1.15, duration: 500, useNativeDriver: true }),
-                    Animated.timing(pulseAnim, { toValue: 1, duration: 500, useNativeDriver: true })
+                    Animated.timing(pulseDotAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+                    Animated.timing(pulseDotAnim, { toValue: 1, duration: 800, useNativeDriver: true })
                 ])
             ).start();
         } else {
-            pulseAnim.stopAnimation();
-            pulseAnim.setValue(1);
+            pulseDotAnim.stopAnimation();
+            pulseDotAnim.setValue(1);
         }
     }, [isRecording]);
 
     const handleBack = () => {
         if (router.canGoBack()) router.back();
         else router.replace('/');
+    };
+
+    const handleDeleteChat = () => {
+        setShowChatMenu(false);
+        Alert.alert(
+            'Eliminar conversación',
+            'Se eliminará para vos. El otro usuario seguirá viendo los mensajes.',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { 
+                    text: 'Eliminar', 
+                    style: 'destructive', 
+                    onPress: () => {
+                        // TODO: Implement deleted_for_user_id array column in chat_rooms table
+                        router.replace('/chat' as any);
+                    }
+                }
+            ]
+        );
     };
 
     const handleSend = async () => {
@@ -115,7 +156,13 @@ export default function ChatDetailScreen() {
         if (sendingMedia || !id) return;
         setSendingMedia(true);
         try {
-            const result = await pickAndUploadImage('chats', 'images');
+            const uri = await pickImage();
+            if (!uri) return;
+            const result = await uploadImage(uri, 'chats', `messages/${Date.now()}`, {
+                maxWidth: 1080,
+                maxHeight: 1080,
+                quality: 0.72
+            });
             if (result?.url) await sendMessage(id, `[image:${result.url}]`);
         } catch (e) {
             console.error(e);
@@ -137,6 +184,12 @@ export default function ChatDetailScreen() {
         }
     };
 
+    const formatRecordingTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${String(s).padStart(2, '0')}`;
+    };
+
     const handleStartRecording = async () => {
         if (Platform.OS === 'web' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
             Alert.alert('Error', 'La grabación de audio requiere HTTPS en producción. Funciona en localhost.');
@@ -148,13 +201,35 @@ export default function ChatDetailScreen() {
             const { recording: r } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
             recording.current = r;
             setIsRecording(true);
+            
+            cancelRecordingRef.current = false;
+            setRecordingDuration(0);
+            recordingTimer.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
         } catch (err) {
             console.error('Failed to start recording', err);
         }
     };
 
-    const handleStopRecording = async () => {
-        if (!recording.current || !id) return;
+    const handleCancelRecording = async () => {
+        cancelRecordingRef.current = true;
+        if (recordingTimer.current) clearInterval(recordingTimer.current);
+        setRecordingDuration(0);
+        if (recording.current) {
+            await recording.current.stopAndUnloadAsync();
+            recording.current = null;
+        }
+        setIsRecording(false);
+    };
+
+    const handleStopAndSendRecording = async () => {
+        if (recordingTimer.current) clearInterval(recordingTimer.current);
+        setRecordingDuration(0);
+        if (!recording.current || !id) {
+            setIsRecording(false);
+            return;
+        }
         try {
             await recording.current.stopAndUnloadAsync();
             const uri = recording.current.getURI();
@@ -166,7 +241,7 @@ export default function ChatDetailScreen() {
             const url = await uploadAudioFile(uri);
             await sendMessage(id, `[audio:${url}]`);
         } catch (err) {
-            console.error('Failed to stop recording', err);
+            console.error('Failed to send recording', err);
         } finally {
             setSendingMedia(false);
         }
@@ -175,7 +250,7 @@ export default function ChatDetailScreen() {
     const parseMessageContent = (content: string, isOwn: boolean) => {
         if (content.startsWith('[image:')) {
             const url = content.slice(7, -1);
-            return <Image source={{ uri: url }} style={styles.imageContent} resizeMode="cover" />;
+            return <ChatImage url={url} onPress={setFullscreenImage} />;
         }
         if (content.startsWith('[audio:')) {
             const url = content.slice(7, -1);
@@ -255,8 +330,8 @@ export default function ChatDetailScreen() {
                     <Image source={{ uri: otherUser?.avatar_url || 'https://via.placeholder.com/40' }} style={[styles.avatar, { borderColor: tc.borderLight }]} />
                     <Text style={[styles.headerTitle, { color: tc.text }]}>{otherUser?.full_name || 'Cargando...'}</Text>
                 </View>
-                <TouchableOpacity style={styles.infoBtn} onPress={() => otherUser?.id && router.push(`/profile/${otherUser.id}` as any)}>
-                    <Info size={22} color={tc.text} />
+                <TouchableOpacity style={styles.infoBtn} onPress={() => setShowChatMenu(true)}>
+                    <MoreVertical size={22} color={tc.text} />
                 </TouchableOpacity>
             </View>
 
@@ -290,52 +365,105 @@ export default function ChatDetailScreen() {
                 </Pressable>
             </Modal>
 
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <View style={[styles.inputBar, { backgroundColor: tc.bgCard, borderTopColor: tc.borderLight }]}>
-                    <View style={styles.leftActions}>
-                        <TouchableOpacity style={styles.actionBtn} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
-                            <Smile size={22} color={tc.textMuted} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionBtn} onPress={handleImageUpload} disabled={sendingMedia}>
-                            <ImageIcon size={22} color={tc.textMuted} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionBtn} onPress={handleFileUpload} disabled={sendingMedia}>
-                            <Paperclip size={22} color={tc.textMuted} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <TextInput
-                        style={[styles.input, { backgroundColor: tc.bgInput, color: tc.text }, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
-                        placeholder="Escribí un mensaje..."
-                        placeholderTextColor={tc.textMuted}
-                        value={inputText}
-                        onChangeText={setInputText}
-                        multiline
-                        maxLength={1000}
-                        onKeyPress={handleKeyPress}
-                    />
-
-                    <View style={styles.rightActions}>
-                        {sendingMedia ? (
-                            <ActivityIndicator size="small" color={colors.primary.DEFAULT} style={styles.actionBtn} />
-                        ) : inputText.trim() ? (
-                            <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-                                <Send size={20} color={colors.white} style={{ marginLeft: -2 }} />
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity 
-                                style={[styles.micBtn, isRecording && { backgroundColor: 'rgba(255, 107, 53, 0.2)' }]} 
-                                onPressIn={handleStartRecording}
-                                onPressOut={handleStopRecording}
-                                activeOpacity={0.8}
-                            >
-                                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                                    <Mic size={22} color={isRecording ? '#FF6B35' : tc.textMuted} />
-                                </Animated.View>
-                            </TouchableOpacity>
-                        )}
-                    </View>
+            <Modal visible={!!fullscreenImage} transparent={true} animationType="fade" onRequestClose={() => setFullscreenImage(null)}>
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        onPress={() => setFullscreenImage(null)}
+                        style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' }}>
+                        <X size={20} color="#fff" />
+                    </TouchableOpacity>
+                    {fullscreenImage && (
+                        <Image source={{ uri: fullscreenImage }} style={{ width: '100%', height: '80%' }} resizeMode="contain" />
+                    )}
                 </View>
+            </Modal>
+
+            <Modal visible={showChatMenu} transparent={true} animationType="fade" onRequestClose={() => setShowChatMenu(false)}>
+                <Pressable style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]} onPress={() => setShowChatMenu(false)}>
+                    <Pressable style={[styles.bottomSheet, { backgroundColor: tc.bgCard }]} onPress={e => e.stopPropagation()}>
+                        <View style={[styles.bottomSheetHandle, { backgroundColor: tc.borderLight }]} />
+                        
+                        <TouchableOpacity style={styles.bottomSheetOption} onPress={() => { setShowChatMenu(false); if(otherUser?.id) router.push(`/profile/${otherUser.id}` as any); }}>
+                            <User size={20} color={tc.text} />
+                            <Text style={[styles.bottomSheetOptionText, { color: tc.text }]}>Ver perfil</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.bottomSheetOption} onPress={handleDeleteChat}>
+                            <Trash2 size={20} color="#ef4444" />
+                            <Text style={[styles.bottomSheetOptionText, { color: '#ef4444' }]}>Eliminar conversación</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.bottomSheetOption} onPress={() => setShowChatMenu(false)}>
+                            <X size={20} color={tc.textMuted} />
+                            <Text style={[styles.bottomSheetOptionText, { color: tc.textMuted }]}>Cancelar</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
+
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                {isRecording ? (
+                    <View style={[styles.inputBar, { backgroundColor: tc.bgCard, borderTopColor: tc.borderLight, alignItems: 'center', paddingVertical: 12 }]}>
+                        <TouchableOpacity onPress={handleCancelRecording} style={styles.cancelRecordBtn}>
+                            <Trash2 size={20} color="#ef4444" />
+                            <Text style={styles.cancelRecordText}>Cancelar</Text>
+                        </TouchableOpacity>
+                        
+                        <View style={styles.recordIndicator}>
+                            <Animated.View style={[styles.recordDot, { opacity: pulseDotAnim }]} />
+                            <Text style={[styles.recordTime, { color: tc.text }]}>
+                                {formatRecordingTime(recordingDuration)}
+                            </Text>
+                        </View>
+                        
+                        <TouchableOpacity onPress={handleStopAndSendRecording} style={styles.sendRecordBtn}>
+                            <Send size={18} color="#fff" style={{ marginLeft: -2 }} />
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View style={[styles.inputBar, { backgroundColor: tc.bgCard, borderTopColor: tc.borderLight }]}>
+                        <View style={styles.leftActions}>
+                            <TouchableOpacity style={styles.actionBtn} onPress={() => setShowEmojiPicker(!showEmojiPicker)}>
+                                <Smile size={22} color={tc.textMuted} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionBtn} onPress={handleImageUpload} disabled={sendingMedia}>
+                                <ImageIcon size={22} color={tc.textMuted} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionBtn} onPress={handleFileUpload} disabled={sendingMedia}>
+                                <Paperclip size={22} color={tc.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <TextInput
+                            style={[styles.input, { backgroundColor: tc.bgInput, color: tc.text }, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                            placeholder="Escribí un mensaje..."
+                            placeholderTextColor={tc.textMuted}
+                            value={inputText}
+                            onChangeText={setInputText}
+                            multiline
+                            maxLength={1000}
+                            onKeyPress={handleKeyPress}
+                        />
+
+                        <View style={styles.rightActions}>
+                            {sendingMedia ? (
+                                <ActivityIndicator size="small" color={colors.primary.DEFAULT} style={styles.actionBtn} />
+                            ) : inputText.trim() ? (
+                                <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
+                                    <Send size={20} color={colors.white} style={{ marginLeft: -2 }} />
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity 
+                                    style={styles.micBtn} 
+                                    onPress={handleStartRecording}
+                                    activeOpacity={0.8}
+                                >
+                                    <Mic size={22} color={tc.textMuted} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+                )}
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -369,7 +497,6 @@ const styles = StyleSheet.create({
     messageText: { fontSize: 15, lineHeight: 22 },
     messageTime: { fontSize: 10, marginTop: 2 },
     
-    imageContent: { width: 220, height: 165, borderRadius: 12 },
     fileRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10 },
     fileText: { fontSize: 13, fontWeight: '500', maxWidth: 180 },
     
@@ -383,8 +510,20 @@ const styles = StyleSheet.create({
     sendBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FF6B35', justifyContent: 'center', alignItems: 'center' },
     micBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     
+    cancelRecordBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    cancelRecordText: { color: '#ef4444', fontSize: 13, fontWeight: '600' },
+    recordIndicator: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    recordDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444' },
+    recordTime: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
+    sendRecordBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FF6B35', justifyContent: 'center', alignItems: 'center' },
+    
     modalOverlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
     emojiPicker: { width: 280, borderRadius: 16, padding: 12, marginBottom: 80, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 },
     emojiCell: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
     emojiText: { fontSize: 22 },
+    
+    bottomSheet: { width: '100%', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
+    bottomSheetHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+    bottomSheetOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12 },
+    bottomSheetOptionText: { fontSize: 16, fontWeight: '500' },
 });

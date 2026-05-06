@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Audio } from 'expo-av';
-import { Play, Pause } from 'lucide-react-native';
+import { Play, Pause, Mic } from 'lucide-react-native';
 
 interface AudioPlayerProps {
     uri: string;
@@ -69,17 +69,27 @@ export default function AudioPlayer({ uri, isOwn, tc }: AudioPlayerProps) {
                 borderColor: isOwn ? '#FF6B35' : tc.borderLight,
             }
         ]}>
+            <Mic 
+                size={14} 
+                color={isOwn ? 'rgba(255,255,255,0.7)' : '#22C55E'} 
+                style={{ marginRight: 6 }} 
+            />
+
             <TouchableOpacity 
                 style={[
                     styles.playBtn, 
-                    { backgroundColor: isOwn ? '#FF6B35' : tc.borderLight }
+                    { 
+                        backgroundColor: isOwn ? 'rgba(255,255,255,0.25)' : 'rgba(34, 197, 94, 0.15)',
+                        borderColor: isOwn ? 'rgba(255,255,255,0.4)' : '#22C55E',
+                        borderWidth: 1.5,
+                    }
                 ]}
                 onPress={togglePlay}
             >
                 {playing ? (
-                    <Pause size={14} color={isOwn ? '#fff' : tc.text} fill={isOwn ? '#fff' : tc.text} />
+                    <Pause size={14} color={isOwn ? '#fff' : '#22C55E'} fill={isOwn ? '#fff' : '#22C55E'} />
                 ) : (
-                    <Play size={14} color={isOwn ? '#fff' : tc.text} fill={isOwn ? '#fff' : tc.text} style={{ marginLeft: 2 }} />
+                    <Play size={14} color={isOwn ? '#fff' : '#22C55E'} fill={isOwn ? '#fff' : '#22C55E'} style={{ marginLeft: 2 }} />
                 )}
             </TouchableOpacity>
 
@@ -89,7 +99,7 @@ export default function AudioPlayer({ uri, isOwn, tc }: AudioPlayerProps) {
                         styles.progressBarFill, 
                         { 
                             width: fillWidth,
-                            backgroundColor: isOwn ? '#FF6B35' : tc.text 
+                            backgroundColor: isOwn ? 'rgba(255,255,255,0.8)' : '#22C55E' 
                         }
                     ]} 
                 />
@@ -107,14 +117,14 @@ export default function AudioPlayer({ uri, isOwn, tc }: AudioPlayerProps) {
 
 const styles = StyleSheet.create({
     container: {
-        width: 220,
-        height: 56,
-        borderRadius: 28,
+        width: 200,
+        height: 52,
+        borderRadius: 26,
         borderWidth: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
-        gap: 10
+        paddingHorizontal: 10,
+        gap: 6
     },
     playBtn: {
         width: 36,

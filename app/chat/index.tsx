@@ -1,8 +1,8 @@
-import React, { useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Animated } from 'react-native';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Animated, Modal, Pressable, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, MessageCircle } from 'lucide-react-native';
+import { ArrowLeft, MessageCircle, Trash2, X } from 'lucide-react-native';
 import { format, isToday, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -19,7 +19,7 @@ const getRelativeTime = (dateStr?: string) => {
     return format(d, 'dd/MM', { locale: es });
 };
 
-const ChatRow = ({ item, index, tc, router }: { item: ChatRoom, index: number, tc: any, router: any }) => {
+const ChatRow = ({ item, index, tc, router, setMenuRoom }: { item: ChatRoom, index: number, tc: any, router: any, setMenuRoom: (room: ChatRoom) => void }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const translateY = useRef(new Animated.Value(6)).current;
 
@@ -47,6 +47,7 @@ const ChatRow = ({ item, index, tc, router }: { item: ChatRoom, index: number, t
             <TouchableOpacity 
                 style={styles.row}
                 onPress={() => router.push(`/chat/${item.id}` as any)}
+                onLongPress={() => setMenuRoom(item)}
                 activeOpacity={0.7}
             >
                 <View style={[styles.avatarContainer, { borderColor: tc.borderLight }]}>
@@ -84,6 +85,7 @@ export default function ChatListScreen() {
     const router = useRouter();
     const { rooms, loading, fetchRooms, fetchUnreadCount } = useChatStore();
     const { user } = useAuthStore();
+    const [menuRoom, setMenuRoom] = useState<ChatRoom | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -100,6 +102,25 @@ export default function ChatListScreen() {
         } else {
             router.replace('/');
         }
+    };
+
+    const handleDeleteChat = () => {
+        if (!menuRoom) return;
+        setMenuRoom(null);
+        Alert.alert(
+            'Eliminar conversación',
+            'Se eliminará para vos. El otro usuario seguirá viendo los mensajes.',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                { 
+                    text: 'Eliminar', 
+                    style: 'destructive', 
+                    onPress: () => {
+                        // TODO: Implement soft delete with deleted_by_user_ids array column in chat_rooms
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -126,13 +147,29 @@ export default function ChatListScreen() {
             ) : (
                 <FlatList
                     data={rooms}
-                    renderItem={({ item, index }) => <ChatRow item={item} index={index} tc={tc} router={router} />}
+                    renderItem={({ item, index }) => <ChatRow item={item} index={index} tc={tc} router={router} setMenuRoom={setMenuRoom} />}
                     keyExtractor={item => item.id}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: tc.borderLight }]} />}
                 />
             )}
+
+            <Modal visible={!!menuRoom} transparent={true} animationType="fade" onRequestClose={() => setMenuRoom(null)}>
+                <Pressable style={styles.modalOverlay} onPress={() => setMenuRoom(null)}>
+                    <Pressable style={[styles.bottomSheet, { backgroundColor: tc.bgCard }]} onPress={e => e.stopPropagation()}>
+                        <View style={[styles.bottomSheetHandle, { backgroundColor: tc.borderLight }]} />
+                        <TouchableOpacity style={styles.bottomSheetOption} onPress={handleDeleteChat}>
+                            <Trash2 size={20} color="#ef4444" />
+                            <Text style={[styles.bottomSheetOptionText, { color: '#ef4444' }]}>Eliminar conversación</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.bottomSheetOption} onPress={() => setMenuRoom(null)}>
+                            <X size={20} color={tc.textMuted} />
+                            <Text style={[styles.bottomSheetOptionText, { color: tc.textMuted }]}>Cancelar</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -248,4 +285,9 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: 'center',
     },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
+    bottomSheet: { width: '100%', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
+    bottomSheetHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+    bottomSheetOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 12 },
+    bottomSheetOptionText: { fontSize: 16, fontWeight: '500' },
 });
