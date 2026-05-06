@@ -74,14 +74,18 @@ export default function PublishServiceScreen() {
       return;
     }
 
-    // Subir imágenes si hay
+    // Subir imágenes si hay o mantener las existentes
     let uploadedUrls: string[] = [];
     if (imageUris.length > 0) {
       setUploadingImages(true);
       try {
         for (const uri of imageUris) {
-          const result = await uploadImage(uri, 'listings', 'services', { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
-          uploadedUrls.push(result.url);
+          if (uri.startsWith('http')) {
+            uploadedUrls.push(uri);
+          } else {
+            const result = await uploadImage(uri, 'listings', 'services', { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
+            uploadedUrls.push(result.url);
+          }
         }
       } catch (err) {
         showAlert('Error', 'No se pudieron subir las imágenes. Intentá de nuevo.');
@@ -100,7 +104,7 @@ export default function PublishServiceScreen() {
           phone: phone.trim(),
           address: address.trim(),
           hourly_rate: hourlyRate ? parseInt(hourlyRate, 10) : null,
-          images: uploadedUrls.length > 0 ? uploadedUrls : imageUris,
+          images: uploadedUrls,
         })
         .eq('id', editId);
 

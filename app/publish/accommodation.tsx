@@ -99,14 +99,18 @@ export default function PublishAccommodationScreen() {
       return;
     }
 
-    // Subir imágenes si hay
+    // Subir imágenes si hay o mantener las existentes
     let uploadedUrls: string[] = [];
     if (imageUris.length > 0) {
       setUploadingImages(true);
       try {
         for (const uri of imageUris) {
-          const result = await uploadImage(uri, 'listings', 'accommodations', { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
-          uploadedUrls.push(result.url);
+          if (uri.startsWith('http')) {
+            uploadedUrls.push(uri);
+          } else {
+            const result = await uploadImage(uri, 'listings', 'accommodations', { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
+            uploadedUrls.push(result.url);
+          }
         }
       } catch (err) {
         showAlert('Error', 'No se pudieron subir las imágenes. Intentá de nuevo.');
@@ -129,7 +133,7 @@ export default function PublishAccommodationScreen() {
           max_guests: maxGuests ? parseInt(maxGuests, 10) : null,
           check_in: checkIn,
           check_out: checkOut,
-          images: uploadedUrls.length > 0 ? uploadedUrls : imageUris,
+          images: uploadedUrls,
         })
         .eq('id', editId);
 
