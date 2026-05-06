@@ -41,11 +41,13 @@ export default function ProfileScreen() {
     const [activeView, setActiveView] = useState<ProfileView>('wall');
     const [posts, setPosts] = useState<Post[]>([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
 
     const isDesktop = width >= 1024;
     const isTablet = width >= 768 && width < 1024;
     const isMobile = width < 768;
-    const contentMaxWidth = 960;
+    const contentMaxWidth = 1200;
 
     const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -70,6 +72,17 @@ export default function ProfileScreen() {
         const data = await fetchUserPosts(user.id);
         setPosts(data);
         setLoadingPosts(false);
+        
+        // Fetch followers/following count
+        const [
+            { count: followers },
+            { count: following }
+        ] = await Promise.all([
+            supabase.from('user_follows').select('*', { count: 'exact', head: true }).eq('following_id', user.id),
+            supabase.from('user_follows').select('*', { count: 'exact', head: true }).eq('follower_id', user.id)
+        ]);
+        setFollowersCount(followers || 0);
+        setFollowingCount(following || 0);
     };
 
     const [tempCoverUrl, setTempCoverUrl] = useState<string | null>(null);
@@ -122,7 +135,7 @@ export default function ProfileScreen() {
         router.push('/edit-profile' as any);
     };
 
-    const coverHeight = isMobile ? 180 : 280;
+    const coverHeight = isMobile ? 180 : isTablet ? 260 : Math.min(width * 0.25, 340);
     const avatarSize = isMobile ? 90 : 120;
 
     return (
@@ -151,7 +164,7 @@ export default function ProfileScreen() {
                     {(tempCoverUrl || profile?.cover_url) ? (
                         <Image 
                             source={{ uri: tempCoverUrl || profile?.cover_url }} 
-                            style={StyleSheet.absoluteFillObject} 
+                            style={Platform.OS === 'web' ? [StyleSheet.absoluteFillObject, { objectFit: 'cover', objectPosition: 'center 30%' } as any] : StyleSheet.absoluteFillObject}
                             resizeMode="cover"
                         />
                     ) : (
@@ -159,13 +172,9 @@ export default function ProfileScreen() {
                             <Text style={{ color: tc.textMuted, fontSize: 14, fontWeight: '500' }}>Toca para cambiar el banner</Text>
                         </View>
                     )}
-                    <LinearGradient
-                        colors={[(tempCoverUrl || profile?.cover_url) ? 'transparent' : colors.primary.DEFAULT + '50', tc.bg]}
-                        style={StyleSheet.absoluteFillObject}
-                        pointerEvents="none"
-                    />
+
                     <TouchableOpacity 
-                        style={[styles.editCoverBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} 
+                        style={[styles.editCoverBtn, { backgroundColor: 'rgba(0,0,0,0.45)', bottom: isMobile ? 54 : 14 }]} 
                         onPress={handleEditCover}
                         disabled={uploadingCover}
                     >
@@ -178,8 +187,18 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* ====== PROFILE INFO ====== */}
-                <View style={[styles.profileSection, !isMobile && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+                {/* ====== PROFILE INFO Container Wrap ====== */}
+                <View style={[
+                    {
+                        marginTop: -40,
+                        backgroundColor: tc.bg,
+                        borderTopLeftRadius: 40,
+                        borderTopRightRadius: 40,
+                        paddingTop: 20,
+                        minHeight: 500,
+                    }
+                ]}>
+                    <View style={[styles.profileSection, !isMobile && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
                     <View style={[styles.profileInfoRow, isMobile && styles.profileInfoRowMobile]}>
                         {/* Avatar */}
                         <View style={[styles.avatarWrapper, { marginTop: -(avatarSize / 2) }]}>
@@ -205,11 +224,14 @@ export default function ProfileScreen() {
                                 </View>
                             </View>
                             <View style={styles.statsRow}>
+                                <Text style={[styles.statNumber, { color: tc.text }]}>{followersCount}</Text>
+                                <Text style={[styles.statLabel, { color: tc.textMuted }]}>seguidores</Text>
+                                <Text style={[styles.statSep, { color: tc.borderLight }]}>·</Text>
+                                <Text style={[styles.statNumber, { color: tc.text }]}>{followingCount}</Text>
+                                <Text style={[styles.statLabel, { color: tc.textMuted }]}>siguiendo</Text>
+                                <Text style={[styles.statSep, { color: tc.borderLight }]}>·</Text>
                                 <Text style={[styles.statNumber, { color: tc.text }]}>{posts.length}</Text>
                                 <Text style={[styles.statLabel, { color: tc.textMuted }]}>publicaciones</Text>
-                                <Text style={[styles.statSep, { color: tc.borderLight }]}>·</Text>
-                                <Text style={[styles.statNumber, { color: tc.text }]}>{savedPosts.length}</Text>
-                                <Text style={[styles.statLabel, { color: tc.textMuted }]}>guardados</Text>
                             </View>
                         </View>
 
@@ -223,17 +245,11 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* ====== LOYALTY CARD COMPACT ====== */}
+                {/* ====== LOYALTY BADGE ====== */}
                 {loyalty && (
-                    <TouchableOpacity 
-                        style={{ paddingHorizontal: 20, marginBottom: 16 }}
-                        onPress={() => router.push('/loyalty' as any)}
-                        activeOpacity={0.9}
-                    >
-                        <View pointerEvents="none" style={{ transform: [{ scale: 0.95 }], marginTop: -10, marginBottom: -10 }}>
-                            <LoyaltyCard loyalty={loyalty} />
-                        </View>
-                    </TouchableOpacity>
+                    <View style={!isMobile ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' } : undefined}>
+                        <CompactLoyaltyBadge loyalty={loyalty} router={router} tc={tc} isMobile={isMobile} />
+                    </View>
                 )}
 
                 {/* ====== TAB BAR ====== */}
@@ -259,11 +275,12 @@ export default function ProfileScreen() {
                     {activeView === 'wall' ? (
                         <WallView posts={posts} loading={loadingPosts} tc={tc} isDesktop={isDesktop} isMobile={isMobile} isLiked={isLiked} toggleLike={toggleLike} isSaved={isSaved} toggleSave={toggleSave} router={router} savedPosts={savedPosts} profile={profile} userListings={userListings} hasBusinessRole={hasBusinessRole} />
                     ) : (
-                        <SettingsView tc={tc} router={router} hasListings={hasListings} showRolesSection={showRolesSection} hasBusinessRole={hasBusinessRole} hasDriverRole={hasDriverRole} currentRole={currentRole} setCurrentRole={setCurrentRole} theme={theme} setTheme={setTheme} handleSignOut={handleSignOut} />
+                        <SettingsView tc={tc} router={router} hasListings={hasListings} showRolesSection={showRolesSection} hasBusinessRole={hasBusinessRole} hasDriverRole={hasDriverRole} currentRole={currentRole} setCurrentRole={setCurrentRole} theme={theme} setTheme={setTheme} handleSignOut={handleSignOut} isMobile={isMobile} />
                     )}
                 </View>
 
                 <View style={{ height: 80 }} />
+                </View>
             </Animated.ScrollView>
         </View>
     );
@@ -448,29 +465,84 @@ function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike
 // =============================================
 // SETTINGS VIEW — Cuenta, roles, apariencia
 // =============================================
-function SettingsView({ tc, router, hasListings, showRolesSection, hasBusinessRole, hasDriverRole, currentRole, setCurrentRole, theme, setTheme, handleSignOut }: any) {
+function SettingsView({ tc, router, hasListings, showRolesSection, hasBusinessRole, hasDriverRole, currentRole, setCurrentRole, theme, setTheme, handleSignOut, isMobile }: any) {
+    const [activeSettingsBtn, setActiveSettingsBtn] = useState<string | null>(null);
+    const isWide = !isMobile;
+
+    if (isWide) {
+        return (
+            <View style={{ flexDirection: 'row' as const, gap: 20, maxWidth: 1100, alignSelf: 'center' as const, width: '100%' }}>
+                {/* Left sidebar */}
+                <View style={{ width: 260 }}>
+                    <View style={[Platform.OS === 'web' ? { position: 'sticky' as any, top: 20 } : {}, { gap: 2 }]}>
+                        <SidebarButton icon={ShoppingBag} label="Mis Pedidos" tc={tc} active={activeSettingsBtn === 'orders'} onPress={() => { setActiveSettingsBtn('orders'); router.push('/orders' as any); }} />
+                        <SidebarButton icon={Heart} label="Mis Favoritos" tc={tc} active={activeSettingsBtn === 'favorites'} onPress={() => { setActiveSettingsBtn('favorites'); router.push('/favorites' as any); }} />
+                        <SidebarButton icon={Bell} label="Notificaciones" tc={tc} active={activeSettingsBtn === 'notifications'} onPress={() => { setActiveSettingsBtn('notifications'); router.push('/notifications' as any); }} />
+                        <SidebarButton icon={Briefcase} label="Mis Publicaciones" tc={tc} active={activeSettingsBtn === 'listings'} onPress={() => { setActiveSettingsBtn('listings'); router.push('/my-listings' as any); }} />
+                        <SidebarButton icon={Settings} label="Configuración" tc={tc} active={activeSettingsBtn === 'settings'} onPress={() => { setActiveSettingsBtn('settings'); router.push('/settings' as any); }} />
+                        {hasBusinessRole && (
+                            <SidebarButton icon={Store} label="Panel de Vendedor" tc={tc} active={activeSettingsBtn === 'business'} onPress={() => { setActiveSettingsBtn('business'); router.push('/business' as any); }} />
+                        )}
+                        {/* Divider */}
+                        <View style={{ height: 1, backgroundColor: tc.borderLight, marginVertical: 8, marginHorizontal: 14 }} />
+                        {/* Sign out */}
+                        <TouchableOpacity onPress={handleSignOut} activeOpacity={0.7} style={{ height: 46, borderRadius: 10, paddingHorizontal: 14, gap: 10, flexDirection: 'row' as const, alignItems: 'center' as const }}>
+                            <LogOut size={18} color="#ef4444" />
+                            <Text style={{ color: '#ef4444', fontSize: 14, fontWeight: '600' }}>Cerrar sesión</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+                {/* Right content */}
+                <View style={{ flex: 1, gap: 24 }}>
+                    {showRolesSection && (
+                        <View style={settingsStyles.section}>
+                            <Text style={[settingsStyles.sectionTitle, { color: tc.text }]}>Cambiar de rol</Text>
+                            <View style={settingsStyles.rolesGrid}>
+                                {hasBusinessRole && (
+                                    <RoleCard icon={Store} label="Vendedor" description="Gestiona tu tienda" active={currentRole === 'business_owner'} onPress={() => { if (currentRole === 'business_owner') { setCurrentRole('customer'); } else { setCurrentRole('business_owner'); router.push('/business/dashboard' as any); } }} color={colors.primary.DEFAULT} tc={tc} />
+                                )}
+                                {hasDriverRole && (
+                                    <RoleCard icon={Bike} label="Repartidor" description="Gestiona entregas" active={currentRole === 'delivery_driver'} onPress={() => { if (currentRole === 'delivery_driver') { setCurrentRole('customer'); } else { setCurrentRole('delivery_driver'); router.push('/driver/dashboard' as any); } }} color="#22c55e" tc={tc} />
+                                )}
+                            </View>
+                        </View>
+                    )}
+                    <View style={settingsStyles.section}>
+                        <Text style={[settingsStyles.sectionTitle, { color: tc.text }]}>Apariencia</Text>
+                        <View style={[settingsStyles.themeSelector, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                            <ThemeOption icon={Sun} label="Claro" active={theme === 'light'} onPress={() => setTheme('light')} tc={tc} />
+                            <ThemeOption icon={Moon} label="Oscuro" active={theme === 'dark'} onPress={() => setTheme('dark')} tc={tc} />
+                            <ThemeOption icon={Monitor} label="Sistema" active={theme === 'system'} onPress={() => setTheme('system')} tc={tc} />
+                        </View>
+                    </View>
+                    {/* Elegant placeholder */}
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 48 }}>
+                        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: tc.bgInput, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                            <Settings size={24} color={tc.borderLight} />
+                        </View>
+                        <Text style={{ color: tc.textSecondary, fontSize: 15, textAlign: 'center' as const, maxWidth: 280, lineHeight: 22 }}>
+                            Seleccioná una opción del menú para continuar
+                        </Text>
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
+    // Mobile layout
     return (
         <View style={settingsStyles.container}>
-            {/* Account Links */}
             <View style={[settingsStyles.card, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
                 <Text style={[settingsStyles.cardLabel, { color: tc.textMuted }]}>CUENTA</Text>
                 {hasBusinessRole && (
-                    <NavPacket 
-                        icon={Store} 
-                        label="Panel de Vendedor" 
-                        tc={tc} 
-                        highlight
-                        onPress={() => router.push('/business/dashboard' as any)} 
-                    />
+                    <NavPacket icon={Store} label="Panel de Vendedor" tc={tc} highlight={activeSettingsBtn === 'business'} onPress={() => { setActiveSettingsBtn('business'); router.push('/business/dashboard' as any); }} />
                 )}
-                <NavPacket icon={ShoppingBag} label="Mis Pedidos" tc={tc} onPress={() => router.push('/orders' as any)} />
-                <NavPacket icon={Briefcase} label="Mis Publicaciones" tc={tc} onPress={() => router.push('/my-listings' as any)} />
-                <NavPacket icon={Bell} label="Notificaciones" tc={tc} onPress={() => router.push('/notifications' as any)} />
-                <NavPacket icon={Settings} label="Configuración" tc={tc} highlight onPress={() => router.push('/settings')} />
-                <NavPacket icon={HelpCircle} label="Ayuda" tc={tc} onPress={() => router.push('/help' as any)} />
+                <NavPacket icon={ShoppingBag} label="Mis Pedidos" tc={tc} highlight={activeSettingsBtn === 'orders'} onPress={() => { setActiveSettingsBtn('orders'); router.push('/orders' as any); }} />
+                <NavPacket icon={Briefcase} label="Mis Publicaciones" tc={tc} highlight={activeSettingsBtn === 'listings'} onPress={() => { setActiveSettingsBtn('listings'); router.push('/my-listings' as any); }} />
+                <NavPacket icon={Bell} label="Notificaciones" tc={tc} highlight={activeSettingsBtn === 'notifications'} onPress={() => { setActiveSettingsBtn('notifications'); router.push('/notifications' as any); }} />
+                <NavPacket icon={Settings} label="Configuración" tc={tc} highlight={activeSettingsBtn === 'settings'} onPress={() => { setActiveSettingsBtn('settings'); router.push('/settings' as any); }} />
+                <NavPacket icon={HelpCircle} label="Ayuda" tc={tc} highlight={activeSettingsBtn === 'help'} onPress={() => { setActiveSettingsBtn('help'); router.push('/help' as any); }} />
             </View>
-
-            {/* Role Switcher */}
             {showRolesSection && (
                 <View style={settingsStyles.section}>
                     <Text style={[settingsStyles.sectionTitle, { color: tc.text }]}>Cambiar de rol</Text>
@@ -484,8 +556,6 @@ function SettingsView({ tc, router, hasListings, showRolesSection, hasBusinessRo
                     </View>
                 </View>
             )}
-
-            {/* Appearance */}
             <View style={settingsStyles.section}>
                 <Text style={[settingsStyles.sectionTitle, { color: tc.text }]}>Apariencia</Text>
                 <View style={[settingsStyles.themeSelector, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
@@ -494,8 +564,6 @@ function SettingsView({ tc, router, hasListings, showRolesSection, hasBusinessRo
                     <ThemeOption icon={Monitor} label="Sistema" active={theme === 'system'} onPress={() => setTheme('system')} tc={tc} />
                 </View>
             </View>
-
-            {/* Sign Out */}
             <TouchableOpacity style={[settingsStyles.logoutBtn, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]} onPress={handleSignOut}>
                 <LogOut size={18} color={colors.error} />
                 <Text style={[settingsStyles.logoutText, { color: colors.error }]}>Cerrar Sesión</Text>
@@ -541,6 +609,69 @@ function ThemeOption({ icon: Icon, label, active, onPress, tc }: any) {
     );
 }
 
+function CompactLoyaltyBadge({ loyalty, router, tc, isMobile }: any) {
+    if (!loyalty) return null;
+    const TIER_COLORS: Record<string, string> = { bronze: '#CD7F32', silver: '#C0C0C0', gold: '#FFD700' };
+    const tierColor = TIER_COLORS[loyalty.tier] || '#CD7F32';
+    const tierNames: Record<string, string> = { bronze: 'BRONCE', silver: 'PLATA', gold: 'ORO' };
+    const nextTierNames: Record<string, string> = { bronze: 'PLATA', silver: 'ORO', gold: '' };
+    const progressPct = loyalty.tier === 'gold' ? 100 : (loyalty.tier_progress_pct || 0);
+    return (
+        <TouchableOpacity
+            onPress={() => router.push('/loyalty' as any)}
+            activeOpacity={0.85}
+            style={{
+                flexDirection: 'row', alignItems: 'center',
+                backgroundColor: tc.bgInput, borderRadius: 12,
+                borderWidth: 1, borderColor: tc.borderLight,
+                paddingHorizontal: isMobile ? 14 : 16, paddingVertical: isMobile ? 10 : 12,
+                marginHorizontal: 20, marginBottom: 12, gap: isMobile ? 10 : 12
+            }}>
+            {/* Tier badge */}
+            <View style={{ backgroundColor: tierColor + '18', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                <Text style={{ color: tierColor, fontSize: 10, fontWeight: '800', letterSpacing: 0.8 }}>
+                    {tierNames[loyalty.tier] || 'BRONCE'}
+                </Text>
+            </View>
+            {/* Separator */}
+            <View style={{ width: 1, height: 28, backgroundColor: tc.borderLight }} />
+            {/* Points + progress */}
+            <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                    <Text style={{ fontSize: isMobile ? 18 : 20, fontWeight: '800', color: tierColor, letterSpacing: -0.5 }}>
+                        {loyalty.available_points?.toLocaleString() || '0'}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: tc.textMuted, fontWeight: '500' }}>pts</Text>
+                </View>
+                {/* Mini progress bar */}
+                <View style={{ marginTop: 4, height: 3, backgroundColor: tc.borderLight, borderRadius: 2, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${Math.min(progressPct, 100)}%`, backgroundColor: tierColor, borderRadius: 2 }} />
+                </View>
+                {loyalty.tier !== 'gold' && loyalty.points_to_next_tier != null && (
+                    <Text style={{ fontSize: 10, color: tc.textMuted, marginTop: 2 }}>
+                        {loyalty.points_to_next_tier?.toLocaleString()} para {nextTierNames[loyalty.tier]}
+                    </Text>
+                )}
+            </View>
+            {/* CTA */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Text style={{ fontSize: 12, color: '#FF6B35', fontWeight: '700' }}>Club</Text>
+                <ChevronRight size={13} color="#FF6B35" />
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+function SidebarButton({ icon: Icon, label, tc, active, onPress }: any) {
+    return (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={{ height: 46, borderRadius: 10, paddingHorizontal: 14, gap: 10, flexDirection: 'row' as const, alignItems: 'center' as const, backgroundColor: active ? 'rgba(255,107,53,0.1)' : 'transparent' }}>
+            <Icon size={18} color={active ? '#FF6B35' : tc.textMuted} />
+            <Text style={{ fontSize: 14, fontWeight: active ? '700' : '500', color: active ? '#FF6B35' : tc.text, flex: 1 }}>{label}</Text>
+            <ChevronRight size={14} color={active ? '#FF6B35' : tc.textMuted} />
+        </TouchableOpacity>
+    );
+}
+
 // =============================================
 // STYLES
 // =============================================
@@ -551,7 +682,7 @@ const styles = StyleSheet.create({
 
     // Cover
     coverContainer: { width: '100%', position: 'relative' },
-    editCoverBtn: { position: 'absolute', bottom: 14, right: 14, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    editCoverBtn: { position: 'absolute', right: 14, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
     editCoverText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
     // Profile Section

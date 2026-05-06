@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     ArrowLeft, MapPin, Calendar, Camera, Edit3, UserPlus, MessageCircle,
     Heart, Share2, Bookmark, MoreHorizontal, Send, ImageIcon, Info,
-    Grid3X3, BookmarkCheck, ChevronDown
+    Grid3X3, BookmarkCheck, ChevronDown, Briefcase, Store
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
@@ -53,8 +53,11 @@ export default function UserProfileScreen() {
     const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
     const [isFollowing, setIsFollowing] = useState(false);
     const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
     const [actionLoading, setActionLoading] = useState(false);
     const [messageLoading, setMessageLoading] = useState(false);
+    const [myBusiness, setMyBusiness] = useState<any>(null);
+    const [userListings, setUserListings] = useState<any[]>([]);
     const { createRoom } = useChatStore();
 
     const isOwnProfile = user?.id === id;
@@ -76,7 +79,7 @@ export default function UserProfileScreen() {
         try {
             const { data: userData, error } = await supabase
                 .from('users')
-                .select('id, full_name, avatar_url, created_at')
+                .select('id, full_name, avatar_url, cover_url, created_at')
                 .eq('id', id)
                 .single();
 
@@ -85,6 +88,7 @@ export default function UserProfileScreen() {
                     id: userData.id,
                     full_name: userData.full_name || 'Usuario',
                     avatar_url: userData.avatar_url,
+                    banner_url: userData.cover_url,
                     created_at: userData.created_at,
                 });
             }
@@ -92,12 +96,23 @@ export default function UserProfileScreen() {
             const userPosts = await fetchUserPosts(id!);
             setPosts(userPosts);
 
-            // Fetch followers count
-            const { count: followers } = await supabase
-                .from('user_follows')
-                .select('*', { count: 'exact', head: true })
-                .eq('following_id', id);
+            // Fetch followers/following count
+            const [
+                { count: followers },
+                { count: following }
+            ] = await Promise.all([
+                supabase.from('user_follows').select('*', { count: 'exact', head: true }).eq('following_id', id),
+                supabase.from('user_follows').select('*', { count: 'exact', head: true }).eq('follower_id', id)
+            ]);
             setFollowersCount(followers || 0);
+            setFollowingCount(following || 0);
+
+            // Fetch business and listings
+            const { data: business } = await supabase.from('businesses').select('*').eq('owner_id', id).single();
+            setMyBusiness(business);
+
+            const { data: listings } = await supabase.from('listings').select('*').eq('user_id', id);
+            setUserListings(listings || []);
 
             // Check if current user is following
             if (user?.id) {
@@ -249,10 +264,17 @@ export default function UserProfileScreen() {
             >
                 {/* ====== COVER PHOTO ====== */}
                 <View style={[styles.coverContainer, { height: coverHeight }]}>
-                    <LinearGradient
-                        colors={[colors.primary.DEFAULT + '40', colors.primary.DEFAULT + '15', tc.bg]}
-                        style={StyleSheet.absoluteFillObject}
-                    />
+                    {profileData.banner_url ? (
+                        <Image 
+                            source={{ uri: profileData.banner_url }} 
+                            style={Platform.OS === 'web' ? [StyleSheet.absoluteFillObject, { objectFit: 'cover', objectPosition: 'center 30%' } as any] : StyleSheet.absoluteFillObject}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: tc.bgInput, justifyContent: 'center', alignItems: 'center' }]}>
+                            <ImageIcon size={30} color={tc.borderLight} />
+                        </View>
+                    )}
                     {/* Back button overlay */}
                     <TouchableOpacity
                         onPress={() => router.back()}
@@ -269,6 +291,17 @@ export default function UserProfileScreen() {
                     )}
                 </View>
 
+                {/* ====== PROFILE INFO Container Wrap ====== */}
+                <View style={[
+                    {
+                        marginTop: -40,
+                        backgroundColor: tc.bg,
+                        borderTopLeftRadius: 40,
+                        borderTopRightRadius: 40,
+                        paddingTop: 20,
+                        minHeight: 500,
+                    }
+                ]}>
                 {/* ====== PROFILE INFO SECTION ====== */}
                 <View style={[styles.profileSection, { maxWidth: isMobile ? undefined : contentMaxWidth, alignSelf: isMobile ? undefined : 'center', width: isMobile ? '100%' : '100%' }]}>
                     <View style={[styles.profileInfoRow, isMobile && styles.profileInfoRowMobile]}>
@@ -304,6 +337,9 @@ export default function UserProfileScreen() {
                             <View style={styles.statsRow}>
                                 <Text style={[styles.statNumber, { color: tc.text }]}>{followersCount}</Text>
                                 <Text style={[styles.statLabel, { color: tc.textMuted }]}>seguidores</Text>
+                                <Text style={[styles.statLabel, { color: tc.textMuted, marginHorizontal: 2 }]}>•</Text>
+                                <Text style={[styles.statNumber, { color: tc.text }]}>{followingCount}</Text>
+                                <Text style={[styles.statLabel, { color: tc.textMuted }]}>siguiendo</Text>
                                 <Text style={[styles.statLabel, { color: tc.textMuted, marginHorizontal: 2 }]}>•</Text>
                                 <Text style={[styles.statNumber, { color: tc.text }]}>{posts.length}</Text>
                                 <Text style={[styles.statLabel, { color: tc.textMuted }]}>publicaciones</Text>
@@ -443,6 +479,87 @@ export default function UserProfileScreen() {
 
                             {/* Feed Central */}
                             <View style={styles.feedColumn}>
+                                {/* ====== SECTION: Servicios que ofrezco ====== */}
+                                {userListings && userListings.length > 0 && (
+                                    <View style={[styles.sidebarCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                        <View style={styles.sidebarCardHeaderRow}>
+                                            <Text style={[styles.sidebarCardTitle, { color: tc.text }]}>🔧 Servicios y Alojamientos</Text>
+                                            <TouchableOpacity onPress={() => router.push(`/directory` as any)}>
+                                                <Text style={{ color: colors.primary.DEFAULT, fontSize: 13, fontWeight: '600' }}>Ver todos &rarr;</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 4 }}>
+                                            {userListings.slice(0, 4).map((listing: any) => (
+                                                <TouchableOpacity 
+                                                    key={listing.id} 
+                                                    style={[styles.listingItem, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+                                                    onPress={() => router.push(`/directory/${listing.id}` as any)}
+                                                    activeOpacity={0.9}
+                                                >
+                                                    {listing.images?.[0] ? (
+                                                        <Image source={{ uri: listing.images[0] }} style={styles.listingImg} resizeMode="cover" />
+                                                    ) : (
+                                                        <View style={[styles.listingImgPlaceholder, { backgroundColor: tc.bgCard }]}>
+                                                            <Briefcase size={24} color={tc.textMuted} />
+                                                        </View>
+                                                    )}
+                                                    <View style={styles.listingContent}>
+                                                        <Text style={[styles.listingTitle, { color: tc.text }]} numberOfLines={1}>{listing.title}</Text>
+                                                        <Text style={[styles.listingCat, { color: tc.textMuted }]} numberOfLines={1}>{listing.category || listing.accommodation_type}</Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            ))}
+                                            {userListings.length > 4 && (
+                                                <TouchableOpacity 
+                                                    style={[styles.listingMore, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+                                                >
+                                                    <Text style={[styles.listingMoreText, { color: tc.text }]}>+{userListings.length - 4} más</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </ScrollView>
+                                    </View>
+                                )}
+
+                                {/* ====== SECTION: Mi negocio en Sabor Local ====== */}
+                                {myBusiness && (
+                                    <View style={[styles.sidebarCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 }}>
+                                            <Text style={{ fontSize: 18 }}>🏪</Text>
+                                            <Text style={[styles.sidebarCardTitle, { color: tc.text }]}>Local en Sabor Local</Text>
+                                        </View>
+                                        <View style={[styles.businessCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }, isMobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                                                {myBusiness.logo_url ? (
+                                                    <Image source={{ uri: myBusiness.logo_url }} style={styles.businessLogo} />
+                                                ) : (
+                                                    <View style={[styles.businessLogoPlaceholder, { backgroundColor: tc.bgCard }]}>
+                                                        <Store size={24} color={tc.textMuted} />
+                                                    </View>
+                                                )}
+                                                <View style={styles.businessInfo}>
+                                                    <Text style={[styles.businessName, { color: tc.text }]} numberOfLines={1}>{myBusiness.name}</Text>
+                                                    <Text style={[styles.businessCat, { color: tc.textMuted }]}>{myBusiness.category}</Text>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                                                        <Text style={{ fontSize: 13, color: tc.textSecondary, fontWeight: '600' }}>⭐ {myBusiness.rating?.toFixed(1) || 'N/A'}</Text>
+                                                        <Text style={{ color: tc.textMuted, fontSize: 12 }}>•</Text>
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: myBusiness.is_open ? '#22C55E' : '#EF4444' }} />
+                                                            <Text style={{ fontSize: 12, color: tc.textSecondary, fontWeight: '600' }}>{myBusiness.is_open ? 'Abierto' : 'Cerrado'}</Text>
+                                                        </View>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                            <TouchableOpacity 
+                                                style={[styles.businessBtn, { backgroundColor: tc.text }, isMobile && { marginTop: 12, alignSelf: 'stretch', alignItems: 'center' }]}
+                                                onPress={() => router.push(`/shop/${myBusiness.slug || myBusiness.id}` as any)}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Text style={{ color: tc.bg, fontWeight: '700', fontSize: 14 }}>Visitar tienda &rarr;</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                )}
+
                                 {posts.length > 0 ? (
                                     posts.map((post) => (
                                         <WallPostCard key={post.id} post={post} tc={tc} isLiked={isLiked} toggleLike={toggleLike} isSaved={isSaved} toggleSave={toggleSave} router={router} />
@@ -462,27 +579,83 @@ export default function UserProfileScreen() {
                         </View>
                     )}
 
-                    {activeTab === 'info' && (
-                        <View style={[styles.infoCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                            <Text style={[styles.infoTitle, { color: tc.text }]}>Información</Text>
-                            <View style={styles.infoRow}>
-                                <MapPin size={18} color={tc.textMuted} />
-                                <View>
-                                    <Text style={[styles.infoLabel, { color: tc.textMuted }]}>Ciudad</Text>
-                                    <Text style={[styles.infoValue, { color: tc.text }]}>Río Colorado, Río Negro</Text>
-                                </View>
-                            </View>
-                            {profileData.created_at && (
+                        <View style={{ gap: 16 }}>
+                            <View style={[styles.infoCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                <Text style={[styles.infoTitle, { color: tc.text }]}>Información general</Text>
                                 <View style={styles.infoRow}>
-                                    <Calendar size={18} color={tc.textMuted} />
+                                    <MapPin size={18} color={tc.textMuted} />
                                     <View>
-                                        <Text style={[styles.infoLabel, { color: tc.textMuted }]}>Miembro desde</Text>
-                                        <Text style={[styles.infoValue, { color: tc.text }]}>{format(new Date(profileData.created_at), "d 'de' MMMM 'de' yyyy", { locale: es })}</Text>
+                                        <Text style={[styles.infoLabel, { color: tc.textMuted }]}>Ciudad</Text>
+                                        <Text style={[styles.infoValue, { color: tc.text }]}>Río Colorado, Río Negro</Text>
+                                    </View>
+                                </View>
+                                {profileData.created_at && (
+                                    <View style={styles.infoRow}>
+                                        <Calendar size={18} color={tc.textMuted} />
+                                        <View>
+                                            <Text style={[styles.infoLabel, { color: tc.textMuted }]}>Miembro desde</Text>
+                                            <Text style={[styles.infoValue, { color: tc.text }]}>{format(new Date(profileData.created_at), "d 'de' MMMM 'de' yyyy", { locale: es })}</Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Servicios y Alojamientos */}
+                            {userListings && userListings.length > 0 && (
+                                <View style={[styles.infoCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                    <Text style={[styles.infoTitle, { color: tc.text }]}>Servicios y Alojamientos</Text>
+                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                                        {userListings.map((listing: any) => (
+                                            <TouchableOpacity 
+                                                key={listing.id} 
+                                                style={[styles.listingItem, { backgroundColor: tc.bgInput, borderColor: tc.borderLight, width: '47%' }]}
+                                                onPress={() => router.push(`/directory/${listing.id}` as any)}
+                                            >
+                                                {listing.images?.[0] ? (
+                                                    <Image source={{ uri: listing.images[0] }} style={styles.listingImg} resizeMode="cover" />
+                                                ) : (
+                                                    <View style={[styles.listingImgPlaceholder, { backgroundColor: tc.bgCard }]}>
+                                                        <Briefcase size={24} color={tc.textMuted} />
+                                                    </View>
+                                                )}
+                                                <View style={styles.listingContent}>
+                                                    <Text style={[styles.listingTitle, { color: tc.text }]} numberOfLines={1}>{listing.title}</Text>
+                                                    <Text style={[styles.listingCat, { color: tc.textMuted }]} numberOfLines={1}>{listing.category || listing.accommodation_type}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* Mi negocio en Sabor Local */}
+                            {myBusiness && (
+                                <View style={[styles.infoCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                    <Text style={[styles.infoTitle, { color: tc.text }]}>Sabor Local</Text>
+                                    <View style={[styles.businessCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                                            {myBusiness.logo_url ? (
+                                                <Image source={{ uri: myBusiness.logo_url }} style={styles.businessLogo} />
+                                            ) : (
+                                                <View style={[styles.businessLogoPlaceholder, { backgroundColor: tc.bgCard }]}>
+                                                    <Store size={24} color={tc.textMuted} />
+                                                </View>
+                                            )}
+                                            <View style={styles.businessInfo}>
+                                                <Text style={[styles.businessName, { color: tc.text }]} numberOfLines={1}>{myBusiness.name}</Text>
+                                                <Text style={[styles.businessCat, { color: tc.textMuted }]}>{myBusiness.category}</Text>
+                                            </View>
+                                        </View>
+                                        <TouchableOpacity 
+                                            style={[styles.businessBtn, { backgroundColor: tc.text }]}
+                                            onPress={() => router.push(`/shop/${myBusiness.slug || myBusiness.id}` as any)}
+                                        >
+                                            <Text style={{ color: tc.bg, fontWeight: '700', fontSize: 13 }}>Visitar</Text>
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
                             )}
                         </View>
-                    )}
 
                     {activeTab === 'photos' && (
                         <View style={[styles.photosTabContainer, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
@@ -518,6 +691,7 @@ export default function UserProfileScreen() {
 
                 {/* Bottom spacer */}
                 <View style={{ height: 60 }} />
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -716,6 +890,23 @@ const styles = StyleSheet.create({
     infoRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     infoLabel: { fontSize: 12, marginBottom: 2 },
     infoValue: { fontSize: 15, fontWeight: '500' },
+
+    // Listings & Business
+    listingItem: { width: 140, borderRadius: 14, borderWidth: 1, overflow: 'hidden', height: 110 },
+    listingImg: { width: '100%', height: 60 },
+    listingImgPlaceholder: { width: '100%', height: 60, justifyContent: 'center', alignItems: 'center' },
+    listingContent: { padding: 8, justifyContent: 'center' },
+    listingTitle: { fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
+    listingCat: { fontSize: 11, marginTop: 2 },
+    listingMore: { width: 90, borderRadius: 14, borderWidth: 1, height: 110, justifyContent: 'center', alignItems: 'center' },
+    listingMoreText: { fontSize: 14, fontWeight: '700' },
+    businessCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1, padding: 14 },
+    businessLogo: { width: 64, height: 64, borderRadius: 12 },
+    businessLogoPlaceholder: { width: 64, height: 64, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    businessInfo: { flex: 1, justifyContent: 'center' },
+    businessName: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+    businessCat: { fontSize: 13, marginTop: 2 },
+    businessBtn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10, marginLeft: 8 },
 
     // Photos Tab
     photosTabContainer: { borderRadius: 12, borderWidth: 1, padding: 16 },

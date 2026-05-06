@@ -61,8 +61,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 .neq('sender_id', userId)
                 .eq('is_read', false);
             if (error) throw error;
-            const uniqueRooms = new Set(data?.map((m: any) => m.room_id) || []);
-            set({ unreadCount: uniqueRooms.size });
+            const unreadPerRoom: Record<string, number> = {};
+            data?.forEach((m: any) => {
+                unreadPerRoom[m.room_id] = (unreadPerRoom[m.room_id] || 0) + 1;
+            });
+            set((state) => ({ 
+                unreadCount: Object.keys(unreadPerRoom).length,
+                rooms: state.rooms.map(r => ({
+                    ...r,
+                    unread_count: unreadPerRoom[r.id] || 0
+                }))
+            }));
         } catch (error: any) {
             console.error('Error fetching unread count:', error);
         }
@@ -113,6 +122,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 return acc;
             }, {});
 
+            // Fetch unread counts
+            const { data: unreadData } = await supabase
+                .from('chat_messages')
+                .select('room_id')
+                .neq('sender_id', userId)
+                .eq('is_read', false);
+            
+            const unreadPerRoom: Record<string, number> = {};
+            unreadData?.forEach((m: any) => {
+                unreadPerRoom[m.room_id] = (unreadPerRoom[m.room_id] || 0) + 1;
+            });
+
             // Transform data to include other_user
             const rooms = roomsData.map((room: any) => {
                 const otherUserId = room.participant_1 === userId ? room.participant_2 : room.participant_1;
@@ -132,6 +153,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 return {
                     ...room,
                     other_user: displayUser,
+                    unread_count: unreadPerRoom[room.id] || 0
                 };
             });
 
@@ -296,6 +318,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+
+            set((state) => {
+                const room = state.rooms.find(r => r.id === roomId);
+                const hasUnread = room?.unread_count && room.unread_count > 0;
+                return {
+                    rooms: state.rooms.map(r => r.id === roomId ? { ...r, unread_count: 0 } : r),
+                    unreadCount: hasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
+                };
+            });
 
             const { error } = await supabase
                 .from('chat_messages')
