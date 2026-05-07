@@ -392,9 +392,17 @@ export default function FavoritesScreen() {
     if (!user) {
         return (
             <SafeAreaView style={[styles.root, { backgroundColor: tc.bg }]} edges={['top']}>
-                <View style={styles.header}>
-                    <Text style={[styles.headerPre, { color: tc.textSecondary }]}>MIS FAVORITOS</Text>
-                    <Text style={[styles.headerTitleMain, { color: tc.text }]}>Guardados</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, marginBottom: 16 }}>
+                    <TouchableOpacity
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
+                        style={{ marginRight: 12, padding: 4 }}
+                        activeOpacity={0.7}>
+                        <ChevronLeft size={24} color={tc.text} />
+                    </TouchableOpacity>
+                    <View>
+                        <Text style={[styles.headerPre, { color: tc.textSecondary }]}>MIS FAVORITOS</Text>
+                        <Text style={[styles.headerTitleMain, { color: tc.text }]}>Guardados</Text>
+                    </View>
                 </View>
                 <View style={styles.centerContent}>
                     <Heart size={48} color={tc.textMuted} />
@@ -428,9 +436,17 @@ export default function FavoritesScreen() {
 
     return (
         <SafeAreaView style={[styles.root, { backgroundColor: tc.bg }]} edges={['top']}>
-            <View style={styles.header}>
-                <Text style={[styles.headerPre, { color: tc.textSecondary }]}>MIS FAVORITOS</Text>
-                <Text style={[styles.headerTitleMain, { color: tc.text }]}>Guardados</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, marginBottom: 16 }}>
+                <TouchableOpacity
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
+                    style={{ marginRight: 12, padding: 4 }}
+                    activeOpacity={0.7}>
+                    <ChevronLeft size={24} color={tc.text} />
+                </TouchableOpacity>
+                <View>
+                    <Text style={[styles.headerPre, { color: tc.textSecondary }]}>MIS FAVORITOS</Text>
+                    <Text style={[styles.headerTitleMain, { color: tc.text }]}>Guardados</Text>
+                </View>
             </View>
 
             {/* Tabs */}
