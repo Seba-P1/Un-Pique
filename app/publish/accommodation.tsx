@@ -22,13 +22,129 @@ const ACCOMMODATION_TYPES = [
   'Hostel', 'Apart Hotel', 'Glamping', 'Otro',
 ];
 
-const AMENITIES_OPTIONS = [
-  { key: 'Wifi', label: 'Wi-Fi', icon: Wifi },
-  { key: 'Estacionamiento', label: 'Estacionamiento', icon: Car },
-  { key: 'Desayuno', label: 'Desayuno', icon: Coffee },
-  { key: 'TV', label: 'TV', icon: Tv },
-  { key: 'A/C', label: 'Aire acondicionado', icon: Snowflake },
-  { key: 'Pileta', label: 'Pileta', icon: Waves },
+const AMENITIES_CATEGORIES = [
+  {
+    name: 'Esenciales',
+    items: [
+      { key: 'wifi', label: 'WiFi' },
+      { key: 'aire_acondicionado', label: 'Aire acondicionado' },
+      { key: 'calefaccion', label: 'Calefacción' },
+      { key: 'tv', label: 'Smart TV' },
+      { key: 'lavarropas', label: 'Lavarropas' },
+      { key: 'secadora', label: 'Secadora' },
+      { key: 'heladera', label: 'Heladera' },
+      { key: 'microondas', label: 'Microondas' },
+      { key: 'cocina_equipada', label: 'Cocina equipada' },
+      { key: 'cafetera', label: 'Cafetera' },
+      { key: 'plancha', label: 'Plancha' },
+    ]
+  },
+  {
+    name: 'Baño',
+    items: [
+      { key: 'shampoo', label: 'Shampoo' },
+      { key: 'acondicionador', label: 'Acondicionador' },
+      { key: 'jabon', label: 'Jabón' },
+      { key: 'toallas', label: 'Toallas' },
+      { key: 'secador_pelo', label: 'Secador de pelo' },
+      { key: 'bañera', label: 'Bañera' },
+      { key: 'jacuzzi', label: 'Jacuzzi' },
+    ]
+  },
+  {
+    name: 'Dormitorio',
+    items: [
+      { key: 'ropa_cama', label: 'Ropa de cama' },
+      { key: 'almohadas_extra', label: 'Almohadas extra' },
+      { key: 'perchero', label: 'Perchero / placard' },
+      { key: 'cuna', label: 'Cuna disponible' },
+      { key: 'silla_alta', label: 'Silla alta para bebé' },
+    ]
+  },
+  {
+    name: 'Entretenimiento',
+    items: [
+      { key: 'netflix', label: 'Netflix / Streaming' },
+      { key: 'consola_juegos', label: 'Consola de juegos' },
+      { key: 'libros', label: 'Libros / revistas' },
+      { key: 'mesa_billar', label: 'Mesa de billar' },
+      { key: 'ping_pong', label: 'Ping pong' },
+      { key: 'juegos_mesa', label: 'Juegos de mesa' },
+    ]
+  },
+  {
+    name: 'Exterior y esparcimiento',
+    items: [
+      { key: 'pileta', label: 'Pileta / Piscina' },
+      { key: 'jacuzzi_exterior', label: 'Jacuzzi exterior' },
+      { key: 'parrilla', label: 'Parrilla / BBQ' },
+      { key: 'jardin', label: 'Jardín / Patio' },
+      { key: 'balcon', label: 'Balcón / Terraza' },
+      { key: 'fogon', label: 'Fogón' },
+      { key: 'hamacas', label: 'Hamacas' },
+      { key: 'cancha_tenis', label: 'Cancha de tenis' },
+      { key: 'gimnasio', label: 'Gimnasio' },
+    ]
+  },
+  {
+    name: 'Estacionamiento',
+    items: [
+      { key: 'estacionamiento_gratis', label: 'Estacionamiento gratuito' },
+      { key: 'estacionamiento_pago', label: 'Estacionamiento (pago)' },
+      { key: 'garage', label: 'Garage cerrado' },
+      { key: 'cargador_electrico', label: 'Cargador vehículo eléctrico' },
+    ]
+  },
+  {
+    name: 'Trabajo',
+    items: [
+      { key: 'escritorio', label: 'Escritorio de trabajo' },
+      { key: 'silla_ergonomica', label: 'Silla ergonómica' },
+      { key: 'wifi_alta_velocidad', label: 'WiFi alta velocidad' },
+      { key: 'impresora', label: 'Impresora' },
+    ]
+  },
+  {
+    name: 'Seguridad',
+    items: [
+      { key: 'caja_fuerte', label: 'Caja fuerte' },
+      { key: 'detector_humo', label: 'Detector de humo' },
+      { key: 'extintor', label: 'Extintor' },
+      { key: 'botiquin', label: 'Botiquín de primeros auxilios' },
+      { key: 'camara_exterior', label: 'Cámara exterior (informada)' },
+      { key: 'cerradura_digital', label: 'Cerradura digital' },
+    ]
+  },
+  {
+    name: 'Servicios incluidos',
+    items: [
+      { key: 'desayuno', label: 'Desayuno incluido' },
+      { key: 'limpieza_diaria', label: 'Limpieza diaria' },
+      { key: 'recepcion_24h', label: 'Recepción 24hs' },
+      { key: 'traslado_aeropuerto', label: 'Traslado al aeropuerto' },
+      { key: 'conserje', label: 'Servicio de conserje' },
+    ]
+  },
+  {
+    name: 'Accesibilidad',
+    items: [
+      { key: 'acceso_silla_ruedas', label: 'Acceso para silla de ruedas' },
+      { key: 'ascensor', label: 'Ascensor' },
+      { key: 'rampa', label: 'Rampa de acceso' },
+      { key: 'baño_adaptado', label: 'Baño adaptado' },
+    ]
+  },
+  {
+    name: 'Mascotas y naturaleza',
+    items: [
+      { key: 'mascotas', label: 'Se aceptan mascotas' },
+      { key: 'vista_mar', label: 'Vista al mar/lago' },
+      { key: 'vista_montaña', label: 'Vista a la montaña' },
+      { key: 'acceso_playa', label: 'Acceso directo a la playa' },
+      { key: 'acceso_lago', label: 'Acceso directo al lago' },
+      { key: 'bosque', label: 'Entorno natural / Bosque' },
+    ]
+  }
 ];
 
 const renderIcon = (Icon: React.ComponentType<{ size: number; color: string }>, size: number, color: string) => (
@@ -54,6 +170,7 @@ export default function PublishAccommodationScreen() {
   const [address, setAddress] = useState('');
   const [amenities, setAmenities] = useState<string[]>([]);
   const [maxGuests, setMaxGuests] = useState('');
+  const [pricePerNight, setPricePerNight] = useState('');
   const [checkIn, setCheckIn] = useState('14:00');
   const [checkOut, setCheckOut] = useState('10:00');
   const [imageUris, setImageUris] = useState<string[]>([]);
@@ -74,6 +191,7 @@ export default function PublishAccommodationScreen() {
         setAddress(data.address || '');
         setAmenities(data.amenities || []);
         setMaxGuests(data.max_guests ? String(data.max_guests) : '');
+        setPricePerNight(data.price_per_night ? String(data.price_per_night) : '');
         setCheckIn(data.check_in || '14:00');
         setCheckOut(data.check_out || '10:00');
         if (data.images && data.images.length > 0) setImageUris(data.images);
@@ -131,6 +249,7 @@ export default function PublishAccommodationScreen() {
           address: address.trim(),
           amenities,
           max_guests: maxGuests ? parseInt(maxGuests, 10) : null,
+          price_per_night: pricePerNight ? parseFloat(pricePerNight) : null,
           check_in: checkIn,
           check_out: checkOut,
           images: uploadedUrls,
@@ -156,6 +275,7 @@ export default function PublishAccommodationScreen() {
       address: address.trim(),
       amenities,
       max_guests: maxGuests ? parseInt(maxGuests, 10) : undefined,
+      price_per_night: pricePerNight ? parseFloat(pricePerNight) : null,
       check_in: checkIn,
       check_out: checkOut,
       images: uploadedUrls,
@@ -289,6 +409,20 @@ export default function PublishAccommodationScreen() {
         maxLength={3}
       />
 
+      <Text style={[styles.label, { color: tc.textSecondary }]}>Precio por noche (opcional)</Text>
+      <View style={{ flexDirection: 'row', backgroundColor: tc.bgInput, borderRadius: 12, paddingHorizontal: 14, height: 48, alignItems: 'center', borderColor: tc.borderLight, borderWidth: 1 }}>
+        <Text style={{ fontSize: 15, color: tc.textSecondary, marginRight: 4 }}>$</Text>
+        <TextInput
+          style={[{ flex: 1, fontSize: 15, color: tc.text }, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+          placeholder="Ej: 15000"
+          placeholderTextColor={tc.textMuted}
+          value={pricePerNight}
+          onChangeText={setPricePerNight}
+          keyboardType="numeric"
+        />
+        <Text style={{ fontSize: 13, color: tc.textSecondary }}>ARS</Text>
+      </View>
+
       <View style={styles.timeRow}>
         <View style={styles.timeField}>
           <Text style={[styles.label, { color: tc.textSecondary }]}>Check-in</Text>
@@ -314,31 +448,34 @@ export default function PublishAccommodationScreen() {
         </View>
       </View>
 
-      <Text style={[styles.label, { color: tc.textSecondary }]}>Amenities</Text>
-      <View style={styles.amenitiesGrid}>
-        {AMENITIES_OPTIONS.map((item) => {
-          const selected = amenities.includes(item.key);
-          return (
-            <TouchableOpacity
-              key={item.key}
-              style={[
-                styles.amenityChip,
-                { backgroundColor: tc.bgInput, borderColor: tc.borderLight },
-                selected && { backgroundColor: tc.primary + '20', borderColor: tc.primary },
-              ]}
-              onPress={() => toggleAmenity(item.key)}
-              activeOpacity={0.7}
-            >
-              {renderIcon(item.icon, 16, selected ? tc.primary : tc.textMuted)}
-              <Text style={[
-                styles.amenityText,
-                { color: tc.textSecondary },
-                selected && { color: tc.primary },
-              ]}>{item.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {AMENITIES_CATEGORIES.map((category) => (
+        <View key={category.name} style={{ marginBottom: 16 }}>
+          <Text style={[styles.label, { color: tc.textSecondary, marginBottom: 8 }]}>{category.name}</Text>
+          <View style={styles.amenitiesGrid}>
+            {category.items.map((item) => {
+              const selected = amenities.includes(item.key);
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[
+                    styles.amenityChip,
+                    { backgroundColor: tc.bgInput, borderColor: tc.borderLight },
+                    selected && { backgroundColor: '#FF6B35', borderColor: '#FF6B35' },
+                  ]}
+                  onPress={() => toggleAmenity(item.key)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.amenityText,
+                    { color: tc.textSecondary },
+                    selected && { color: '#fff' },
+                  ]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ))}
     </View>
   );
 

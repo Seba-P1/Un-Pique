@@ -26,6 +26,7 @@ export interface Listing {
   check_out?: string;
   max_guests?: number;
   accommodation_type?: string;
+  price_per_night?: number | null;
   // Meta
   rating: number;
   reviews_count: number;
@@ -90,6 +91,7 @@ const formatListing = (row: Record<string, unknown>): Listing => ({
   check_out: row.check_out as string | undefined,
   max_guests: row.max_guests as number | undefined,
   accommodation_type: row.accommodation_type as string | undefined,
+  price_per_night: row.price_per_night as number | undefined,
   rating: (row.rating as number) || 0,
   reviews_count: (row.reviews_count as number) || 0,
   is_active: row.is_active as boolean,
