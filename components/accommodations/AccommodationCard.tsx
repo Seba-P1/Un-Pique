@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Share } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Share, Animated, Pressable, Platform } from 'react-native';
 import { Heart, Share2, Star, MapPin, Users, Home } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../stores/authStore';
@@ -38,110 +38,155 @@ export function AccommodationCard({ listing, onPress, onShare, isDesktop = false
     }
   };
 
-  return (
-    <TouchableOpacity
-      activeOpacity={0.92}
-      onPress={onPress}
-      style={[
-        styles.card,
-        {
-          backgroundColor: tc.bgCard,
-          borderColor: tc.borderLight,
-          height: isDesktop ? 120 : 110,
-        }
-      ]}
-    >
-      <View style={[styles.imageContainer, { width: isDesktop ? 160 : 130 }]}>
-        {listing.images && listing.images.length > 0 ? (
-          <Image
-            source={{ uri: listing.images[0] }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={[styles.image, { backgroundColor: tc.bgElevated, justifyContent: 'center', alignItems: 'center' }]}>
-            <Home size={32} color={tc.textSecondary} opacity={0.5} />
-          </View>
-        )}
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {listing.accommodation_type || 'Alojamiento'}
-          </Text>
-        </View>
-      </View>
+  // Premium interaction animations
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const shadowAnim = useRef(new Animated.Value(Platform.OS === 'web' ? 0.08 : 0.08)).current;
 
-      <View style={styles.content}>
-        <View style={styles.topRow}>
-          <View style={styles.titleContainer}>
-            <Text style={[styles.title, { color: tc.text }]} numberOfLines={1}>
-              {listing.title}
+  const handlePressIn = () => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 0.97,
+        stiffness: 250,
+        damping: 20,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(shadowAnim, {
+        toValue: 0.15,
+        duration: 200,
+        useNativeDriver: false, // shadowOpacity not supported by native driver
+      })
+    ]).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        stiffness: 250,
+        damping: 20,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(shadowAnim, {
+        toValue: 0.08,
+        duration: 200,
+        useNativeDriver: false,
+      })
+    ]).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          {
+            backgroundColor: tc.bgCard,
+            borderColor: tc.borderLight,
+            height: isDesktop ? 120 : 110,
+            transform: [{ scale: scaleAnim }],
+            shadowOpacity: shadowAnim as any,
+          },
+          Platform.OS === 'web' && {
+            transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          } as any
+        ]}
+      >
+        <View style={[styles.imageContainer, { width: isDesktop ? 160 : 130 }]}>
+          {listing.images && listing.images.length > 0 ? (
+            <Image
+              source={{ uri: listing.images[0] }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.image, { backgroundColor: tc.bgElevated, justifyContent: 'center', alignItems: 'center' }]}>
+              <Home size={32} color={tc.textSecondary} opacity={0.5} />
+            </View>
+          )}
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>
+              {listing.accommodation_type || 'Alojamiento'}
             </Text>
-            <View style={styles.locationRow}>
-              <MapPin size={11} color={tc.textSecondary} />
-              <Text style={[styles.locationText, { color: tc.textSecondary }]} numberOfLines={1}>
-                {listing.address || listing.locality_id || 'Río Colorado'}
+          </View>
+        </View>
+
+        <View style={styles.content}>
+          <View style={styles.topRow}>
+            <View style={styles.titleContainer}>
+              <Text style={[styles.title, { color: tc.text }]} numberOfLines={1}>
+                {listing.title}
+              </Text>
+              <View style={styles.locationRow}>
+                <MapPin size={11} color={tc.textSecondary} />
+                <Text style={[styles.locationText, { color: tc.textSecondary }]} numberOfLines={1}>
+                  {listing.address || listing.locality_id || 'Río Colorado'}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleToggleFavorite}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.favoriteButton}
+            >
+              <Heart
+                size={18}
+                color={favorite ? '#ef4444' : tc.textSecondary}
+                fill={favorite ? '#ef4444' : 'transparent'}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.ratingRow}>
+            <View style={styles.ratingInfo}>
+              <Star size={12} color="#FFB800" fill="#FFB800" />
+              <Text style={[styles.ratingText, { color: tc.text }]}>
+                {(listing.rating || 0).toFixed(1)}
+              </Text>
+              <Text style={[styles.reviewsText, { color: tc.textSecondary }]}>
+                ({listing.reviews_count || 0})
+              </Text>
+            </View>
+
+            <View style={[styles.separatorDot, { backgroundColor: tc.borderLight }]} />
+
+            <View style={styles.guestsInfo}>
+              <Users size={11} color={tc.textSecondary} />
+              <Text style={[styles.guestsText, { color: tc.textSecondary }]}>
+                {listing.max_guests || 1} huéspedes
               </Text>
             </View>
           </View>
 
-          <TouchableOpacity
-            onPress={handleToggleFavorite}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={styles.favoriteButton}
-          >
-            <Heart
-              size={18}
-              color={favorite ? '#ef4444' : tc.textSecondary}
-              fill={favorite ? '#ef4444' : 'transparent'}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.ratingRow}>
-          <View style={styles.ratingInfo}>
-            <Star size={12} color="#FFB800" fill="#FFB800" />
-            <Text style={[styles.ratingText, { color: tc.text }]}>
-              {(listing.rating || 0).toFixed(1)}
-            </Text>
-            <Text style={[styles.reviewsText, { color: tc.textSecondary }]}>
-              ({listing.reviews_count || 0})
-            </Text>
-          </View>
-
-          <View style={[styles.separatorDot, { backgroundColor: tc.borderLight }]} />
-
-          <View style={styles.guestsInfo}>
-            <Users size={11} color={tc.textSecondary} />
-            <Text style={[styles.guestsText, { color: tc.textSecondary }]}>
-              {listing.max_guests || 1} huéspedes
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.bottomRow}>
-          <View style={styles.priceContainer}>
-            {listing.price_per_night ? (
-              <>
-                <Text style={styles.priceText}>
-                  ${listing.price_per_night.toLocaleString('es-AR')}
+          <View style={styles.bottomRow}>
+            <View style={styles.priceContainer}>
+              {listing.price_per_night ? (
+                <>
+                  <Text style={styles.priceText}>
+                    ${listing.price_per_night.toLocaleString('es-AR')}
+                  </Text>
+                  <Text style={[styles.perNightText, { color: tc.textSecondary }]}>
+                    /noche
+                  </Text>
+                </>
+              ) : (
+                <Text style={[styles.consultPriceText, { color: tc.textSecondary }]}>
+                  Consultar precio
                 </Text>
-                <Text style={[styles.perNightText, { color: tc.textSecondary }]}>
-                  /noche
-                </Text>
-              </>
-            ) : (
-              <Text style={[styles.consultPriceText, { color: tc.textSecondary }]}>
-                Consultar precio
-              </Text>
-            )}
-          </View>
+              )}
+            </View>
 
-          <TouchableOpacity onPress={handleShare} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Share2 size={15} color={tc.textSecondary} />
-          </TouchableOpacity>
+            <TouchableOpacity onPress={handleShare} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Share2 size={15} color={tc.textSecondary} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -151,7 +196,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 8,

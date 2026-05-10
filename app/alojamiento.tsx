@@ -186,6 +186,36 @@ const WhatsAppIcon = ({ size = 22, color = '#25D366' }) => (
   </Svg>
 );
 
+const AnimatedButton = ({ onPress, style, children }: any) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.92,
+      stiffness: 300,
+      damping: 20,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      stiffness: 300,
+      damping: 20,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  };
+
+  return (
+    <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
+      <Animated.View style={[style, { transform: [{ scale: scaleAnim }] }, Platform.OS === 'web' && { transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' } as any]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 export default function AlojamientoScreen() {
   const router = useRouter();
   const tc = useThemeColors();
@@ -505,25 +535,25 @@ export default function AlojamientoScreen() {
             ]}>
               <View style={[s.bottomBarRow, { justifyContent: 'center' }]}>
                 {l.phone ? (
-                  <TouchableOpacity
-                    style={[s.contactCircleBtn, { backgroundColor: tc.bgInput }]}
+                  <AnimatedButton
+                    style={[s.contactCircleBtn, { backgroundColor: tc.bgInput, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 }]}
                     onPress={() => Linking.openURL(`tel:${l.phone}`)}
                   >
                     <Phone size={22} color={tc.text} />
-                  </TouchableOpacity>
+                  </AnimatedButton>
                 ) : null}
 
                 {l.phone ? (
-                  <TouchableOpacity
-                    style={[s.contactCircleBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: '#25D366', borderWidth: 1 }]}
+                  <AnimatedButton
+                    style={[s.contactCircleBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: '#25D366', borderWidth: 1, shadowColor: '#25D366', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 }]}
                     onPress={() => openWhatsApp(l.phone, `Hola! Quisiera consultar por el alojamiento: ${l.title}`)}
                   >
                     <WhatsAppIcon size={22} color="#25D366" />
-                  </TouchableOpacity>
+                  </AnimatedButton>
                 ) : null}
 
-                <TouchableOpacity
-                  style={[s.contactCircleBtn, { backgroundColor: tc.bgInput, borderWidth: 1, borderColor: tc.borderLight }]}
+                <AnimatedButton
+                  style={[s.contactCircleBtn, { backgroundColor: tc.bgInput, borderWidth: 1, borderColor: tc.borderLight, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 }]}
                   onPress={() => {
                     if (!user) {
                       alert('Debes iniciar sesión para compartir.');
@@ -533,7 +563,7 @@ export default function AlojamientoScreen() {
                   }}
                 >
                   <Share2 size={22} color={tc.text} />
-                </TouchableOpacity>
+                </AnimatedButton>
               </View>
             </View>
           </View>
@@ -755,7 +785,7 @@ export default function AlojamientoScreen() {
       {/* PROMO CARD (FIX 6) — Premium style matching servicios.tsx */}
       <Pressable
         onPress={() => router.push('/publish/accommodation')}
-        style={{ marginHorizontal: 16, marginBottom: 16 }}
+        style={{ marginHorizontal: 16, marginBottom: 32 }}
       >
         <Animated.View style={[
           {
@@ -1056,7 +1086,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 24,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 46,
@@ -1069,8 +1099,8 @@ const s = StyleSheet.create({
     height: '100%',
   },
   chipsScroll: {
-    marginTop: 10,
-    marginBottom: 4,
+    marginTop: 20,
+    marginBottom: 24,
   },
   chipsContent: {
     paddingHorizontal: 16,
