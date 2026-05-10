@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     textTransform: 'uppercase',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   content: {
     flex: 1,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: 'bold',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   locationRow: {
     flexDirection: 'row',
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 11,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   favoriteButton: {
     padding: 2,
@@ -228,11 +228,11 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     fontWeight: 'bold',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   reviewsText: {
     fontSize: 11,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   separatorDot: {
     width: 3,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   },
   guestsText: {
     fontSize: 11,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   bottomRow: {
     flexDirection: 'row',
@@ -263,15 +263,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
     color: '#FF6B35',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   perNightText: {
     fontSize: 11,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   consultPriceText: {
     fontSize: 12,
     fontStyle: 'italic',
-    fontFamily: 'NunitoSans-Regular',
+    
   },
 });

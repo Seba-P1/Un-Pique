@@ -452,7 +452,7 @@ export default function AlojamientoScreen() {
                 if (l.claim_status === 'pending') {
                     return (
                         <View style={[s.claimBadge, { backgroundColor: tc.isDark ? 'rgba(234,179,8,0.15)' : 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.3)' }]}>
-                            <Text style={{ color: '#EAB308', fontSize: 14, fontWeight: '600', fontFamily: 'NunitoSans-Bold' }}>⏳ Solicitud de reclamación pendiente de revisión</Text>
+                            <Text style={{ color: '#EAB308', fontSize: 14, fontWeight: '600', }}>⏳ Solicitud de reclamación pendiente de revisión</Text>
                         </View>
                     );
                 }
@@ -460,7 +460,7 @@ export default function AlojamientoScreen() {
                 if (l.claim_status === 'claimed' && l.claimed_by === user.id) {
                     return (
                         <View style={[s.claimBadge, { backgroundColor: tc.isDark ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)' }]}>
-                            <Text style={{ color: '#22C55E', fontSize: 14, fontWeight: '600', fontFamily: 'NunitoSans-Bold' }}>✅ Este alojamiento es tuyo</Text>
+                            <Text style={{ color: '#22C55E', fontSize: 14, fontWeight: '600', }}>✅ Este alojamiento es tuyo</Text>
                         </View>
                     );
                 }
@@ -814,14 +814,14 @@ export default function AlojamientoScreen() {
               fontSize: 16, fontWeight: '700',
               color: '#fff', marginBottom: 4,
               letterSpacing: -0.3,
-              fontFamily: 'NunitoSans-Bold',
+              
             }}>
               ¿Tenés un alojamiento?
             </Text>
             <Text style={{
               fontSize: 13, color: 'rgba(255,255,255,0.82)',
               lineHeight: 18, marginBottom: 14,
-              fontFamily: 'NunitoSans-Regular',
+              
             }}>
               Publicalo gratis y llegá a cientos de personas en la zona.
             </Text>
@@ -841,7 +841,7 @@ export default function AlojamientoScreen() {
             }}>
               <Text style={{
                 color: '#fff', fontSize: 13, fontWeight: '700',
-                fontFamily: 'NunitoSans-Bold',
+                
               }}>
                 Publicar gratis
               </Text>
@@ -958,7 +958,7 @@ export default function AlojamientoScreen() {
                     onPress={() => { setShareStep('options'); setShareComment(''); }}
                     disabled={sharing}
                   >
-                    <Text style={{ color: tc.text, fontWeight: '600', fontFamily: 'NunitoSans-Bold' }}>Volver</Text>
+                    <Text style={{ color: tc.text, fontWeight: '600', }}>Volver</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[s.claimModalBtn, { backgroundColor: '#FF6B35' }]}
@@ -970,7 +970,7 @@ export default function AlojamientoScreen() {
                     ) : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Share2 size={16} color="#fff" />
-                        <Text style={{ color: '#fff', fontWeight: 'bold', fontFamily: 'NunitoSans-Bold' }}>Publicar</Text>
+                        <Text style={{ color: '#fff', fontWeight: 'bold', }}>Publicar</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -988,7 +988,7 @@ export default function AlojamientoScreen() {
                 <Text style={[s.shareModalTitle, { color: tc.text }]}>
                     Reclamar alojamiento
                 </Text>
-                <Text style={{ color: tc.textSecondary, marginBottom: 16, fontSize: 15, lineHeight: 22, textAlign: 'center', fontFamily: 'NunitoSans-Regular' }}>
+                <Text style={{ color: tc.textSecondary, marginBottom: 16, fontSize: 15, lineHeight: 22, textAlign: 'center', }}>
                     Al reclamar, este alojamiento aparecerá en tu perfil como tuyo. Si ya hay solicitudes pendientes, los admins lo revisarán.
                 </Text>
                 <TextInput
@@ -1005,7 +1005,7 @@ export default function AlojamientoScreen() {
                         onPress={() => setClaimModalVisible(false)}
                         disabled={claiming}
                     >
-                        <Text style={{ color: tc.text, fontWeight: '600', fontFamily: 'NunitoSans-Bold' }}>Cancelar</Text>
+                        <Text style={{ color: tc.text, fontWeight: '600', }}>Cancelar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[s.claimModalBtn, { backgroundColor: '#FF6B35' }]}
@@ -1015,7 +1015,7 @@ export default function AlojamientoScreen() {
                         {claiming ? (
                             <ActivityIndicator color="#fff" size="small" />
                         ) : (
-                            <Text style={{ color: '#fff', fontWeight: 'bold', fontFamily: 'NunitoSans-Bold' }}>Enviar solicitud</Text>
+                            <Text style={{ color: '#fff', fontWeight: 'bold', }}>Enviar solicitud</Text>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -1045,11 +1045,11 @@ const s = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   headerSub: {
     fontSize: 13,
-    fontFamily: 'NunitoSans-Regular',
+    
     marginTop: 2,
   },
   searchContainer: {
@@ -1065,7 +1065,7 @@ const s = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     fontSize: 15,
-    fontFamily: 'NunitoSans-Regular',
+    
     height: '100%',
   },
   chipsScroll: {
@@ -1087,7 +1087,7 @@ const s = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   listContent: {
     paddingHorizontal: 16,
@@ -1108,12 +1108,12 @@ const s = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'NunitoSans-Bold',
+    
     marginTop: 12,
   },
   emptySub: {
     fontSize: 13,
-    fontFamily: 'NunitoSans-Regular',
+    
     marginTop: 6,
   },
   modalOverlay: {
@@ -1187,7 +1187,7 @@ const s = StyleSheet.create({
   lightboxCounterText: {
     color: '#fff',
     fontSize: 15,
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   lightboxNavBtn: {
     position: 'absolute',
@@ -1210,7 +1210,7 @@ const s = StyleSheet.create({
   detailTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   detailLocationRow: {
     flexDirection: 'row',
@@ -1220,17 +1220,17 @@ const s = StyleSheet.create({
   },
   detailLocationText: {
     fontSize: 13,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   detailPriceText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#FF6B35',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   detailPriceSub: {
     fontSize: 10,
-    fontFamily: 'NunitoSans-Regular',
+    
     textAlign: 'right',
   },
   featuresRow: {
@@ -1249,7 +1249,7 @@ const s = StyleSheet.create({
   },
   featureText: {
     fontSize: 11,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   divider: {
     height: 1,
@@ -1259,7 +1259,7 @@ const s = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    fontFamily: 'NunitoSans-Bold',
+    
     marginBottom: 12,
   },
   amenitiesGrid: {
@@ -1274,14 +1274,14 @@ const s = StyleSheet.create({
   },
   amenityBoxText: {
     fontSize: 10,
-    fontFamily: 'NunitoSans-Regular',
+    
     marginTop: 4,
     textAlign: 'center',
   },
   descriptionText: {
     fontSize: 14,
     lineHeight: 22,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   ownerRow: {
     flexDirection: 'row',
@@ -1301,17 +1301,17 @@ const s = StyleSheet.create({
   ownerName: {
     fontSize: 14,
     fontWeight: 'bold',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   ownerSub: {
     fontSize: 12,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   viewProfileText: {
     fontSize: 13,
     color: '#FF6B35',
     fontWeight: 'bold',
-    fontFamily: 'NunitoSans-Bold',
+    
   },
   bottomBar: {
     position: 'absolute',
@@ -1351,13 +1351,13 @@ const s = StyleSheet.create({
   },
   claimCardTitle: { 
     fontSize: 16, 
-    fontFamily: 'NunitoSans-Bold' 
+    
   },
   claimCardDesc: { 
     fontSize: 14, 
     lineHeight: 20, 
     marginBottom: 16,
-    fontFamily: 'NunitoSans-Regular'
+    
   },
   claimBtn: { 
     paddingVertical: 12, 
@@ -1367,7 +1367,7 @@ const s = StyleSheet.create({
   },
   claimBtnText: { 
     fontSize: 14, 
-    fontFamily: 'NunitoSans-Bold' 
+    
   },
   claimInput: {
     borderWidth: 1,
@@ -1377,7 +1377,7 @@ const s = StyleSheet.create({
     textAlignVertical: 'top',
     fontSize: 15,
     marginBottom: 16,
-    fontFamily: 'NunitoSans-Regular'
+    
   },
   claimModalBtn: {
     flex: 1,
@@ -1407,7 +1407,7 @@ const s = StyleSheet.create({
   },
   shareModalTitle: {
     fontSize: 18,
-    fontFamily: 'NunitoSans-Bold',
+    
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -1419,7 +1419,7 @@ const s = StyleSheet.create({
   },
   shareOptionText: {
     fontSize: 16,
-    fontFamily: 'NunitoSans-Regular',
+    
   },
   shareDivider: {
     height: 0.5,
@@ -1446,11 +1446,11 @@ const s = StyleSheet.create({
   },
   sharePreviewTitle: {
     fontSize: 15,
-    fontFamily: 'NunitoSans-Bold',
+    
     marginBottom: 2,
   },
   sharePreviewSub: {
     fontSize: 13,
-    fontFamily: 'NunitoSans-Regular',
+    
   }
 });
