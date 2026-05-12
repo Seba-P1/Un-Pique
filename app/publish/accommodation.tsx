@@ -9,6 +9,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Check, ChevronRight, ChevronLeft,
   Wifi, Car, Coffee, Tv, Snowflake, Users, Waves, ImageIcon, X,
+  CheckCircle,
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useListingStore } from '../../stores/listingStore';
@@ -176,6 +177,11 @@ export default function PublishAccommodationScreen() {
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geoFound, setGeoFound] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const webInputStyle = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null;
 
   // Pre-load data for edit mode
   useEffect(() => {
@@ -194,6 +200,9 @@ export default function PublishAccommodationScreen() {
         setPricePerNight(data.price_per_night ? String(data.price_per_night) : '');
         setCheckIn(data.check_in || '14:00');
         setCheckOut(data.check_out || '10:00');
+        setLatitude(typeof data.latitude === 'number' ? data.latitude : null);
+        setLongitude(typeof data.longitude === 'number' ? data.longitude : null);
+        setGeoFound(typeof data.latitude === 'number' && typeof data.longitude === 'number');
         if (data.images && data.images.length > 0) setImageUris(data.images);
       }
       setLoadingEdit(false);
@@ -209,6 +218,36 @@ export default function PublishAccommodationScreen() {
     setAmenities((prev) =>
       prev.includes(key) ? prev.filter((a) => a !== key) : [...prev, key]
     );
+  };
+
+  const geocodeAddress = async (value: string) => {
+    if (!value.trim() || value.trim().length < 5) return;
+    setGeocoding(true);
+    setGeoFound(false);
+
+    try {
+      const query = encodeURIComponent(`${value}, Río Negro, Argentina`);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
+        { headers: { 'User-Agent': 'UnPique-App/1.0' } }
+      );
+      const data = await res.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        setLatitude(parseFloat(data[0].lat));
+        setLongitude(parseFloat(data[0].lon));
+        setGeoFound(true);
+      } else {
+        setLatitude(null);
+        setLongitude(null);
+      }
+    } catch (e) {
+      console.warn('Geocoding failed:', e);
+      setLatitude(null);
+      setLongitude(null);
+    } finally {
+      setGeocoding(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -252,6 +291,8 @@ export default function PublishAccommodationScreen() {
           price_per_night: pricePerNight ? parseFloat(pricePerNight) : null,
           check_in: checkIn,
           check_out: checkOut,
+          latitude: latitude || undefined,
+          longitude: longitude || undefined,
           images: uploadedUrls,
         })
         .eq('id', editId);
@@ -278,6 +319,8 @@ export default function PublishAccommodationScreen() {
       price_per_night: pricePerNight ? parseFloat(pricePerNight) : null,
       check_in: checkIn,
       check_out: checkOut,
+      latitude: latitude || undefined,
+      longitude: longitude || undefined,
       images: uploadedUrls,
     });
 
@@ -296,7 +339,7 @@ export default function PublishAccommodationScreen() {
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Nombre *</Text>
       <TextInput
-        style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+        style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
         placeholder="Ej: Hotel Paraíso, Cabañas del Lago..."
         placeholderTextColor={tc.textMuted}
         value={title}
@@ -328,7 +371,7 @@ export default function PublishAccommodationScreen() {
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Descripción</Text>
       <TextInput
-        style={[styles.input, styles.textArea, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+        style={[styles.input, styles.textArea, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
         placeholder="Describí el alojamiento, qué incluye, su ubicación..."
         placeholderTextColor={tc.textMuted}
         value={description}
@@ -379,7 +422,7 @@ export default function PublishAccommodationScreen() {
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Teléfono / WhatsApp *</Text>
       <TextInput
-        style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+        style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
         placeholder="Ej: +5493821555555"
         placeholderTextColor={tc.textMuted}
         value={phone}
@@ -390,17 +433,40 @@ export default function PublishAccommodationScreen() {
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Dirección</Text>
       <TextInput
-        style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+        style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
         placeholder="Ej: Ruta 38 km 5, Chilecito"
         placeholderTextColor={tc.textMuted}
         value={address}
-        onChangeText={setAddress}
+        onChangeText={(value) => {
+          setAddress(value);
+          setGeoFound(false);
+          setLatitude(null);
+          setLongitude(null);
+        }}
+        onEndEditing={() => geocodeAddress(address)}
         maxLength={100}
       />
+      {geocoding && (
+        <View style={styles.geoStatusRow}>
+          <ActivityIndicator size="small" color="#FF6B35" />
+          <Text style={[styles.geoStatusText, { color: tc.textSecondary }]}>Buscando ubicación...</Text>
+        </View>
+      )}
+      {!geocoding && geoFound && (
+        <View style={styles.geoStatusRow}>
+          <CheckCircle size={14} color="#22C55E" />
+          <Text style={[styles.geoStatusText, { color: '#22C55E' }]}>📍 Ubicación encontrada</Text>
+        </View>
+      )}
+      {!geocoding && !geoFound && address.length > 5 && (
+        <Text style={[styles.geoHintText, { color: tc.textSecondary }]}>
+          No se encontró la dirección. Podés continuar igual.
+        </Text>
+      )}
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Capacidad máxima (personas)</Text>
       <TextInput
-        style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+        style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
         placeholder="Ej: 4"
         placeholderTextColor={tc.textMuted}
         value={maxGuests}
@@ -413,7 +479,7 @@ export default function PublishAccommodationScreen() {
       <View style={{ flexDirection: 'row', backgroundColor: tc.bgInput, borderRadius: 12, paddingHorizontal: 14, height: 48, alignItems: 'center', borderColor: tc.borderLight, borderWidth: 1 }}>
         <Text style={{ fontSize: 15, color: tc.textSecondary, marginRight: 4 }}>$</Text>
         <TextInput
-          style={[{ flex: 1, fontSize: 15, color: tc.text }, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+          style={[{ flex: 1, fontSize: 15, color: tc.text }, webInputStyle]}
           placeholder="Ej: 15000"
           placeholderTextColor={tc.textMuted}
           value={pricePerNight}
@@ -427,7 +493,7 @@ export default function PublishAccommodationScreen() {
         <View style={styles.timeField}>
           <Text style={[styles.label, { color: tc.textSecondary }]}>Check-in</Text>
           <TextInput
-            style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+            style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
             placeholder="14:00"
             placeholderTextColor={tc.textMuted}
             value={checkIn}
@@ -438,7 +504,7 @@ export default function PublishAccommodationScreen() {
         <View style={styles.timeField}>
           <Text style={[styles.label, { color: tc.textSecondary }]}>Check-out</Text>
           <TextInput
-            style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}
+            style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
             placeholder="10:00"
             placeholderTextColor={tc.textMuted}
             value={checkOut}
@@ -572,6 +638,20 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 15, paddingHorizontal: 16, paddingVertical: 12,
     borderRadius: 12, borderWidth: 1,
+  },
+  geoStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  geoStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  geoHintText: {
+    fontSize: 11,
+    marginTop: 8,
   },
   textArea: { height: 100, textAlignVertical: 'top' },
   categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

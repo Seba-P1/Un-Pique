@@ -71,7 +71,7 @@ interface ListingState {
   setSelectedListing: (listing: Listing | null) => void;
 }
 
-const formatListing = (row: Record<string, unknown>): Listing => ({
+export const formatListing = (row: Record<string, unknown>): Listing => ({
   id: row.id as string,
   user_id: row.user_id as string,
   type: row.type as ListingType,

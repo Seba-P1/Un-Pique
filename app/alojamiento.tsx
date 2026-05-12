@@ -14,16 +14,19 @@ import {
   Phone, MessageCircle, Heart, Share2, ChevronLeft, ChevronRight,
   Snowflake, Zap, Layers, Droplets, BedDouble, Baby, Play, TreePine,
   Building, Home, Monitor, Lock, AlertTriangle, Sparkles, Eye, Anchor,
-  ArrowUpDown, Gamepad2, Clock, CheckCircle
+  ArrowUpDown, Gamepad2, Clock, CheckCircle, CalendarDays, CalendarCheck
 } from 'lucide-react-native';
 
 import { useThemeColors } from '../hooks/useThemeColors';
 import { useAuthStore } from '../stores/authStore';
-import { useListingStore } from '../stores/listingStore';
+import { useListingStore, formatListing } from '../stores/listingStore';
 import { useSocialStore } from '../stores/socialStore';
 import { useLocationStore } from '../stores/locationStore';
 import type { Listing } from '../stores/listingStore';
 import { AccommodationCard } from '../components/accommodations/AccommodationCard';
+import DateRangePicker from '../components/accommodations/DateRangePicker';
+import AccommodationLocationMap from '../components/accommodations/AccommodationLocationMap';
+import { supabase } from '../lib/supabase';
 
 const FILTERS = ['todos', 'hotel', 'cabaña', 'departamento', 'casa', 'habitación'];
 
@@ -216,15 +219,26 @@ const AnimatedButton = ({ onPress, style, children }: any) => {
   );
 };
 
+const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const formatDateDisplay = (date: Date) => `${date.getDate()} ${MESES[date.getMonth()]}`;
+const getNights = (a: Date, b: Date) => Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
+
 export default function AlojamientoScreen() {
   const router = useRouter();
   const tc = useThemeColors();
   const { width, height: windowHeight } = useWindowDimensions();
   const isDesktop = width >= 768;
   const insets = useSafeAreaInsets();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
 
-  const { accommodations, fetchAccommodations, loading } = useListingStore();
+  const [checkIn, setCheckIn] = useState<Date | null>(null);
+  const [checkOut, setCheckOut] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const PAGE_SIZE = 15;
+  const [page, setPage] = useState(0);
+  const [pagedData, setPagedData] = useState<Listing[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const [searchText, setSearchText] = useState('');
   const [activeFilter, setActiveFilter] = useState('todos');
@@ -242,13 +256,56 @@ export default function AlojamientoScreen() {
   const [claimModalVisible, setClaimModalVisible] = useState(false);
   const [claimMessage, setClaimMessage] = useState('');
   const [claiming, setClaiming] = useState(false);
+  const [ownerProfile, setOwnerProfile] = useState<{
+    full_name: string;
+    avatar_url?: string;
+  } | null>(null);
   const { submitClaimRequest } = useListingStore();
 
   const flatListRef = useRef<FlatList>(null);
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
+  const loadAccommodations = async (pageNumber: number, reset = false) => {
+    if (loadingMore && !reset) return;
+    setLoadingMore(true);
+    
+    try {
+      const from = pageNumber * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('type', 'accommodation')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      
+      if (error) throw error;
+      
+      const formatted = (data || []).map(formatListing);
+      
+      if (reset) {
+        setPagedData(formatted);
+      } else {
+        setPagedData(prev => [...prev, ...formatted]);
+      }
+      
+      setHasMore((data || []).length === PAGE_SIZE);
+      setPage(pageNumber);
+    } catch (error) {
+      console.error('Error fetching paged accommodations:', error);
+      if (reset) {
+        setPagedData([]);
+      }
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
-    fetchAccommodations();
+    loadAccommodations(0, true);
     Animated.spring(scaleAnim, {
       toValue: 1,
       tension: 50,
@@ -257,8 +314,14 @@ export default function AlojamientoScreen() {
     }).start();
   }, []);
 
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      loadAccommodations(page + 1);
+    }
+  };
+
   const filtered = useMemo(() => {
-    const dataList = accommodations.length > 0 ? accommodations : MOCK_ACCOMMODATIONS;
+    const dataList = pagedData.length > 0 ? pagedData : MOCK_ACCOMMODATIONS;
     return dataList.filter(l => {
       const matchSearch = !searchText ||
         l.title.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -267,7 +330,7 @@ export default function AlojamientoScreen() {
       const matchFilter = activeFilter === 'todos' || type === activeFilter;
       return matchSearch && matchFilter;
     });
-  }, [accommodations, searchText, activeFilter]);
+  }, [pagedData, searchText, activeFilter]);
 
   const handlePublish = () => {
     router.push('/publish/accommodation' as any);
@@ -276,6 +339,43 @@ export default function AlojamientoScreen() {
   const openWhatsApp = (phone: string, text: string) => {
     const cleanPhone = phone.replace(/[^0-9+]/g, '');
     Linking.openURL(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`);
+  };
+
+  const buildWhatsAppMessage = (listing: Listing) => {
+    let msg = `Hola! Quisiera consultar por el alojamiento: *${listing.title}*`;
+    if (checkIn && checkOut) {
+      const nights = getNights(checkIn, checkOut);
+      msg += `\n\n📅 Fechas de consulta:`;
+      msg += `\nLlegada: *${formatDateDisplay(checkIn)}*`;
+      msg += `\nSalida: *${formatDateDisplay(checkOut)}*`;
+      msg += `\n🌙 ${nights} noche${nights !== 1 ? 's' : ''}`;
+      if (listing.price_per_night) {
+        const total = listing.price_per_night * nights;
+        msg += `\n💰 Total estimado: *$${total.toLocaleString('es-AR')}*`;
+      }
+    }
+    msg += `\n\n¿Está disponible?`;
+    return msg;
+  };
+
+  const openListingDetail = (item: Listing) => {
+    setSelectedListing(item);
+    setGalleryIndex(0);
+    setShowDetail(true);
+    setOwnerProfile(null);
+
+    if (item.user_id && item.user_id !== 'mock_user') {
+      supabase
+        .from('users')
+        .select('full_name, avatar_url')
+        .eq('id', item.user_id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setOwnerProfile(data as { full_name: string; avatar_url?: string });
+          }
+        });
+    }
   };
 
   const renderDetail = () => {
@@ -460,69 +560,130 @@ export default function AlojamientoScreen() {
 
                 <View style={[s.divider, { backgroundColor: tc.borderLight }]} />
 
+                {l.latitude && l.longitude && (
+                  <>
+                    <Text style={[s.sectionTitle, { color: tc.text }]}>Ubicación</Text>
+                    <AccommodationLocationMap
+                      latitude={l.latitude}
+                      longitude={l.longitude}
+                      title={l.title}
+                      backgroundColor={tc.bgInput}
+                      borderColor={tc.borderLight}
+                    />
+                    {l.address && (
+                      <Text style={[s.mapAddressText, { color: tc.textSecondary }]}>{l.address}</Text>
+                    )}
+                    <View style={[s.divider, { backgroundColor: tc.borderLight }]} />
+                  </>
+                )}
+
                 {/* ANUNCIANTE */}
-                <Text style={[s.sectionTitle, { color: tc.text }]}>Publicado por</Text>
+                <Text style={[s.sectionTitle, { color: tc.text }]}>
+                  Publicado por
+                </Text>
+
                 <View style={s.ownerRow}>
                   <View style={[s.ownerAvatar, { backgroundColor: tc.bgInput }]}>
-                    <Building2 size={20} color={tc.textSecondary} />
+                    {ownerProfile?.avatar_url ? (
+                      <Image
+                        source={{ uri: ownerProfile.avatar_url }}
+                        style={{ width: 44, height: 44, borderRadius: 22 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Building2 size={20} color={tc.textSecondary} />
+                    )}
                   </View>
+
                   <View style={s.ownerInfo}>
-                    <Text style={[s.ownerName, { color: tc.text }]}>{l.owner_name || 'Anunciante'}</Text>
-                    <Text style={[s.ownerSub, { color: tc.textSecondary }]}>Miembro de Un Pique</Text>
+                    <Text style={[s.ownerName, { color: tc.text }]}>
+                      {l.user_id === user?.id
+                        ? (profile?.full_name || 'Vos')
+                        : (ownerProfile?.full_name || l.owner_name || 'Anunciante')}
+                    </Text>
+                    <Text style={[s.ownerSub, { color: tc.textSecondary }]}>
+                      Miembro de Un Pique
+                    </Text>
                   </View>
-                  {l.user_id && (
-                    <TouchableOpacity>
+
+                  {l.user_id && l.user_id !== 'mock_user' && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowDetail(false);
+                        setTimeout(() => {
+                          router.push(`/profile/${l.user_id}` as any);
+                        }, 300);
+                      }}
+                    >
                       <Text style={s.viewProfileText}>Ver perfil</Text>
                     </TouchableOpacity>
                   )}
-                  {/* Sección de Reclamo */}
-            {(() => {
-                if (!user) return null;
-                
-                if (l.claim_status === 'pending') {
-                    return (
-                        <View style={[s.claimBadge, { backgroundColor: tc.isDark ? 'rgba(234,179,8,0.15)' : 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.3)' }]}>
-                            <Text style={{ color: '#EAB308', fontSize: 14, fontWeight: '600', }}>⏳ Solicitud de reclamación pendiente de revisión</Text>
-                        </View>
-                    );
-                }
-                
-                if (l.claim_status === 'claimed' && l.claimed_by === user.id) {
-                    return (
-                        <View style={[s.claimBadge, { backgroundColor: tc.isDark ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)' }]}>
-                            <Text style={{ color: '#22C55E', fontSize: 14, fontWeight: '600', }}>✅ Este alojamiento es tuyo</Text>
-                        </View>
-                    );
-                }
+                </View>
 
-                const canClaim = (l.claim_status === 'unclaimed' || l.claim_status === 'rejected' || !l.claim_status) && 
-                                 user.id !== l.user_id && 
-                                 user.id !== l.claimed_by;
-
-                if (canClaim) {
+                {user && l.user_id !== 'mock_user' && (() => {
+                  if (l.claim_status === 'pending') {
                     return (
-                        <View style={[s.claimCard, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                <Text style={{ fontSize: 18 }}>🔑</Text>
-                                <Text style={[s.claimCardTitle, { color: tc.text }]}>¿Este alojamiento es tuyo?</Text>
-                            </View>
-                            <Text style={[s.claimCardDesc, { color: tc.textSecondary }]}>
-                                Si este alojamiento te pertenece, podés reclamarlo como tuyo para gestionarlo desde tu perfil.
-                            </Text>
-                            <TouchableOpacity 
-                                style={[s.claimBtn, { backgroundColor: tc.text }]} 
-                                onPress={() => setClaimModalVisible(true)}
-                                activeOpacity={0.9}
-                            >
-                                <Text style={[s.claimBtnText, { color: tc.bg }]}>Reclamar este alojamiento</Text>
-                            </TouchableOpacity>
-                        </View>
+                      <View style={[s.claimBadge, {
+                        backgroundColor: 'rgba(234,179,8,0.15)',
+                        borderColor: 'rgba(234,179,8,0.3)',
+                        marginTop: 16,
+                      }]}>
+                        <Text style={{ color: '#EAB308', fontSize: 14, fontWeight: '600' }}>
+                          ⏳ Solicitud pendiente de revisión
+                        </Text>
+                      </View>
                     );
-                }
-                return null;
-            })()}
+                  }
 
-          </View>
+                  if (l.claim_status === 'claimed' && l.claimed_by === user.id) {
+                    return (
+                      <View style={[s.claimBadge, {
+                        backgroundColor: 'rgba(34,197,94,0.15)',
+                        borderColor: 'rgba(34,197,94,0.3)',
+                        marginTop: 16,
+                      }]}>
+                        <Text style={{ color: '#22C55E', fontSize: 14, fontWeight: '600' }}>
+                          ✅ Este alojamiento es tuyo
+                        </Text>
+                      </View>
+                    );
+                  }
+
+                  const canClaim =
+                    (l.claim_status === 'unclaimed' || l.claim_status === 'rejected' || !l.claim_status) &&
+                    user.id !== l.user_id &&
+                    user.id !== l.claimed_by;
+
+                  if (!canClaim) return null;
+
+                  return (
+                    <View style={[s.claimCard, {
+                      backgroundColor: tc.bgInput,
+                      borderColor: tc.borderLight,
+                      marginTop: 16,
+                    }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Text style={{ fontSize: 16 }}>🔑</Text>
+                        <Text style={[s.claimCardTitle, { color: tc.text }]}>
+                          ¿Este alojamiento es tuyo?
+                        </Text>
+                      </View>
+                      <Text style={[s.claimCardDesc, { color: tc.textSecondary }]}>
+                        Si este alojamiento te pertenece, podés reclamarlo como tuyo
+                        para gestionarlo desde tu perfil.
+                      </Text>
+                      <TouchableOpacity
+                        style={[s.claimBtn, { backgroundColor: '#FF6B35' }]}
+                        onPress={() => setClaimModalVisible(true)}
+                        activeOpacity={0.9}
+                      >
+                        <Text style={[s.claimBtnText, { color: '#fff' }]}>
+                          Reclamar este alojamiento
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })()}
 
                 <View style={{ height: 40 }} />
               </View>
@@ -531,7 +692,7 @@ export default function AlojamientoScreen() {
             {/* BOTTOM BAR */}
             <View style={[
               s.bottomBar,
-              { backgroundColor: tc.bgCard, borderColor: tc.borderLight, paddingBottom: isDesktop ? 20 : insets.bottom + 12 }
+              { paddingBottom: isDesktop ? 20 : insets.bottom + 12 }
             ]}>
               <View style={[s.bottomBarRow, { justifyContent: 'center' }]}>
                 {l.phone ? (
@@ -546,7 +707,7 @@ export default function AlojamientoScreen() {
                 {l.phone ? (
                   <AnimatedButton
                     style={[s.contactCircleBtn, { backgroundColor: 'rgba(37,211,102,0.15)', borderColor: '#25D366', borderWidth: 1, shadowColor: '#25D366', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 }]}
-                    onPress={() => openWhatsApp(l.phone, `Hola! Quisiera consultar por el alojamiento: ${l.title}`)}
+                    onPress={() => openWhatsApp(l.phone, buildWhatsAppMessage(l))}
                   >
                     <WhatsAppIcon size={22} color="#25D366" />
                   </AnimatedButton>
@@ -710,28 +871,8 @@ export default function AlojamientoScreen() {
     </View>
   );
 
-  return (
-    <SafeAreaView style={[s.root, { backgroundColor: tc.bg }]} edges={['top']}>
-      {/* HEADER */}
-      <View style={s.header}>
-        <TouchableOpacity
-          style={s.backButton}
-          onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/');
-            }
-          }}
-        >
-          <ChevronLeft size={24} color={tc.text} />
-        </TouchableOpacity>
-        <View style={s.headerTitleContainer}>
-          <Text style={[s.headerTitle, { color: tc.text }]}>Alojamientos</Text>
-          <Text style={[s.headerSub, { color: tc.textSecondary }]}>{filtered.length} disponibles</Text>
-        </View>
-      </View>
-
+  const renderListHeader = () => (
+    <>
       {/* SEARCH BAR */}
       <View style={[s.searchContainer, { backgroundColor: tc.bgInput }]}>
         <Search size={18} color={tc.textSecondary} />
@@ -753,6 +894,7 @@ export default function AlojamientoScreen() {
       <View>
         <ScrollView
           horizontal
+          nestedScrollEnabled
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.chipsContent}
           style={s.chipsScroll}
@@ -803,7 +945,6 @@ export default function AlojamientoScreen() {
             elevation: 10,
           },
         ]}>
-          {/* Native gradient background */}
           {Platform.OS !== 'web' && (
             <LinearGradient
               colors={['#FF6B35', '#E8551E', '#FF8C42']}
@@ -813,7 +954,6 @@ export default function AlojamientoScreen() {
             />
           )}
 
-          {/* Decorative circles */}
           <View style={{
             position: 'absolute', top: -20, right: -20,
             width: 90, height: 90, borderRadius: 45,
@@ -825,9 +965,7 @@ export default function AlojamientoScreen() {
             backgroundColor: 'rgba(255,255,255,0.06)',
           }} />
 
-          {/* Content */}
           <View style={{ padding: 16, zIndex: 2 }}>
-            {/* Icon */}
             <View style={{
               width: 40, height: 40, borderRadius: 12,
               backgroundColor: 'rgba(255,255,255,0.2)',
@@ -839,24 +977,20 @@ export default function AlojamientoScreen() {
               <Building2 size={20} color="#fff" />
             </View>
 
-            {/* Text */}
             <Text style={{
               fontSize: 16, fontWeight: '700',
               color: '#fff', marginBottom: 4,
               letterSpacing: -0.3,
-              
             }}>
               ¿Tenés un alojamiento?
             </Text>
             <Text style={{
               fontSize: 13, color: 'rgba(255,255,255,0.82)',
               lineHeight: 18, marginBottom: 14,
-              
             }}>
               Publicalo gratis y llegá a cientos de personas en la zona.
             </Text>
 
-            {/* CTA pill */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -871,7 +1005,6 @@ export default function AlojamientoScreen() {
             }}>
               <Text style={{
                 color: '#fff', fontSize: 13, fontWeight: '700',
-                
               }}>
                 Publicar gratis
               </Text>
@@ -881,45 +1014,136 @@ export default function AlojamientoScreen() {
         </Animated.View>
       </Pressable>
 
+      {/* SECCIÓN FECHAS */}
+      <View style={{ marginHorizontal: 16, marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Text style={{ fontSize: 20 }}>🏠</Text>
+          <View>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: tc.text }}>¿Dónde querés quedarte hoy?</Text>
+            <Text style={{ fontSize: 12, color: tc.textSecondary, marginTop: 2 }}>Seleccioná tus fechas para consultar disponibilidad</Text>
+          </View>
+        </View>
+
+        <View style={{ backgroundColor: tc.bgInput, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: tc.borderLight }}>
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderColor: tc.borderLight }}
+          >
+            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FF6B3515', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+              <CalendarDays size={16} color="#FF6B35" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: tc.textSecondary }}>Llegada</Text>
+              <Text style={{ fontSize: 14, color: checkIn ? tc.text : tc.textSecondary, fontWeight: checkIn ? '600' : '400' }}>
+                {checkIn ? formatDateDisplay(checkIn) : '¿Cuándo llegás?'}
+              </Text>
+            </View>
+            {checkIn && (
+              <TouchableOpacity onPress={() => {
+                setCheckIn(null);
+                setCheckOut(null);
+              }}>
+                <X size={16} color={tc.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 }}
+          >
+            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FF6B3515', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+              <CalendarCheck size={16} color="#FF6B35" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: tc.textSecondary }}>Salida</Text>
+              <Text style={{ fontSize: 14, color: checkOut ? tc.text : tc.textSecondary, fontWeight: checkOut ? '600' : '400' }}>
+                {checkOut ? formatDateDisplay(checkOut) : '¿Cuándo te vas?'}
+              </Text>
+            </View>
+            {checkOut && (
+              <TouchableOpacity onPress={() => setCheckOut(null)}>
+                <X size={16} color={tc.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {checkIn && checkOut && (
+          <View style={{ marginTop: 10, backgroundColor: '#FF6B3515', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignSelf: 'flex-start' }}>
+            <Text style={{ fontSize: 12, color: '#FF6B35', fontWeight: 'bold' }}>
+              ✨ {getNights(checkIn, checkOut)} noches seleccionadas
+            </Text>
+          </View>
+        )}
+      </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView style={[s.root, { backgroundColor: tc.bg }]} edges={['top']}>
+      {/* HEADER */}
+      <View style={s.header}>
+        <TouchableOpacity
+          style={s.backButton}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/');
+            }
+          }}
+        >
+          <ChevronLeft size={24} color={tc.text} />
+        </TouchableOpacity>
+        <View style={s.headerTitleContainer}>
+          <Text style={[s.headerTitle, { color: tc.text }]}>Alojamientos</Text>
+          <Text style={[s.headerSub, { color: tc.textSecondary }]}>{filtered.length} disponibles</Text>
+        </View>
+      </View>
+
       {/* LISTA DE ALOJAMIENTOS */}
-      {loading ? (
-        renderSkeletons()
-      ) : filtered.length === 0 ? (
-        renderEmptyState()
-      ) : (
-        <FlatList
-          key={isDesktop ? 'accom-grid-2' : 'accom-list-1'}
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          numColumns={isDesktop ? 2 : 1}
-          contentContainerStyle={[
-            s.listContent,
-            isDesktop && { maxWidth: 1100, alignSelf: 'center', width: '100%', paddingHorizontal: 20 }
-          ]}
-          columnWrapperStyle={isDesktop ? { gap: 16 } : undefined}
-          renderItem={({ item }) => (
-            <View style={isDesktop ? { flex: 1, maxWidth: '50%' } : { width: '100%' }}>
+      <FlatList
+        key={isDesktop ? 'accom-grid-2' : 'accom-list-1'}
+        style={{ flex: 1 }}
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        numColumns={isDesktop ? 2 : 1}
+        ListHeaderComponent={renderListHeader}
+        ListEmptyComponent={loadingMore && pagedData.length === 0 ? renderSkeletons : renderEmptyState}
+        contentContainerStyle={[
+          s.listContent,
+          isDesktop && { maxWidth: 1100, alignSelf: 'center', width: '100%', paddingHorizontal: 20 }
+        ]}
+        columnWrapperStyle={isDesktop && filtered.length > 0 ? { gap: 16 } : undefined}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={() => (
+          <>
+            {loadingMore && pagedData.length > 0 && <ActivityIndicator color="#FF6B35" style={{ marginTop: 16 }} />}
+            {!hasMore && pagedData.length > 0 && (
+              <Text style={{ textAlign: 'center', fontSize: 12, color: tc.textSecondary, marginTop: 16, marginBottom: 8 }}>— Eso es todo —</Text>
+            )}
+          </>
+        )}
+        renderItem={({ item }) => (
+          <View style={isDesktop ? { flex: 1, maxWidth: '50%' } : { width: '100%' }}>
               <AccommodationCard
                 listing={item}
-                onPress={() => {
-                  setSelectedListing(item);
-                  setGalleryIndex(0);
-                  setShowDetail(true);
-                }}
-                onShare={() => {
-                  setSelectedListing(item);
-                  if (!user) {
-                    alert('Debes iniciar sesión para compartir.');
-                    return;
-                  }
-                  setShowShareModal(true);
-                }}
-                isDesktop={isDesktop}
-              />
-            </View>
-          )}
-        />
-      )}
+                onPress={() => openListingDetail(item)}
+              onShare={() => {
+                setSelectedListing(item);
+                if (!user) {
+                  alert('Debes iniciar sesión para compartir.');
+                  return;
+                }
+                setShowShareModal(true);
+              }}
+              isDesktop={isDesktop}
+            />
+          </View>
+        )}
+      />
 
       {/* MODAL DETALLE */}
       {renderDetail()}
@@ -1052,6 +1276,18 @@ export default function AlojamientoScreen() {
             </View>
         </View>
       </Modal>
+
+      {showDatePicker && (
+        <DateRangePicker
+          checkIn={checkIn}
+          checkOut={checkOut}
+          onSelect={(ci, co) => {
+            setCheckIn(ci);
+            setCheckOut(co);
+          }}
+          onClose={() => setShowDatePicker(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -1313,6 +1549,10 @@ const s = StyleSheet.create({
     lineHeight: 22,
     
   },
+  mapAddressText: {
+    fontSize: 12,
+    marginTop: 6,
+  },
   ownerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1349,8 +1589,7 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingTop: 12,
-    borderTopWidth: 1,
+    paddingTop: 16,
   },
   bottomBarRow: {
     flexDirection: 'row',
