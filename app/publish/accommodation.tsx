@@ -1,15 +1,16 @@
 // Publicar Alojamiento — formulario de 2 pasos
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image,
+  Animated, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Check, ChevronRight, ChevronLeft,
   Wifi, Car, Coffee, Tv, Snowflake, Users, Waves, ImageIcon, X,
-  CheckCircle, User, Heart,
+  CheckCircle, User, Heart, Search, MapPin, AlertCircle,
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useListingStore } from '../../stores/listingStore';
@@ -17,6 +18,8 @@ import { useAuthStore } from '../../stores/authStore';
 import { showAlert } from '../../utils/alert';
 import { pickMultipleImages, uploadImage } from '../../services/imageUpload';
 import { supabase } from '../../lib/supabase';
+import AddressMapPreview from '../../components/accommodations/AddressMapPreview';
+import MapExpandedModal from '../../components/accommodations/MapExpandedModal';
 
 const ACCOMMODATION_TYPES = [
   'Hotel', 'Cabaña', 'Departamento', 'Casa',
@@ -168,7 +171,8 @@ export default function PublishAccommodationScreen() {
   const [description, setDescription] = useState('');
   // Paso 2
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [addressStreet, setAddressStreet] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
   const [amenities, setAmenities] = useState<string[]>([]);
   const [maxGuests, setMaxGuests] = useState('');
   const [pricePerNight, setPricePerNight] = useState('');
@@ -179,9 +183,14 @@ export default function PublishAccommodationScreen() {
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [geoFound, setGeoFound] = useState(false);
+  const [geoError, setGeoError] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [showMapModal, setShowMapModal] = useState(false);
   const webInputStyle = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null;
+  const { width: screenWidth } = useWindowDimensions();
+  const isDesktop = screenWidth >= 768;
+  const mapFadeAnim = useRef(new Animated.Value(0)).current;
   // Contribution system
   const [isContribution, setIsContribution] = useState(false);
   const [suggestedOwnerName, setSuggestedOwnerName] = useState('');
@@ -198,7 +207,16 @@ export default function PublishAccommodationScreen() {
         setDescription(data.description || '');
         setAccommodationType(data.accommodation_type || data.category || '');
         setPhone(data.phone || '');
-        setAddress(data.address || '');
+        // Split address into street + number if possible
+        const addr = data.address || '';
+        const addrMatch = addr.match(/^(.+?)\s+(\d+.*)$/);
+        if (addrMatch) {
+          setAddressStreet(addrMatch[1]);
+          setAddressNumber(addrMatch[2]);
+        } else {
+          setAddressStreet(addr);
+          setAddressNumber('');
+        }
         setAmenities(data.amenities || []);
         setMaxGuests(data.max_guests ? String(data.max_guests) : '');
         setPricePerNight(data.price_per_night ? String(data.price_per_night) : '');
@@ -206,7 +224,9 @@ export default function PublishAccommodationScreen() {
         setCheckOut(data.check_out || '10:00');
         setLatitude(typeof data.latitude === 'number' ? data.latitude : null);
         setLongitude(typeof data.longitude === 'number' ? data.longitude : null);
-        setGeoFound(typeof data.latitude === 'number' && typeof data.longitude === 'number');
+        const hasGeo = typeof data.latitude === 'number' && typeof data.longitude === 'number';
+        setGeoFound(hasGeo);
+        if (hasGeo) mapFadeAnim.setValue(1);
         if (data.images && data.images.length > 0) setImageUris(data.images);
       }
       setLoadingEdit(false);
@@ -224,13 +244,25 @@ export default function PublishAccommodationScreen() {
     );
   };
 
-  const geocodeAddress = async (value: string) => {
-    if (!value.trim() || value.trim().length < 5) return;
+  const getFullAddress = () => {
+    const street = addressStreet.trim();
+    const num = addressNumber.trim();
+    return num ? `${street} ${num}` : street;
+  };
+
+  const geocodeAddress = async () => {
+    const fullAddress = getFullAddress();
+    if (!fullAddress || fullAddress.length < 5) {
+      showAlert('Atenci\u00f3n', 'Ingres\u00e1 una direcci\u00f3n v\u00e1lida para buscar.');
+      return;
+    }
     setGeocoding(true);
     setGeoFound(false);
+    setGeoError(false);
+    mapFadeAnim.setValue(0);
 
     try {
-      const query = encodeURIComponent(`${value}, Río Negro, Argentina`);
+      const query = encodeURIComponent(`${fullAddress}, R\u00edo Negro, Argentina`);
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
         { headers: { 'User-Agent': 'UnPique-App/1.0' } }
@@ -241,14 +273,23 @@ export default function PublishAccommodationScreen() {
         setLatitude(parseFloat(data[0].lat));
         setLongitude(parseFloat(data[0].lon));
         setGeoFound(true);
+        setGeoError(false);
+        // Fade in the map preview
+        Animated.timing(mapFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: Platform.OS !== 'web',
+        }).start();
       } else {
         setLatitude(null);
         setLongitude(null);
+        setGeoError(true);
       }
     } catch (e) {
       console.warn('Geocoding failed:', e);
       setLatitude(null);
       setLongitude(null);
+      setGeoError(true);
     } finally {
       setGeocoding(false);
     }
@@ -289,7 +330,7 @@ export default function PublishAccommodationScreen() {
           accommodation_type: accommodationType,
           description: description.trim(),
           phone: phone.trim(),
-          address: address.trim(),
+          address: getFullAddress(),
           amenities,
           max_guests: maxGuests ? parseInt(maxGuests, 10) : null,
           price_per_night: pricePerNight ? parseFloat(pricePerNight) : null,
@@ -317,7 +358,7 @@ export default function PublishAccommodationScreen() {
       accommodation_type: accommodationType,
       description: description.trim(),
       phone: phone.trim(),
-      address: address.trim(),
+      address: getFullAddress(),
       amenities,
       max_guests: maxGuests ? parseInt(maxGuests, 10) : undefined,
       price_per_night: pricePerNight ? parseFloat(pricePerNight) : null,
@@ -587,37 +628,150 @@ export default function PublishAccommodationScreen() {
         maxLength={20}
       />
 
-      <Text style={[styles.label, { color: tc.textSecondary }]}>Dirección</Text>
+      {/* ── Sección Dirección con Geocoding ── */}
+      <Text style={[styles.label, { color: tc.textSecondary }]}>Dirección / Calle</Text>
       <TextInput
         style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
-        placeholder="Ej: Ruta 38 km 5, Chilecito"
+        placeholder="Ej: Av. San Martín, Ruta 38..."
         placeholderTextColor={tc.textMuted}
-        value={address}
+        value={addressStreet}
         onChangeText={(value) => {
-          setAddress(value);
-          setGeoFound(false);
-          setLatitude(null);
-          setLongitude(null);
+          setAddressStreet(value);
+          if (geoFound) {
+            setGeoFound(false);
+            setGeoError(false);
+            setLatitude(null);
+            setLongitude(null);
+            mapFadeAnim.setValue(0);
+          }
         }}
-        onEndEditing={() => geocodeAddress(address)}
-        maxLength={100}
+        maxLength={80}
       />
-      {geocoding && (
-        <View style={styles.geoStatusRow}>
+
+      <Text style={[styles.label, { color: tc.textSecondary }]}>Altura</Text>
+      <TextInput
+        style={[styles.input, {
+          color: tc.text,
+          backgroundColor: tc.bgInput,
+          borderColor: tc.borderLight,
+          width: isDesktop ? '40%' : '50%',
+        }, webInputStyle]}
+        placeholder="Ej: 1200"
+        placeholderTextColor={tc.textMuted}
+        value={addressNumber}
+        onChangeText={(value) => {
+          setAddressNumber(value);
+          if (geoFound) {
+            setGeoFound(false);
+            setGeoError(false);
+            setLatitude(null);
+            setLongitude(null);
+            mapFadeAnim.setValue(0);
+          }
+        }}
+        keyboardType="default"
+        maxLength={20}
+      />
+
+      {/* Botón Buscar Dirección */}
+      <TouchableOpacity
+        style={[
+          styles.searchAddressBtn,
+          {
+            backgroundColor: geocoding ? tc.bgInput : '#FF6B35',
+            opacity: geocoding ? 0.7 : 1,
+          },
+          Platform.OS === 'web' ? {
+            boxShadow: geocoding ? 'none' : '0 4px 14px rgba(255,107,53,0.3)',
+            transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          } as any : !geocoding ? {
+            shadowColor: '#FF6B35',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            elevation: 6,
+          } : {},
+        ]}
+        onPress={geocodeAddress}
+        disabled={geocoding || addressStreet.trim().length < 3}
+        activeOpacity={0.85}
+      >
+        {geocoding ? (
           <ActivityIndicator size="small" color="#FF6B35" />
-          <Text style={[styles.geoStatusText, { color: tc.textSecondary }]}>Buscando ubicación...</Text>
-        </View>
-      )}
-      {!geocoding && geoFound && (
-        <View style={styles.geoStatusRow}>
-          <CheckCircle size={14} color="#22C55E" />
-          <Text style={[styles.geoStatusText, { color: '#22C55E' }]}>📍 Ubicación encontrada</Text>
-        </View>
-      )}
-      {!geocoding && !geoFound && address.length > 5 && (
-        <Text style={[styles.geoHintText, { color: tc.textSecondary }]}>
-          No se encontró la dirección. Podés continuar igual.
+        ) : (
+          <Search size={16} color="#fff" />
+        )}
+        <Text style={{
+          color: geocoding ? tc.textSecondary : '#fff',
+          fontSize: 14,
+          fontWeight: '700',
+        }}>
+          {geocoding ? 'Buscando...' : 'Buscar dirección'}
         </Text>
+      </TouchableOpacity>
+
+      {/* Estado: Éxito con coordenadas */}
+      {!geocoding && geoFound && latitude !== null && longitude !== null && (
+        <View style={styles.geoResultContainer}>
+          <View style={styles.geoSuccessRow}>
+            <CheckCircle size={15} color="#22C55E" />
+            <Text style={[styles.geoSuccessText, { color: '#22C55E' }]}>
+              Ubicación encontrada
+            </Text>
+          </View>
+          <View style={styles.coordsBadgeRow}>
+            <View style={[styles.coordBadge, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}>
+              <MapPin size={11} color="#FF6B35" />
+              <Text style={[styles.coordText, { color: tc.textSecondary }]}>
+                {latitude.toFixed(5)}
+              </Text>
+            </View>
+            <View style={[styles.coordBadge, { backgroundColor: tc.bgInput, borderColor: tc.borderLight }]}>
+              <MapPin size={11} color="#FF6B35" />
+              <Text style={[styles.coordText, { color: tc.textSecondary }]}>
+                {longitude.toFixed(5)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Mapa miniatura */}
+          <Animated.View style={{ opacity: mapFadeAnim, marginTop: 12 }}>
+            <AddressMapPreview
+              latitude={latitude}
+              longitude={longitude}
+              title={title || 'Alojamiento'}
+              onPress={() => setShowMapModal(true)}
+              backgroundColor={tc.bgInput}
+              borderColor={tc.borderLight}
+              textColor={tc.text}
+              textMuted={tc.textSecondary}
+            />
+          </Animated.View>
+
+          {/* Modal mapa expandido */}
+          <MapExpandedModal
+            visible={showMapModal}
+            onClose={() => setShowMapModal(false)}
+            latitude={latitude}
+            longitude={longitude}
+            title={title || 'Alojamiento'}
+            address={getFullAddress()}
+            backgroundColor={tc.bgCard}
+            textColor={tc.text}
+            textSecondary={tc.textSecondary}
+            borderColor={tc.borderLight}
+          />
+        </View>
+      )}
+
+      {/* Estado: Error */}
+      {!geocoding && geoError && (
+        <View style={styles.geoErrorRow}>
+          <AlertCircle size={14} color="#F59E0B" />
+          <Text style={[styles.geoErrorText, { color: tc.textSecondary }]}>
+            No se encontró la dirección. Podés continuar igual.
+          </Text>
+        </View>
       )}
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Capacidad máxima (personas)</Text>
@@ -845,5 +999,64 @@ const styles = StyleSheet.create({
     position: 'absolute', top: -6, right: -6,
     width: 22, height: 22, borderRadius: 11, backgroundColor: '#e53e3e',
     justifyContent: 'center', alignItems: 'center',
+  },
+  searchAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 6,
+  },
+  geoResultContainer: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(34, 197, 94, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.2)',
+  },
+  geoSuccessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  geoSuccessText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  coordsBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  coordBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  coordText: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  geoErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  geoErrorText: {
+    fontSize: 13,
+    flex: 1,
   },
 });
