@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Linking, Modal, Pressable, Animated, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Send, Smile, Paperclip, Image as ImageIcon, Mic, MoreVertical, FileText, X, Trash2, User } from 'lucide-react-native';
 import { Audio } from 'expo-av';
@@ -40,7 +40,7 @@ export default function ChatDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const tc = useThemeColors();
-    const { messages, fetchMessages, sendMessage, subscribeToRoom, unsubscribeFromRoom, rooms, markMessagesAsRead, fetchRooms, fetchUnreadCount } = useChatStore();
+    const { messages, fetchMessages, sendMessage, subscribeToRoom, unsubscribeFromRoom, rooms, markMessagesAsRead } = useChatStore();
     const { user } = useAuthStore();
     
     const [otherUser, setOtherUser] = useState<any>(null);
@@ -82,12 +82,14 @@ export default function ChatDetailScreen() {
             
             await fetchMessages(id);
             subscribeToRoom(id);
-            markMessagesAsRead(id);
+
+            // markMessagesAsRead actualiza el store localmente Y hace el UPDATE en DB
+            // El unreadCount global se recalcula desde los rooms sin queries adicionales
+            await markMessagesAsRead(id);
             
             setInitialLoading(false);
-            
-            fetchRooms(user.id);
-            fetchUnreadCount(user.id);
+            // No es necesario fetchRooms ni fetchUnreadCount acá —
+            // markMessagesAsRead ya actualizó el badge en el store localmente
         };
 
         initChat();
@@ -96,6 +98,15 @@ export default function ChatDetailScreen() {
             if (id) unsubscribeFromRoom(id);
         };
     }, [id, user]);
+
+    // Re-marcar como leído cada vez que la pantalla gana foco
+    useFocusEffect(
+        useCallback(() => {
+            if (id && user) {
+                markMessagesAsRead(id);
+            }
+        }, [id, user])
+    );
 
     useEffect(() => {
         if (roomMessages.length > 0) {
@@ -118,8 +129,13 @@ export default function ChatDetailScreen() {
     }, [isRecording]);
 
     const handleBack = () => {
-        if (router.canGoBack()) router.back();
-        else router.replace('/');
+        // router.back() vuelve a la pantalla anterior con el drawer visible
+        // Si no hay historial (acceso directo a la URL del chat), ir a Social
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace('/(tabs)/social' as any);
+        }
     };
 
     const handleDeleteChat = () => {

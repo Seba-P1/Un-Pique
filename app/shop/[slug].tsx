@@ -5,7 +5,7 @@ import {
     Modal, TextInput, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Clock, Star, MapPin, Search, Share2, Heart, ShoppingCart, MessageCircle } from 'lucide-react-native';
+import { ArrowLeft, Clock, Star, MapPin, Search, Share2, Heart, ShoppingCart, Send } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
 import { ProductItem } from '../../components/shop';
@@ -99,7 +99,7 @@ function BusinessInfoCard({ business, isBusinessFavorite, onFavorite, onShare, o
                         style={[cardStyles.heartBtn, { backgroundColor: tc.bgHover }]}
                         onPress={onMessage}
                     >
-                        <MessageCircle size={18} color={tc.textMuted} />
+                        <Send size={18} color={tc.textMuted} />
                     </TouchableOpacity>
                 )}
                 {/* Compartir */}

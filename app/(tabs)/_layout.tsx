@@ -1,6 +1,6 @@
 // Tabs Layout — Responsive: Sidebar on Desktop, Bottom Tabs on Mobile
 import React, { useState, useEffect } from 'react';
-import { Tabs, usePathname, useRouter } from 'expo-router';
+import { Tabs, usePathname, useRouter, useSegments } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, ScrollView, Modal, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,7 +38,10 @@ import { useThemeStore } from '../../stores/themeStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useLocationStore } from '../../stores/locationStore';
 import { useFavoritesStore } from '../../stores/favoritesStore';
+import { useChatStore } from '../../stores/chatStore';
 import { glassStyle } from '../../utils/glass';
+import ContextualTabBar from '../../components/navigation/ContextualTabBar';
+import { getNavContext } from '../../constants/navConfig';
 
 const SIDEBAR_WIDTH_EXPANDED = 260; // Slightly narrower for cleaner look
 const SIDEBAR_WIDTH_COLLAPSED = 60; // Narrower for cleaner look
@@ -325,6 +328,11 @@ export default function TabsLayout() {
     const { width } = useWindowDimensions();
     const isDesktop = width >= DESKTOP_BREAKPOINT;
     const [drawerVisible, setDrawerVisible] = useState(false);
+    const router = useRouter();
+
+    const segments = useSegments();
+    const activeTab = (segments[1] as string) ?? 'index';
+    const navContext = getNavContext(activeTab);
 
     const isDark = theme === 'dark';
     const inactiveColor = isDark ? '#FFFFFF' : '#000000';
@@ -337,9 +345,18 @@ export default function TabsLayout() {
 
     // Fetch favorites when user is authenticated
     const fetchFavorites = useFavoritesStore((s) => s.fetchFavorites);
+    const { user } = useAuthStore();
+    const { fetchUnreadCount } = useChatStore();
     useEffect(() => {
         fetchFavorites();
     }, []);
+
+    // Inicializar el badge de mensajes no leídos globalmente
+    useEffect(() => {
+        if (user?.id) {
+            fetchUnreadCount(user.id);
+        }
+    }, [user?.id]);
 
     return (
         <View style={[styles.rootContainer, { backgroundColor: tc.bg }]}>
@@ -355,20 +372,7 @@ export default function TabsLayout() {
                     screenOptions={{
                         tabBarActiveTintColor: '#FF6B35',
                         tabBarInactiveTintColor: inactiveColor,
-                        tabBarStyle: isDesktop
-                            ? { display: 'none' }
-                            : {
-                                flexDirection: 'row',
-                                width: '100%',
-                                backgroundColor: isDark ? '#121212' : '#ffffff',
-                                borderTopWidth: 1,
-                                borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                                height: 56 + Math.max(insets.bottom, 8),
-                                paddingBottom: Math.max(insets.bottom, 8),
-                                paddingTop: 0,
-                                ...(Platform.OS === 'web' ? { boxShadow: '0px -1px 16px rgba(0,0,0,0.08)' } : {}),
-                                elevation: 8,
-                            },
+                        tabBarStyle: { display: 'none' }, // Siempre oculto — usamos ContextualTabBar custom
                         tabBarItemStyle: {
                             flex: 1,
                             alignItems: 'center',
@@ -439,6 +443,13 @@ export default function TabsLayout() {
                         }}
                     />
                 </Tabs>
+                {/* Tab bar contextual custom — solo en mobile (el componente mismo hace la guarda) */}
+                <ContextualTabBar
+                  context={navContext}
+                  activeTab={activeTab}
+                  onNavigate={(route) => router.push(route as any)}
+                  onCreatePost={() => openCreatePost()}
+                />
             </View>
 
 
@@ -458,6 +469,12 @@ export function useOpenMobileDrawer() {
 let _openDrawerFn: (() => void) | null = null;
 export function setOpenDrawerFn(fn: (() => void) | null) { _openDrawerFn = fn; }
 export function openMobileDrawer() { _openDrawerFn?.(); }
+
+// Sistema de eventos para abrir el modal de crear post desde el tab bar
+// La pantalla activa (social.tsx o profile.tsx) registra su función al montarse
+let _openCreatePostFn: (() => void) | null = null;
+export function setOpenCreatePostFn(fn: (() => void) | null) { _openCreatePostFn = fn; }
+export function openCreatePost() { _openCreatePostFn?.(); }
 
 const styles = StyleSheet.create({
     rootContainer: {

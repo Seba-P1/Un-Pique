@@ -15,7 +15,7 @@ import {
 import colors from '../../constants/colors';
 import { showAlert } from '../../utils/alert';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useOpenMobileDrawer } from './_layout';
+import { useOpenMobileDrawer, setOpenCreatePostFn } from './_layout';
 import { formatDistanceToNow, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AppHeader } from '../../components/ui/AppHeader';
@@ -25,6 +25,7 @@ import { uploadImage } from '../../services/imageUpload';
 import { useLoyaltyStore } from '../../stores/loyaltyStore';
 import LoyaltyCard from '../../components/loyalty/LoyaltyCard';
 import { PostCard } from '../../components/social/SharedPost';
+import { CreatePostModal } from '../../components/social';
 import PhotosView from '../../components/profile/PhotosView';
 
 type ProfileView = 'wall' | 'photos' | 'settings';
@@ -40,6 +41,13 @@ export default function ProfileScreen() {
     const { width } = useWindowDimensions();
     const openDrawer = useOpenMobileDrawer();
     const [activeView, setActiveView] = useState<ProfileView>('wall');
+    const [createPostVisible, setCreatePostVisible] = useState(false);
+
+    useEffect(() => {
+        setOpenCreatePostFn(() => setCreatePostVisible(true));
+        return () => setOpenCreatePostFn(null);
+    }, []);
+
     const [posts, setPosts] = useState<Post[]>([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
     const [followersCount, setFollowersCount] = useState(0);
@@ -159,6 +167,7 @@ export default function ProfileScreen() {
                     { useNativeDriver: false }
                 )}
                 scrollEventThrottle={16}
+                contentContainerStyle={{ paddingBottom: 80 }}
             >
                 {/* ====== COVER PHOTO ====== */}
                 <View style={[styles.coverContainer, { height: coverHeight, backgroundColor: tc.bgInput }]}>
@@ -292,6 +301,10 @@ export default function ProfileScreen() {
                 <View style={{ height: 80 }} />
                 </View>
             </Animated.ScrollView>
+            <CreatePostModal
+                visible={createPostVisible}
+                onClose={() => setCreatePostVisible(false)}
+            />
         </View>
     );
 }

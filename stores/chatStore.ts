@@ -55,18 +55,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     fetchUnreadCount: async (userId: string) => {
         try {
+            // Obtener IDs de rooms del usuario
+            const { data: roomsData } = await supabase
+                .from('chat_rooms')
+                .select('id')
+                .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
+                .not('deleted_by_user_ids', 'cs', `{"${userId}"}`);
+
+            if (!roomsData || roomsData.length === 0) {
+                set({ unreadCount: 0 });
+                return;
+            }
+
+            const roomIds = roomsData.map((r: any) => r.id);
+
+            // Contar mensajes sin leer solo en esas rooms
             const { data, error } = await supabase
                 .from('chat_messages')
                 .select('room_id')
+                .in('room_id', roomIds)
                 .neq('sender_id', userId)
                 .eq('is_read', false);
+
             if (error) throw error;
+
             const unreadPerRoom: Record<string, number> = {};
             data?.forEach((m: any) => {
                 unreadPerRoom[m.room_id] = (unreadPerRoom[m.room_id] || 0) + 1;
             });
-            set((state) => ({ 
-                unreadCount: Object.keys(unreadPerRoom).length,
+
+            const newUnreadCount = Object.keys(unreadPerRoom).length;
+
+            // Actualizar tanto el conteo global como los conteos por room
+            set((state) => ({
+                unreadCount: newUnreadCount,
                 rooms: state.rooms.map(r => ({
                     ...r,
                     unread_count: unreadPerRoom[r.id] || 0
@@ -122,10 +144,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 return acc;
             }, {});
 
-            // Fetch unread counts
+            // Fetch unread counts — SOLO de las rooms del usuario
+            const roomIds = roomsData.map((r: any) => r.id);
             const { data: unreadData } = await supabase
                 .from('chat_messages')
                 .select('room_id')
+                .in('room_id', roomIds)
                 .neq('sender_id', userId)
                 .eq('is_read', false);
             
@@ -182,7 +206,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 }));
             }
 
-            set({ rooms, loading: false });
+            // Calcular unreadCount global desde los rooms ya procesados
+            // No hace falta una query adicional — fetchRooms ya tiene los datos
+            const totalUnreadRooms = rooms.filter((r: any) => (r.unread_count || 0) > 0).length;
+            set({ rooms, loading: false, unreadCount: totalUnreadRooms });
         } catch (error: any) {
             set({ error: error.message, loading: false });
             console.error('Error fetching chat rooms:', error);
@@ -320,11 +347,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
             if (!user) return;
 
             set((state) => {
-                const room = state.rooms.find(r => r.id === roomId);
-                const hasUnread = room?.unread_count && room.unread_count > 0;
+                // Marcar el room como leído localmente
+                const updatedRooms = state.rooms.map(r =>
+                    r.id === roomId ? { ...r, unread_count: 0 } : r
+                );
+                // Recalcular el total global desde el estado actualizado
+                // (no decrementar ciegamente — puede haber N mensajes en el room)
+                const newUnreadCount = updatedRooms.filter(r => (r.unread_count || 0) > 0).length;
                 return {
-                    rooms: state.rooms.map(r => r.id === roomId ? { ...r, unread_count: 0 } : r),
-                    unreadCount: hasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
+                    rooms: updatedRooms,
+                    unreadCount: newUnreadCount,
                 };
             });
 

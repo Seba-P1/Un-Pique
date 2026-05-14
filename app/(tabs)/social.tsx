@@ -25,6 +25,7 @@ import { CreatePostModal, SharedBusinessCard, SharedServiceCard, SharedAccommoda
 import { CreateStoryModal } from '../../components/home';
 import { useRouter } from 'expo-router';
 import { AppHeader } from '../../components/ui/AppHeader';
+import { setOpenCreatePostFn } from './_layout';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -228,11 +229,15 @@ function DMDrawer({ visible, onClose, tc }: { visible: boolean; onClose: () => v
     const router = useRouter();
 
     useEffect(() => {
-        if (visible && user) fetchRooms(user.id);
+        if (visible && user) {
+            // Solo fetchRooms — al terminar ya actualiza el unreadCount global (Cambio 1)
+            fetchRooms(user.id);
+        }
     }, [visible, user]);
 
     const handleChatPress = (roomId: string) => {
-        onClose();
+        // NO cerrar el drawer antes de navegar
+        // Cuando el usuario vuelve con router.back(), el drawer sigue montado y visible
         router.push(`/chat/${roomId}` as any);
     };
 
@@ -258,8 +263,16 @@ function DMDrawer({ visible, onClose, tc }: { visible: boolean; onClose: () => v
 
                             {/* Lista de chats */}
                             {loadingChats ? (
-                                <View style={{ padding: 30, alignItems: 'center' }}>
-                                    <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
+                                <View style={{ padding: 16, gap: 12 }}>
+                                    {[1, 2, 3].map(i => (
+                                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.3 + (i * 0.1) }}>
+                                            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: tc.borderLight }} />
+                                            <View style={{ flex: 1, gap: 8 }}>
+                                                <View style={{ width: '60%', height: 14, borderRadius: 7, backgroundColor: tc.borderLight }} />
+                                                <View style={{ width: '40%', height: 12, borderRadius: 6, backgroundColor: tc.borderLight }} />
+                                            </View>
+                                        </View>
+                                    ))}
                                 </View>
                             ) : rooms.length > 0 ? (
                                 <ScrollView style={{ flex: 1 }}>
@@ -555,6 +568,18 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
     // Edit post state
     const [editPost, setEditPost] = useState<Post | null>(null);
 
+    const { width } = useWindowDimensions();
+
+    // Registrar el handler del modal para que el tab bar pueda abrirlo
+    useEffect(() => {
+      setOpenCreatePostFn(() => {
+        setEditPost(null);
+        setCreateModalVisible(true);
+      });
+      // Limpiar al desmontar — el layout sabrá que no hay handler disponible
+      return () => setOpenCreatePostFn(null);
+    }, []);
+
     useEffect(() => {
         if (currentLocality) fetchPosts(currentLocality.id);
     }, [currentLocality]);
@@ -644,16 +669,18 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
                 )}
             />
 
-            {/* FAB — pill-shaped, premium */}
-            <Pressable
-                style={({ pressed }) => [
-                    styles.fab,
-                    pressed && { opacity: 0.85, transform: [{ scale: 0.93 }] },
-                ]}
-                onPress={() => { setEditPost(null); setCreateModalVisible(true); }}
-            >
-                <Plus size={22} color={colors.white} strokeWidth={2.5} />
-            </Pressable>
+            {/* FAB — solo en desktop; en mobile el "+" está en el tab bar */}
+            {width >= 768 && (
+              <Pressable
+                  style={({ pressed }) => [
+                      styles.fab,
+                      pressed && { opacity: 0.85, transform: [{ scale: 0.93 }] },
+                  ]}
+                  onPress={() => { setEditPost(null); setCreateModalVisible(true); }}
+              >
+                  <Plus size={22} color={colors.white} strokeWidth={2.5} />
+              </Pressable>
+            )}
 
             <CreatePostModal visible={createModalVisible} onClose={handleCloseCreateModal} editPost={editPost} />
             <CreateStoryModal visible={showCreateStory} onClose={() => setShowCreateStory(false)} />

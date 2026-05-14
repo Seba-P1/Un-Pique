@@ -195,7 +195,7 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     content: { flex: 1 },
-    scrollContent: { alignItems: 'center', paddingBottom: 80 },
+    scrollContent: { alignItems: 'center', paddingBottom: 144 },
     maxContainer: { width: '100%', maxWidth: 600 },
     bannerContainer: { marginBottom: 16 },
 });

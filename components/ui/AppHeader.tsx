@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, useWindowDimensions, Animated } from 'react-native';
-import { ChevronLeft, Search, ShoppingCart, Heart, Bell, X, MessageCircle } from 'lucide-react-native';
+import { ChevronLeft, Search, ShoppingCart, Heart, Bell, X, Send } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
@@ -21,6 +21,7 @@ export interface AppHeaderProps {
     rightContent?: React.ReactNode;
     onSearch?: (query: string) => void; // Triggered on every key change
     onSearchSubmit?: (query: string) => void; // Triggered only on ENTER
+    onMessagesPress?: () => void;
     searchPlaceholder?: string;
     scrollY?: Animated.Value;
 }
@@ -33,6 +34,7 @@ export function AppHeader({
     rightContent,
     onSearch,
     onSearchSubmit,
+    onMessagesPress,
     searchPlaceholder = 'Buscar...',
     scrollY
 }: AppHeaderProps) {
@@ -351,9 +353,9 @@ export function AppHeader({
                                                 pressed && styles.iconButtonActive
                                             ]}
                                             hitSlop={4}
-                                            onPress={() => router.push('/chat' as any)}
+                                            onPress={onMessagesPress || (() => router.push('/chat' as any))}
                                         >
-                                            <MessageCircle size={16} color={tc.text} />
+                                            <Send size={16} color={tc.text} />
                                             {unreadMessagesCount > 0 && (
                                                 <View style={styles.badge}>
                                                     <Text style={styles.badgeText}>{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</Text>

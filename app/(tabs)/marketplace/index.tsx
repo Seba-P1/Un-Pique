@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     mainList: {
-        paddingBottom: 40,
+        paddingBottom: 104,
     },
     footerLoading: {
         flexDirection: 'row',

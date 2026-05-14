@@ -84,7 +84,7 @@ const ChatRow = ({ item, index, tc, router, setMenuRoom }: { item: ChatRoom, ind
 export default function ChatListScreen() {
     const tc = useThemeColors();
     const router = useRouter();
-    const { rooms, loading, fetchRooms, fetchUnreadCount } = useChatStore();
+    const { rooms, loading, fetchRooms } = useChatStore();
     const { user } = useAuthStore();
     const [menuRoom, setMenuRoom] = useState<ChatRoom | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -93,8 +93,8 @@ export default function ChatListScreen() {
     useFocusEffect(
         useCallback(() => {
             if (user) {
+                // fetchRooms ya calcula el unreadCount global internamente
                 fetchRooms(user.id);
-                fetchUnreadCount(user.id);
             }
         }, [user])
     );
@@ -103,7 +103,7 @@ export default function ChatListScreen() {
         if (router.canGoBack()) {
             router.back();
         } else {
-            router.replace('/');
+            router.replace('/(tabs)/social' as any);
         }
     };
 
