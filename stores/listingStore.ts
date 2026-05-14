@@ -42,6 +42,11 @@ export interface Listing {
   claimed_by?: string | null;
   claim_status?: 'unclaimed' | 'pending' | 'claimed' | 'rejected';
   owner_user_id?: string;
+  // Sistema de contribución
+  is_contribution?: boolean;
+  contributor_id?: string | null;
+  suggested_owner_name?: string | null;
+  suggested_owner_phone?: string | null;
 }
 
 export type CreateListingInput = Omit<Listing, 'id' | 'rating' | 'reviews_count' | 'is_active' | 'is_verified' | 'created_at' | 'updated_at' | 'owner_name' | 'owner_avatar'>;
@@ -102,6 +107,11 @@ export const formatListing = (row: Record<string, unknown>): Listing => ({
   claimed_by: row.claimed_by as string | null | undefined,
   claim_status: row.claim_status as 'unclaimed' | 'pending' | 'claimed' | 'rejected' | undefined,
   owner_user_id: row.owner_user_id as string | undefined,
+  // Contribución
+  is_contribution: (row.is_contribution as boolean) || false,
+  contributor_id: row.contributor_id as string | null | undefined,
+  suggested_owner_name: row.suggested_owner_name as string | null | undefined,
+  suggested_owner_phone: row.suggested_owner_phone as string | null | undefined,
 });
 
 export const useListingStore = create<ListingState>((set, get) => ({
@@ -166,7 +176,7 @@ export const useListingStore = create<ListingState>((set, get) => ({
       const { data, error } = await supabase
         .from('listings')
         .select('*')
-        .eq('user_id', user.id)
+        .or(`user_id.eq.${user.id},contributor_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -184,9 +194,15 @@ export const useListingStore = create<ListingState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return { data: null, error: 'No estás logueado' };
 
+      const insertPayload = {
+        ...input,
+        user_id: user.id,
+        ...(input.is_contribution ? { contributor_id: user.id } : {}),
+      };
+
       const { data, error } = await supabase
         .from('listings')
-        .insert({ ...input, user_id: user.id })
+        .insert(insertPayload)
         .select()
         .single();
 

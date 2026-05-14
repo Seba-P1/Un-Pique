@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Plus, Wrench, Home as HomeIcon, Briefcase,
-  Pause, Play, Trash2, Edit3, MapPin, Phone, X as XIcon,
+  Pause, Play, Trash2, Edit3, MapPin, Phone, X as XIcon, Heart,
 } from 'lucide-react-native';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { useListingStore } from '../stores/listingStore';
@@ -25,16 +25,18 @@ export default function MyListingsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { userListings, loading, fetchUserListings, toggleListingActive, deleteListing } = useListingStore();
-  const [filter, setFilter] = useState<'all' | 'service' | 'accommodation'>('all');
+  const [filter, setFilter] = useState<'all' | 'service' | 'accommodation' | 'contribution'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     if (user) fetchUserListings();
   }, [user]);
 
-  const filteredListings = filter === 'all'
-    ? userListings
-    : userListings.filter((l) => l.type === filter);
+  const filteredListings = (() => {
+    if (filter === 'contribution') return userListings.filter((l) => l.is_contribution === true);
+    if (filter === 'all') return userListings;
+    return userListings.filter((l) => l.type === filter);
+  })();
 
   const handleToggle = async (listing: Listing) => {
     const newState = !listing.is_active;
@@ -100,6 +102,11 @@ export default function MyListingsScreen() {
               <Text style={[styles.pausedText, { color: tc.textMuted }]}>Pausado</Text>
             </View>
           )}
+          {listing.is_contribution && (
+            <View style={{ backgroundColor: 'rgba(139,92,246,0.15)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+              <Text style={{ fontSize: 9, fontWeight: '700', color: '#8B5CF6' }}>CONTRIBUCION</Text>
+            </View>
+          )}
         </View>
 
         <Text style={[styles.cardTitle, { color: tc.text }]}>{listing.title}</Text>
@@ -107,13 +114,28 @@ export default function MyListingsScreen() {
 
         {listing.claim_status === 'pending' && (
           <View style={{ marginTop: 8, marginBottom: 8, padding: 12, backgroundColor: tc.isDark ? 'rgba(234,179,8,0.1)' : 'rgba(234,179,8,0.05)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(234,179,8,0.3)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: '#EAB308', fontSize: 13, fontWeight: '600', flex: 1 }}>⏳ Alguien solicitó reclamar este servicio</Text>
+            <Text style={{ color: '#EAB308', fontSize: 13, fontWeight: '600', flex: 1 }}>Alguien solicito reclamar este servicio</Text>
             <TouchableOpacity 
               style={{ backgroundColor: 'rgba(234,179,8,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginLeft: 8 }}
-              onPress={() => showAlert('Solicitud de reclamo', 'Un usuario solicitó reclamar este servicio. Los administradores revisarán la solicitud.')}
+              onPress={() => showAlert('Solicitud de reclamo', 'Un usuario solicito reclamar este servicio. Los administradores revisaran la solicitud.')}
             >
               <Text style={{ color: '#EAB308', fontSize: 12, fontWeight: '700' }}>Ver</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Contribution claim status */}
+        {listing.is_contribution && (
+          <View style={{ marginTop: 4, marginBottom: 4 }}>
+            {(!listing.claim_status || listing.claim_status === 'unclaimed') && (
+              <Text style={{ fontSize: 12, color: tc.textMuted }}>Esperando que el dueno lo reclame</Text>
+            )}
+            {listing.claim_status === 'pending' && (
+              <Text style={{ fontSize: 12, color: '#EAB308' }}>Solicitud de reclamo en revision</Text>
+            )}
+            {listing.claim_status === 'claimed' && (
+              <Text style={{ fontSize: 12, color: '#22C55E' }}>Reclamado exitosamente</Text>
+            )}
           </View>
         )}
 
@@ -193,22 +215,23 @@ export default function MyListingsScreen() {
 
       {/* Filter chips */}
       <View style={[styles.filterRow, { borderBottomColor: tc.borderLight }]}>
-        {(['all', 'service', 'accommodation'] as const).map((f) => (
+        {(['all', 'service', 'accommodation', 'contribution'] as const).map((f) => (
           <TouchableOpacity
             key={f}
             style={[
               styles.filterChip,
               { backgroundColor: tc.bgInput, borderColor: tc.borderLight },
-              filter === f && { backgroundColor: tc.primary, borderColor: tc.primary },
+              filter === f && { backgroundColor: f === 'contribution' ? '#8B5CF6' : tc.primary, borderColor: f === 'contribution' ? '#8B5CF6' : tc.primary },
             ]}
             onPress={() => setFilter(f)}
           >
+            {f === 'contribution' && <Heart size={12} color={filter === f ? '#fff' : tc.textSecondary} />}
             <Text style={[
               styles.filterChipText,
               { color: tc.textSecondary },
               filter === f && { color: '#fff' },
             ]}>
-              {f === 'all' ? 'Todas' : f === 'service' ? 'Servicios' : 'Alojamientos'}
+              {f === 'all' ? 'Todas' : f === 'service' ? 'Servicios' : f === 'accommodation' ? 'Alojamientos' : 'Contribuciones'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -324,6 +347,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12, borderBottomWidth: 1,
   },
   filterChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
   },
   filterChipText: { fontSize: 13, fontWeight: '600' },

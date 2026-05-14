@@ -577,113 +577,166 @@ export default function AlojamientoScreen() {
                   </>
                 )}
 
-                {/* ANUNCIANTE */}
-                <Text style={[s.sectionTitle, { color: tc.text }]}>
-                  Publicado por
-                </Text>
-
-                <View style={s.ownerRow}>
-                  <View style={[s.ownerAvatar, { backgroundColor: tc.bgInput }]}>
-                    {ownerProfile?.avatar_url ? (
-                      <Image
-                        source={{ uri: ownerProfile.avatar_url }}
-                        style={{ width: 44, height: 44, borderRadius: 22 }}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Building2 size={20} color={tc.textSecondary} />
-                    )}
-                  </View>
-
-                  <View style={s.ownerInfo}>
-                    <Text style={[s.ownerName, { color: tc.text }]}>
-                      {l.user_id === user?.id
-                        ? (profile?.full_name || 'Vos')
-                        : (ownerProfile?.full_name || l.owner_name || 'Anunciante')}
-                    </Text>
-                    <Text style={[s.ownerSub, { color: tc.textSecondary }]}>
-                      Miembro de Un Pique
-                    </Text>
-                  </View>
-
-                  {l.user_id && l.user_id !== 'mock_user' && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowDetail(false);
-                        setTimeout(() => {
-                          router.push(`/profile/${l.user_id}` as any);
-                        }, 300);
-                      }}
-                    >
-                      <Text style={s.viewProfileText}>Ver perfil</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {user && l.user_id !== 'mock_user' && (() => {
-                  if (l.claim_status === 'pending') {
-                    return (
-                      <View style={[s.claimBadge, {
-                        backgroundColor: 'rgba(234,179,8,0.15)',
-                        borderColor: 'rgba(234,179,8,0.3)',
-                        marginTop: 16,
-                      }]}>
-                        <Text style={{ color: '#EAB308', fontSize: 14, fontWeight: '600' }}>
-                          ⏳ Solicitud pendiente de revisión
+                {/* ANUNCIANTE / CONTRIBUCION */}
+                {l.is_contribution ? (
+                  <>
+                    {/* Badge de contribucion comunitaria */}
+                    <View style={{
+                      backgroundColor: 'rgba(139,92,246,0.10)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(139,92,246,0.30)',
+                      borderRadius: 12,
+                      padding: 14,
+                      marginBottom: 16,
+                    }}>
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 14 }}>{"\u{1F49C}"}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#8B5CF6' }}>
+                          Contribucion de la comunidad
                         </Text>
                       </View>
-                    );
-                  }
-
-                  if (l.claim_status === 'claimed' && l.claimed_by === user.id) {
-                    return (
-                      <View style={[s.claimBadge, {
-                        backgroundColor: 'rgba(34,197,94,0.15)',
-                        borderColor: 'rgba(34,197,94,0.3)',
-                        marginTop: 16,
-                      }]}>
-                        <Text style={{ color: '#22C55E', fontSize: 14, fontWeight: '600' }}>
-                          ✅ Este alojamiento es tuyo
-                        </Text>
-                      </View>
-                    );
-                  }
-
-                  const canClaim =
-                    (l.claim_status === 'unclaimed' || l.claim_status === 'rejected' || !l.claim_status) &&
-                    user.id !== l.user_id &&
-                    user.id !== l.claimed_by;
-
-                  if (!canClaim) return null;
-
-                  return (
-                    <View style={[s.claimCard, {
-                      backgroundColor: tc.bgInput,
-                      borderColor: tc.borderLight,
-                      marginTop: 16,
-                    }]}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <Text style={{ fontSize: 16 }}>🔑</Text>
-                        <Text style={[s.claimCardTitle, { color: tc.text }]}>
-                          ¿Este alojamiento es tuyo?
-                        </Text>
-                      </View>
-                      <Text style={[s.claimCardDesc, { color: tc.textSecondary }]}>
-                        Si este alojamiento te pertenece, podés reclamarlo como tuyo
-                        para gestionarlo desde tu perfil.
+                      <Text style={{ fontSize: 12, color: tc.textSecondary, lineHeight: 17 }}>
+                        Este listado fue aportado por un miembro de Un Pique. Si es tu negocio o servicio, podes reclamarlo.
                       </Text>
-                      <TouchableOpacity
-                        style={[s.claimBtn, { backgroundColor: '#FF6B35' }]}
-                        onPress={() => setClaimModalVisible(true)}
-                        activeOpacity={0.9}
-                      >
-                        <Text style={[s.claimBtnText, { color: '#fff' }]}>
-                          Reclamar este alojamiento
-                        </Text>
-                      </TouchableOpacity>
                     </View>
-                  );
-                })()}
+
+                    {/* Claim siempre visible para contribuciones si no es el contribuidor */}
+                    {user && user.id !== l.contributor_id && user.id !== l.user_id && (
+                      <View style={[s.claimCard, {
+                        backgroundColor: tc.bgInput,
+                        borderColor: tc.borderLight,
+                      }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <Text style={{ fontSize: 16 }}>{"\u{1F511}"}</Text>
+                          <Text style={[s.claimCardTitle, { color: tc.text }]}>
+                            Este alojamiento es tuyo?
+                          </Text>
+                        </View>
+                        <Text style={[s.claimCardDesc, { color: tc.textSecondary }]}>
+                          Si este alojamiento te pertenece, podes reclamarlo como tuyo para gestionarlo desde tu perfil.
+                        </Text>
+                        <TouchableOpacity
+                          style={[s.claimBtn, { backgroundColor: '#FF6B35' }]}
+                          onPress={() => setClaimModalVisible(true)}
+                          activeOpacity={0.9}
+                        >
+                          <Text style={[s.claimBtnText, { color: '#fff' }]}>
+                            Reclamar este alojamiento
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Text style={[s.sectionTitle, { color: tc.text }]}>
+                      Publicado por
+                    </Text>
+
+                    <View style={s.ownerRow}>
+                      <View style={[s.ownerAvatar, { backgroundColor: tc.bgInput }]}>
+                        {ownerProfile?.avatar_url ? (
+                          <Image
+                            source={{ uri: ownerProfile.avatar_url }}
+                            style={{ width: 44, height: 44, borderRadius: 22 }}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Building2 size={20} color={tc.textSecondary} />
+                        )}
+                      </View>
+
+                      <View style={s.ownerInfo}>
+                        <Text style={[s.ownerName, { color: tc.text }]}>
+                          {l.user_id === user?.id
+                            ? (profile?.full_name || 'Vos')
+                            : (ownerProfile?.full_name || l.owner_name || 'Anunciante')}
+                        </Text>
+                        <Text style={[s.ownerSub, { color: tc.textSecondary }]}>
+                          Miembro de Un Pique
+                        </Text>
+                      </View>
+
+                      {l.user_id && l.user_id !== 'mock_user' && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setShowDetail(false);
+                            setTimeout(() => {
+                              router.push(`/profile/${l.user_id}` as any);
+                            }, 300);
+                          }}
+                        >
+                          <Text style={s.viewProfileText}>Ver perfil</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {user && l.user_id !== 'mock_user' && (() => {
+                      if (l.claim_status === 'pending') {
+                        return (
+                          <View style={[s.claimBadge, {
+                            backgroundColor: 'rgba(234,179,8,0.15)',
+                            borderColor: 'rgba(234,179,8,0.3)',
+                            marginTop: 16,
+                          }]}>
+                            <Text style={{ color: '#EAB308', fontSize: 14, fontWeight: '600' }}>
+                              Solicitud pendiente de revision
+                            </Text>
+                          </View>
+                        );
+                      }
+
+                      if (l.claim_status === 'claimed' && l.claimed_by === user.id) {
+                        return (
+                          <View style={[s.claimBadge, {
+                            backgroundColor: 'rgba(34,197,94,0.15)',
+                            borderColor: 'rgba(34,197,94,0.3)',
+                            marginTop: 16,
+                          }]}>
+                            <Text style={{ color: '#22C55E', fontSize: 14, fontWeight: '600' }}>
+                              Este alojamiento es tuyo
+                            </Text>
+                          </View>
+                        );
+                      }
+
+                      const canClaim =
+                        (l.claim_status === 'unclaimed' || l.claim_status === 'rejected' || !l.claim_status) &&
+                        user.id !== l.user_id &&
+                        user.id !== l.claimed_by;
+
+                      if (!canClaim) return null;
+
+                      return (
+                        <View style={[s.claimCard, {
+                          backgroundColor: tc.bgInput,
+                          borderColor: tc.borderLight,
+                          marginTop: 16,
+                        }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <Text style={{ fontSize: 16 }}>{"\u{1F511}"}</Text>
+                            <Text style={[s.claimCardTitle, { color: tc.text }]}>
+                              Este alojamiento es tuyo?
+                            </Text>
+                          </View>
+                          <Text style={[s.claimCardDesc, { color: tc.textSecondary }]}>
+                            Si este alojamiento te pertenece, podes reclamarlo como tuyo
+                            para gestionarlo desde tu perfil.
+                          </Text>
+                          <TouchableOpacity
+                            style={[s.claimBtn, { backgroundColor: '#FF6B35' }]}
+                            onPress={() => setClaimModalVisible(true)}
+                            activeOpacity={0.9}
+                          >
+                            <Text style={[s.claimBtnText, { color: '#fff' }]}>
+                              Reclamar este alojamiento
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })()}
+                  </>
+                )}
 
                 <View style={{ height: 40 }} />
               </View>

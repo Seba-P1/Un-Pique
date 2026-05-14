@@ -9,7 +9,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Check, ChevronRight, ChevronLeft,
   Wifi, Car, Coffee, Tv, Snowflake, Users, Waves, ImageIcon, X,
-  CheckCircle,
+  CheckCircle, User, Heart,
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useListingStore } from '../../stores/listingStore';
@@ -182,6 +182,10 @@ export default function PublishAccommodationScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const webInputStyle = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null;
+  // Contribution system
+  const [isContribution, setIsContribution] = useState(false);
+  const [suggestedOwnerName, setSuggestedOwnerName] = useState('');
+  const [suggestedOwnerPhone, setSuggestedOwnerPhone] = useState('');
 
   // Pre-load data for edit mode
   useEffect(() => {
@@ -322,6 +326,11 @@ export default function PublishAccommodationScreen() {
       latitude: latitude || undefined,
       longitude: longitude || undefined,
       images: uploadedUrls,
+      is_contribution: isContribution,
+      suggested_owner_name: isContribution && suggestedOwnerName.trim()
+        ? suggestedOwnerName.trim() : undefined,
+      suggested_owner_phone: isContribution && suggestedOwnerPhone.trim()
+        ? suggestedOwnerPhone.trim() : undefined,
     });
 
     if (error) {
@@ -329,12 +338,115 @@ export default function PublishAccommodationScreen() {
       return;
     }
 
-    showAlert('¡Publicado!', 'Tu alojamiento ya está visible para todos.');
+    showAlert(
+      isContribution ? '¡Contribución publicada!' : '¡Publicado!',
+      isContribution
+        ? 'Cuando el dueño se registre, le avisaremos que puede reclamar este alojamiento.'
+        : 'Tu alojamiento ya está visible para todos.'
+    );
     router.back();
   };
 
   const renderStep1 = () => (
     <View style={styles.stepContent}>
+      {/* ── Selector de modo: Para mí / Contribuir ── */}
+      {!isEditing && (
+      <View style={{
+        borderRadius: 16,
+        backgroundColor: tc.bgInput,
+        borderWidth: 1,
+        borderColor: tc.borderLight,
+        padding: 4,
+        marginBottom: 20,
+      }}>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          {/* Opción "Para mí" */}
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              height: 56,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 8,
+              backgroundColor: !isContribution ? 'rgba(255,107,53,0.15)' : 'transparent',
+              borderWidth: !isContribution ? 1 : 0,
+              borderColor: !isContribution ? '#FF6B35' : 'transparent',
+            }}
+            onPress={() => setIsContribution(false)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <User size={18} color={!isContribution ? '#FF6B35' : tc.textMuted} />
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: !isContribution ? '#FF6B35' : tc.textSecondary,
+              }}>Para mí</Text>
+            </View>
+            <Text style={{
+              fontSize: 10,
+              color: !isContribution ? '#FF6B35' : tc.textMuted,
+              marginTop: 2,
+            }}>Publico lo mío</Text>
+          </TouchableOpacity>
+
+          {/* Opción "Contribuir" */}
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              height: 56,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 8,
+              backgroundColor: isContribution ? 'rgba(139,92,246,0.15)' : 'transparent',
+              borderWidth: isContribution ? 1 : 0,
+              borderColor: isContribution ? '#8B5CF6' : 'transparent',
+            }}
+            onPress={() => setIsContribution(true)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Heart size={18} color={isContribution ? '#8B5CF6' : tc.textMuted} />
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: isContribution ? '#8B5CF6' : tc.textSecondary,
+              }}>Para otro</Text>
+            </View>
+            <Text style={{
+              fontSize: 10,
+              color: isContribution ? '#8B5CF6' : tc.textMuted,
+              marginTop: 2,
+            }}>Ayudo a alguien</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      )}
+
+      {/* ── Banner explicativo (solo contribución) ── */}
+      {isContribution && (
+        <View style={{
+          backgroundColor: 'rgba(139,92,246,0.10)',
+          borderWidth: 1,
+          borderColor: 'rgba(139,92,246,0.30)',
+          borderRadius: 12,
+          padding: 14,
+          marginBottom: 4,
+        }}>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
+            <Text style={{ fontSize: 16 }}>{"\u{1F49C}"}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#8B5CF6' }}>
+              Contribución con Un Pique
+            </Text>
+          </View>
+          <Text style={{ fontSize: 13, color: tc.textSecondary, lineHeight: 18 }}>
+            Estás publicando el alojamiento de otra persona. Si esa persona se registra, le avisaremos que puede reclamar este listado como suyo.
+          </Text>
+        </View>
+      )}
+
       <Text style={[styles.stepTitle, { color: tc.text }]}>¿Qué tipo de alojamiento?</Text>
 
       <Text style={[styles.label, { color: tc.textSecondary }]}>Nombre *</Text>
@@ -412,6 +524,50 @@ export default function PublishAccommodationScreen() {
             </View>
           ))}
         </ScrollView>
+      )}
+
+      {/* ── Campos del dueño real (solo contribución) ── */}
+      {isContribution && (
+        <View style={{
+          backgroundColor: tc.bgCard,
+          borderWidth: 1,
+          borderColor: 'rgba(139,92,246,0.30)',
+          borderRadius: 14,
+          padding: 16,
+          marginTop: 8,
+        }}>
+          <Text style={{ fontSize: 13, color: '#8B5CF6', fontWeight: '700', marginBottom: 12 }}>
+            Datos del dueño real (recomendado)
+          </Text>
+          <Text style={{ fontSize: 11, color: tc.textSecondary, marginBottom: 12 }}>
+            Esto nos ayuda a conectarlos cuando se registre.
+          </Text>
+
+          <Text style={[styles.label, { color: tc.textSecondary, marginTop: 0 }]}>Nombre del dueño</Text>
+          <TextInput
+            style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
+            placeholder="Ej: Juan García"
+            placeholderTextColor={tc.textMuted}
+            value={suggestedOwnerName}
+            onChangeText={setSuggestedOwnerName}
+            maxLength={60}
+          />
+
+          <Text style={[styles.label, { color: tc.textSecondary }]}>Teléfono del dueño (para matching automático)</Text>
+          <TextInput
+            style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
+            placeholder="Ej: +5493821555555"
+            placeholderTextColor={tc.textMuted}
+            value={suggestedOwnerPhone}
+            onChangeText={setSuggestedOwnerPhone}
+            keyboardType="phone-pad"
+            maxLength={20}
+          />
+
+          <Text style={{ fontSize: 11, color: tc.textSecondary, marginTop: 8 }}>
+            * Solo usamos estos datos para notificarle cuando se registre.
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -556,7 +712,7 @@ export default function PublishAccommodationScreen() {
           <TouchableOpacity onPress={() => step === 1 ? router.back() : setStep(1)} style={styles.backBtn}>
             <ArrowLeft size={22} color={tc.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: tc.text }]}>{isEditing ? 'Editar alojamiento' : 'Publicar alojamiento'}</Text>
+          <Text style={[styles.headerTitle, { color: tc.text }]}>{isContribution ? (isEditing ? 'Editar contribución' : 'Contribuir con Un Pique') : (isEditing ? 'Editar alojamiento' : 'Publicar alojamiento')}</Text>
           <Text style={[styles.stepIndicator, { color: tc.textMuted }]}>Paso {step}/2</Text>
         </View>
 
