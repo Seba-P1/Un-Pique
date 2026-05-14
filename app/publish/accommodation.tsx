@@ -173,6 +173,8 @@ export default function PublishAccommodationScreen() {
   const [phone, setPhone] = useState('');
   const [addressStreet, setAddressStreet] = useState('');
   const [addressNumber, setAddressNumber] = useState('');
+  const [addressLocality, setAddressLocality] = useState('');
+  const [addressProvince, setAddressProvince] = useState('');
   const [amenities, setAmenities] = useState<string[]>([]);
   const [maxGuests, setMaxGuests] = useState('');
   const [pricePerNight, setPricePerNight] = useState('');
@@ -207,16 +209,21 @@ export default function PublishAccommodationScreen() {
         setDescription(data.description || '');
         setAccommodationType(data.accommodation_type || data.category || '');
         setPhone(data.phone || '');
-        // Split address into street + number if possible
-        const addr = data.address || '';
-        const addrMatch = addr.match(/^(.+?)\s+(\d+.*)$/);
-        if (addrMatch) {
-          setAddressStreet(addrMatch[1]);
-          setAddressNumber(addrMatch[2]);
-        } else {
-          setAddressStreet(addr);
-          setAddressNumber('');
+        // Parse full address (expected format: "Street Num, Locality, Province")
+        const addrParts = (data.address || '').split(',').map((s: string) => s.trim());
+        if (addrParts.length >= 1) {
+          const streetNum = addrParts[0];
+          const addrMatch = streetNum.match(/^(.+?)\s+(\d+.*)$/);
+          if (addrMatch) {
+            setAddressStreet(addrMatch[1]);
+            setAddressNumber(addrMatch[2]);
+          } else {
+            setAddressStreet(streetNum);
+            setAddressNumber('');
+          }
         }
+        if (addrParts.length >= 2) setAddressLocality(addrParts[1]);
+        if (addrParts.length >= 3) setAddressProvince(addrParts[2]);
         setAmenities(data.amenities || []);
         setMaxGuests(data.max_guests ? String(data.max_guests) : '');
         setPricePerNight(data.price_per_night ? String(data.price_per_night) : '');
@@ -247,12 +254,20 @@ export default function PublishAccommodationScreen() {
   const getFullAddress = () => {
     const street = addressStreet.trim();
     const num = addressNumber.trim();
-    return num ? `${street} ${num}` : street;
+    const locality = addressLocality.trim();
+    const province = addressProvince.trim();
+    
+    let parts = [];
+    if (street) parts.push(num ? `${street} ${num}` : street);
+    if (locality) parts.push(locality);
+    if (province) parts.push(province);
+    
+    return parts.join(', ');
   };
 
   const geocodeAddress = async () => {
     const fullAddress = getFullAddress();
-    if (!fullAddress || fullAddress.length < 5) {
+    if (!addressStreet.trim() || addressStreet.trim().length < 3) {
       showAlert('Atenci\u00f3n', 'Ingres\u00e1 una direcci\u00f3n v\u00e1lida para buscar.');
       return;
     }
@@ -262,7 +277,7 @@ export default function PublishAccommodationScreen() {
     mapFadeAnim.setValue(0);
 
     try {
-      const query = encodeURIComponent(`${fullAddress}, R\u00edo Negro, Argentina`);
+      const query = encodeURIComponent(`${fullAddress}, Argentina`);
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
         { headers: { 'User-Agent': 'UnPique-App/1.0' } }
@@ -672,6 +687,50 @@ export default function PublishAccommodationScreen() {
         keyboardType="default"
         maxLength={20}
       />
+
+      {/* Localidad y Provincia */}
+      <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.label, { color: tc.textSecondary }]}>Localidad</Text>
+          <TextInput
+            style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
+            placeholder="Ej: Río Colorado"
+            placeholderTextColor={tc.textMuted}
+            value={addressLocality}
+            onChangeText={(value) => {
+              setAddressLocality(value);
+              if (geoFound) {
+                setGeoFound(false);
+                setGeoError(false);
+                setLatitude(null);
+                setLongitude(null);
+                mapFadeAnim.setValue(0);
+              }
+            }}
+            maxLength={60}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.label, { color: tc.textSecondary }]}>Provincia</Text>
+          <TextInput
+            style={[styles.input, { color: tc.text, backgroundColor: tc.bgInput, borderColor: tc.borderLight }, webInputStyle]}
+            placeholder="Ej: Río Negro"
+            placeholderTextColor={tc.textMuted}
+            value={addressProvince}
+            onChangeText={(value) => {
+              setAddressProvince(value);
+              if (geoFound) {
+                setGeoFound(false);
+                setGeoError(false);
+                setLatitude(null);
+                setLongitude(null);
+                mapFadeAnim.setValue(0);
+              }
+            }}
+            maxLength={60}
+          />
+        </View>
+      </View>
 
       {/* Botón Buscar Dirección */}
       <TouchableOpacity
