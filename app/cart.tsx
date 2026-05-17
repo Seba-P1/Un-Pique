@@ -224,6 +224,9 @@ export default function CartScreen() {
                 });
             } else {
                 // Native: expo-av
+                // TODO: Para que el sonido funcione en nativo, necesitás agregar un archivo success.mp3 en assets/sounds/
+                // Y luego descomentar este bloque:
+                /*
                 const { sound } = await Audio.Sound.createAsync(
                     require('../assets/sounds/success.mp3'),
                     { shouldPlay: true, volume: 0.5 }
@@ -231,6 +234,7 @@ export default function CartScreen() {
                 sound.setOnPlaybackStatusUpdate((status) => {
                     if ('didJustFinish' in status && status.didJustFinish) sound.unloadAsync();
                 });
+                */
             }
         } catch (e) {
             // Sonido opcional, no bloquear el flujo
