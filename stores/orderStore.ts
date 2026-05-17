@@ -11,6 +11,7 @@ interface OrderState {
         cartItems: any[],
         businessId: string,
         totalAmount: number,
+        subtotalAmount: number,
         deliveryFee: number,
         address: string
     ) => Promise<string | null>; // Return orderId or null
@@ -18,7 +19,7 @@ interface OrderState {
 
 export const useOrderStore = create<OrderState>((set) => ({
     loading: false,
-    createOrder: async (userId, cartItems, businessId, totalAmount, deliveryFee, address) => {
+    createOrder: async (userId, cartItems, businessId, totalAmount, subtotalAmount, deliveryFee, address) => {
         set({ loading: true });
         try {
             const { currentLocality } = useLocationStore.getState();
@@ -29,14 +30,18 @@ export const useOrderStore = create<OrderState>((set) => ({
                 .from('orders')
                 .insert([
                     {
-                        user_id: userId,
+                        order_number: `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+                        customer_id: userId,
                         business_id: businessId,
                         locality_id: currentLocality.id,
-                        total_amount: totalAmount,
+                        subtotal: subtotalAmount,
+                        total: totalAmount,
                         delivery_fee: deliveryFee,
+                        delivery_address: address,
                         status: 'pending',
-                        address: address,
-                        payment_method: 'pending', // Will be updated after payment
+                        payment_method: 'mercadopago',
+                        payment_status: 'pending',
+                        order_type: 'delivery',
                     }
                 ])
                 .select()
@@ -48,9 +53,10 @@ export const useOrderStore = create<OrderState>((set) => ({
             const orderItemsData = cartItems.map(item => ({
                 order_id: order.id,
                 product_id: item.productId,
+                product_name: item.productName,
+                product_image_url: item.productImage || null,
                 quantity: item.quantity,
                 unit_price: item.unitPrice,
-                total_price: item.unitPrice * item.quantity,
                 options: item.options || {}
             }));
 
@@ -64,7 +70,6 @@ export const useOrderStore = create<OrderState>((set) => ({
 
         } catch (error: any) {
             console.error('Error creating order:', error);
-            Alert.alert('Error', 'No se pudo crear el pedido: ' + error.message);
             return null;
         } finally {
             set({ loading: false });
