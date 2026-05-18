@@ -43,6 +43,8 @@ export interface Business {
     mp_preapproval_id?: string | null;
     mp_payer_email?: string | null;
     owner_id?: string | null;
+    vendor_type?: 'formal' | 'vitrina';
+    vitrina_whatsapp?: string | null;
 }
 
 interface BusinessState {
@@ -56,6 +58,7 @@ interface BusinessState {
     fetchBusinessByOwner: (ownerId: string) => Promise<void>;
     fetchMyBusiness: () => Promise<void>;
     updateBusiness: (id: string, data: Partial<Business>) => Promise<boolean>;
+    createBusiness: (data: Partial<Business>) => Promise<boolean>;
     updateBusinessImage: (id: string, imageUri: string, type: 'logo' | 'cover') => Promise<boolean>;
     setSelectedBusiness: (business: Business | null) => void;
 }
@@ -95,6 +98,8 @@ const formatBusiness = (b: any): Business => ({
     mp_preapproval_id: b.mp_preapproval_id ?? null,
     mp_payer_email: b.mp_payer_email ?? null,
     owner_id: b.owner_id ?? null,
+    vendor_type: b.vendor_type ?? 'formal',
+    vitrina_whatsapp: b.vitrina_whatsapp ?? null,
 });
 
 export const useBusinessStore = create<BusinessState>((set, get) => ({
@@ -261,6 +266,65 @@ export const useBusinessStore = create<BusinessState>((set, get) => ({
             return true;
         } catch (error) {
             console.error('Error al actualizar negocio:', error);
+            return false;
+        } finally {
+            set({ saving: false });
+        }
+    },
+
+    createBusiness: async (data) => {
+        set({ saving: true });
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user?.id) throw new Error('No user session');
+
+            // Construct payload based on the requested properties and vendor_type
+            const payload: any = {
+                owner_id: session.user.id,
+                name: data.name,
+                description: data.description,
+                vendor_type: data.vendor_type || 'formal',
+                // Generate simple slug
+                slug: data.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + Math.floor(Math.random() * 1000),
+                is_open: false,
+            };
+
+            if (data.vendor_type === 'vitrina') {
+                payload.vitrina_whatsapp = data.vitrina_whatsapp;
+                // Vitrina defaults
+                payload.has_delivery = true;
+                payload.payment_methods = [];
+            } else {
+                // Formal defaults
+                payload.has_delivery = data.has_delivery !== undefined ? data.has_delivery : true;
+                payload.delivery_fee = data.delivery_fee !== undefined ? data.delivery_fee : 0;
+                payload.min_order_amount = data.min_order !== undefined ? data.min_order : 0;
+                
+                const isCash = data.accepts_cash || false;
+                const isMP = data.accepts_mercadopago || false;
+                const payment_methods = [];
+                if (isCash) payment_methods.push('cash');
+                if (isMP) payment_methods.push('mercadopago');
+                payload.payment_methods = payment_methods;
+            }
+
+            const { data: inserted, error } = await supabase
+                .from('businesses')
+                .insert([payload])
+                .select('*')
+                .single();
+
+            if (error) throw error;
+
+            set(state => ({
+                businesses: [...state.businesses, formatBusiness(inserted)],
+                selectedBusiness: formatBusiness(inserted),
+                myBusinessId: inserted.id
+            }));
+
+            return true;
+        } catch (error) {
+            console.error('Error al crear negocio:', error);
             return false;
         } finally {
             set({ saving: false });

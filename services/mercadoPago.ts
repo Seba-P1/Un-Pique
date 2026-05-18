@@ -39,16 +39,3 @@ export const handlePaymentResult = (result: string) => {
     console.log('Payment result:', result);
 };
 
-// Simulation Helper
-export const simulatePaymentFlow = () => {
-    return new Promise<'approved' | 'rejected'>((resolve) => {
-        Alert.alert(
-            "Simulación de Mercado Pago",
-            "Elige el resultado del pago",
-            [
-                { text: "Rechazar", onPress: () => resolve('rejected'), style: 'destructive' },
-                { text: "Aprobar", onPress: () => resolve('approved') }
-            ]
-        );
-    });
-};

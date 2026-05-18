@@ -4,9 +4,10 @@ import { View, StyleSheet, useWindowDimensions, Platform, TouchableOpacity, Acti
 import { Slot, Stack, useRouter, usePathname } from 'expo-router';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import BusinessSidebar from '../../components/business/BusinessSidebar';
-import { Menu, Home, ListOrdered, Settings } from 'lucide-react-native';
+import { Menu, Home, ListOrdered, Settings, AlertTriangle } from 'lucide-react-native';
 import { useAuthStore } from '../../stores/authStore';
 import { useBusinessStore } from '../../stores/businessStore';
+import { usePricingStore } from '../../stores/pricingStore';
 
 export default function BusinessLayout() {
     const tc = useThemeColors();
@@ -16,10 +17,14 @@ export default function BusinessLayout() {
 
     const { user, profile } = useAuthStore();
     const { fetchMyBusiness, selectedBusiness, loading } = useBusinessStore();
+    const { fetchPricing, config } = usePricingStore();
 
     React.useEffect(() => {
         if (user) {
             fetchMyBusiness();
+            if (!config) {
+                fetchPricing();
+            }
         }
     }, [user]);
 
@@ -46,12 +51,38 @@ export default function BusinessLayout() {
                 <Text style={{ fontSize: 16, color: tc.textSecondary, textAlign: 'center', marginBottom: 24 }}>
                     Aún no tienes un negocio registrado como vendedor. Inicia el proceso de creación.
                 </Text>
-                <TouchableOpacity style={{ backgroundColor: '#FF6B35', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
+                <TouchableOpacity 
+                    style={{ backgroundColor: '#FF6B35', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+                    onPress={() => router.push('/business/create')}
+                >
                     <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Crear Negocio Ahora</Text>
                 </TouchableOpacity>
             </View>
         );
     }
+
+    const trialDaysLeft = selectedBusiness.trial_ends_at
+        ? Math.max(0, Math.ceil((new Date(selectedBusiness.trial_ends_at).getTime() - Date.now()) / 86400000))
+        : 0;
+
+    const showBanner = selectedBusiness.subscription_status === 'trial' && trialDaysLeft <= 7;
+
+    const TrialBanner = () => {
+        if (!showBanner) return null;
+        return (
+            <View style={{ backgroundColor: 'rgba(234, 179, 8, 0.15)', borderBottomWidth: 1, borderBottomColor: '#eab308', paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 50 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 16 }}>
+                    <AlertTriangle size={18} color="#eab308" style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 13, color: '#eab308', fontWeight: 'bold', flexShrink: 1 }}>
+                        ⚠️ Tu trial vence en {trialDaysLeft} días. Activá tu suscripción para no perder visibilidad.
+                    </Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/business/subscription')} style={{ backgroundColor: '#eab308', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Ver planes →</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
 
     if (isDesktop) {
         return (
@@ -62,6 +93,7 @@ export default function BusinessLayout() {
                     <View style={[styles.topBar, { backgroundColor: tc.bg, borderBottomColor: tc.borderLight }]}>
                         <View style={{ flex: 1 }} />
                     </View>
+                    <TrialBanner />
                     <View style={styles.pageContent}>
                         <Slot />
                     </View>
@@ -94,6 +126,7 @@ export default function BusinessLayout() {
                 </View>
                 <View style={{ width: 40 }} />
             </View>
+            <TrialBanner />
 
             <View style={{ flex: 1 }}>
                 <Stack

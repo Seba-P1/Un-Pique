@@ -426,6 +426,23 @@ export default function BusinessDetailScreen() {
                 scrollY={scrollY}
             />
 
+            {business?.vendor_type === 'vitrina' && (
+                <View style={{
+                    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                    borderBottomWidth: 1,
+                    borderBottomColor: 'rgba(34, 197, 94, 0.2)',
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <Text style={{ fontSize: 13, color: tc.textSecondary, fontWeight: '600' }}>
+                        🏠 Vendedor independiente · Los pedidos se coordinan por WhatsApp
+                    </Text>
+                </View>
+            )}
+
             <Animated.ScrollView
                 onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
                 scrollEventThrottle={16}

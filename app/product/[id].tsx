@@ -12,6 +12,7 @@ import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useCartStore } from '../../stores/cartStore';
 import { checkIsBusinessOpen, normalizeSchedule } from '../../utils/schedule';
+import { VitrinaContactButton } from '../../components/ui/VitrinaContactButton';
 
 export default function ProductDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,7 +52,9 @@ export default function ProductDetailScreen() {
                             delivery_fee,
                             logo_url,
                             is_open,
-                            business_hours
+                            business_hours,
+                            vendor_type,
+                            vitrina_whatsapp
                         )
                     `)
                     .eq('id', id)
@@ -269,32 +272,36 @@ export default function ProductDetailScreen() {
             {product.description ? (
                 <Text style={[styles.description, { color: tc.textSecondary }]}>{product.description}</Text>
             ) : null}
-            <View style={styles.noteSection}>
-                <Text style={[styles.noteTitle, { color: tc.text }]}>Aclaraciones</Text>
-                <TextInput
-                    style={[styles.textInput, {
-                        backgroundColor: tc.bgCard, color: tc.text, borderColor: tc.borderLight,
-                        ...(Platform.OS === 'web' ? { outlineWidth: 0, outline: 'none' } : {}) as any
-                    }]}
-                    placeholder="Escribí acá si tenés alguna indicación..."
-                    placeholderTextColor={tc.textMuted}
-                    value={note}
-                    onChangeText={setNote}
-                    multiline
-                    numberOfLines={3}
-                />
-            </View>
-            <View style={styles.quantityWrapper}>
-                <View style={[styles.quantityControl, { borderColor: tc.borderLight, backgroundColor: tc.bgCard }]}>
-                    <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.max(1, quantity - 1))}>
-                        <Minus size={16} color={quantity <= 1 ? tc.textMuted : colors.primary.DEFAULT} />
-                    </TouchableOpacity>
-                    <Text style={[styles.qtyText, { color: tc.text }]}>{quantity}</Text>
-                    <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.min(99, quantity + 1))}>
-                        <Plus size={16} color={colors.primary.DEFAULT} />
-                    </TouchableOpacity>
-                </View>
-            </View>
+            {business.vendor_type !== 'vitrina' && (
+                <>
+                    <View style={styles.noteSection}>
+                        <Text style={[styles.noteTitle, { color: tc.text }]}>Aclaraciones</Text>
+                        <TextInput
+                            style={[styles.textInput, {
+                                backgroundColor: tc.bgCard, color: tc.text, borderColor: tc.borderLight,
+                                ...(Platform.OS === 'web' ? { outlineWidth: 0, outline: 'none' } : {}) as any
+                            }]}
+                            placeholder="Escribí acá si tenés alguna indicación..."
+                            placeholderTextColor={tc.textMuted}
+                            value={note}
+                            onChangeText={setNote}
+                            multiline
+                            numberOfLines={3}
+                        />
+                    </View>
+                    <View style={styles.quantityWrapper}>
+                        <View style={[styles.quantityControl, { borderColor: tc.borderLight, backgroundColor: tc.bgCard }]}>
+                            <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.max(1, quantity - 1))}>
+                                <Minus size={16} color={quantity <= 1 ? tc.textMuted : colors.primary.DEFAULT} />
+                            </TouchableOpacity>
+                            <Text style={[styles.qtyText, { color: tc.text }]}>{quantity}</Text>
+                            <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.min(99, quantity + 1))}>
+                                <Plus size={16} color={colors.primary.DEFAULT} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </>
+            )}
         </View>
     );
 
@@ -384,41 +391,50 @@ export default function ProductDetailScreen() {
                 right: 24,
                 zIndex: 20,
             }}>
-                <Animated.View style={{ transform: [{ scale: addBtnScale }] }}>
-                    <TouchableOpacity
-                        style={[
-                            {
-                                backgroundColor: isBusinessOpen ? '#FF6B35' : tc.borderLight,
-                                borderRadius: 50,
-                                height: 54,
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                            },
-                            (Platform.OS === 'web' && isBusinessOpen) ? {
-                                boxShadow: '0 8px 28px rgba(255,107,53,0.5), 0 2px 8px rgba(255,107,53,0.3)'
-                            } as any : (isBusinessOpen ? {
-                                shadowColor: '#FF6B35',
-                                shadowOffset: { width: 0, height: 6 },
-                                shadowOpacity: 0.5,
-                                shadowRadius: 18,
-                                elevation: 14,
-                            } : {})
-                        ]}
-                        onPress={handleAddToCart}
-                        onPressIn={() => isBusinessOpen && Animated.spring(addBtnScale, {
-                            toValue: 0.96, stiffness: 200, damping: 15, useNativeDriver: true
-                        }).start()}
-                        onPressOut={() => isBusinessOpen && Animated.spring(addBtnScale, {
-                            toValue: 1, stiffness: 200, damping: 15, useNativeDriver: true
-                        }).start()}
-                        activeOpacity={isBusinessOpen ? 0.85 : 1}
-                        disabled={!isBusinessOpen}
-                    >
-                        <Text style={{ color: isBusinessOpen ? '#fff' : tc.textMuted, fontSize: 16, fontWeight: 'bold', letterSpacing: 0.3 }}>
-                            {isBusinessOpen ? `Agregar $${total.toLocaleString()}` : 'Local Cerrado'}
-                        </Text>
-                    </TouchableOpacity>
-                </Animated.View>
+                {business.vendor_type === 'vitrina' && business.vitrina_whatsapp ? (
+                    <VitrinaContactButton 
+                        whatsapp={business.vitrina_whatsapp} 
+                        productName={product.name} 
+                        productPrice={total} 
+                        businessName={business.name} 
+                    />
+                ) : (
+                    <Animated.View style={{ transform: [{ scale: addBtnScale }] }}>
+                        <TouchableOpacity
+                            style={[
+                                {
+                                    backgroundColor: isBusinessOpen ? '#FF6B35' : tc.borderLight,
+                                    borderRadius: 50,
+                                    height: 54,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                },
+                                (Platform.OS === 'web' && isBusinessOpen) ? {
+                                    boxShadow: '0 8px 28px rgba(255,107,53,0.5), 0 2px 8px rgba(255,107,53,0.3)'
+                                } as any : (isBusinessOpen ? {
+                                    shadowColor: '#FF6B35',
+                                    shadowOffset: { width: 0, height: 6 },
+                                    shadowOpacity: 0.5,
+                                    shadowRadius: 18,
+                                    elevation: 14,
+                                } : {})
+                            ]}
+                            onPress={handleAddToCart}
+                            onPressIn={() => isBusinessOpen && Animated.spring(addBtnScale, {
+                                toValue: 0.96, stiffness: 200, damping: 15, useNativeDriver: true
+                            }).start()}
+                            onPressOut={() => isBusinessOpen && Animated.spring(addBtnScale, {
+                                toValue: 1, stiffness: 200, damping: 15, useNativeDriver: true
+                            }).start()}
+                            activeOpacity={isBusinessOpen ? 0.85 : 1}
+                            disabled={!isBusinessOpen}
+                        >
+                            <Text style={{ color: isBusinessOpen ? '#fff' : tc.textMuted, fontSize: 16, fontWeight: 'bold', letterSpacing: 0.3 }}>
+                                {isBusinessOpen ? `Agregar $${total.toLocaleString()}` : 'Local Cerrado'}
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
             </View>
         </SafeAreaView>
     );

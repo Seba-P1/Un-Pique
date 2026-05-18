@@ -9,3 +9,4 @@ export { useSocialStore } from './socialStore';
 export { useStoriesStore } from './storiesStore';
 export { useBusinessStore } from './businessStore';
 export { useProductStore } from './productStore';
+export { usePricingStore } from './pricingStore';
