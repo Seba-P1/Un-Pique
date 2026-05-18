@@ -127,7 +127,7 @@ export default function OrderDetailScreen() {
                             <Text style={styles.itemName}>{item.product?.name || 'Producto'}</Text>
                         </View>
                     ))}
-                    <Text style={styles.totalText}>Total a cobrar: ${order.total_amount}</Text>
+                    <Text style={styles.totalText}>Total a cobrar: ${order.total}</Text>
                 </View>
 
             </ScrollView>

@@ -33,13 +33,12 @@ export default function BusinessDashboard() {
     const [incomingOrders, setIncomingOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchDashboardData = async () => {
         if (!myBusinessId) {
             setLoading(false);
             return;
         }
 
-        async function fetchDashboardData() {
             setLoading(true);
             try {
                 const today = new Date();
@@ -58,12 +57,12 @@ export default function BusinessDashboard() {
                 // 2. Ingresos de hoy
                 const { data: revenueData, error: err2 } = await supabase
                     .from('orders')
-                    .select('total_amount')
+                    .select('total')
                     .eq('business_id', myBusinessId)
                     .gte('created_at', todayIso)
                     .in('status', ['completed', 'delivered']);
                 if (err2) throw err2;
-                const totalRevenue = revenueData ? revenueData.reduce((acc, order) => acc + (Number(order.total_amount) || 0), 0) : 0;
+                const totalRevenue = revenueData ? revenueData.reduce((acc, order) => acc + (Number(order.total) || 0), 0) : 0;
 
                 // 3. Ítems a preparar
                 const { count: itemsCount, error: err3 } = await supabase
@@ -105,9 +104,9 @@ export default function BusinessDashboard() {
                     .from('orders')
                     .select(`
                         id,
-                        total_amount,
+                        total,
                         created_at,
-                        profiles ( full_name, avatar_url ),
+                        users ( full_name, avatar_url ),
                         order_items ( quantity, product:products(name) )
                     `)
                     .eq('business_id', myBusinessId)
@@ -117,9 +116,9 @@ export default function BusinessDashboard() {
 
                 if (pendingData) {
                     const formattedPending = pendingData.map(order => {
-                        const profileArray = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles;
-                        const fullName = profileArray?.full_name || 'Cliente anónimo';
-                        const avatarUrl = profileArray?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}`;
+                        const userArray = Array.isArray(order.users) ? order.users[0] : order.users;
+                        const fullName = userArray?.full_name || 'Cliente anónimo';
+                        const avatarUrl = userArray?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}`;
                         
                         let itemsStr = '';
                         let count = 0;
@@ -158,8 +157,9 @@ export default function BusinessDashboard() {
             } finally {
                 setLoading(false);
             }
-        }
+    };
 
+    useEffect(() => {
         fetchDashboardData();
     }, [myBusinessId]);
 
@@ -265,9 +265,20 @@ export default function BusinessDashboard() {
                                 <TouchableOpacity
                                     style={styles.rejectBtn}
                                     activeOpacity={0.85}
-                                    onPress={(e) => {
+                                    onPress={async (e) => {
                                         e.stopPropagation();
-                                        showAlert('Rechazado', `Pedido ${order.id} rechazado.`);
+                                        try {
+                                            const { error } = await supabase
+                                                .from('orders')
+                                                .update({ status: 'cancelled', cancellation_reason: 'Rechazado por el negocio' })
+                                                .eq('id', order.rawId)
+                                                .eq('business_id', myBusinessId);
+                                            if (error) throw error;
+                                            showAlert('Rechazado', `Pedido ${order.id} fue rechazado.`);
+                                            fetchDashboardData();
+                                        } catch (err) {
+                                            showAlert('Error', 'No se pudo rechazar el pedido. Intentá de nuevo.');
+                                        }
                                     }}
                                 >
                                     <Text style={styles.rejectBtnText}>Rechazar</Text>
@@ -275,9 +286,20 @@ export default function BusinessDashboard() {
                                 <TouchableOpacity
                                     style={styles.acceptBtn}
                                     activeOpacity={0.85}
-                                    onPress={(e) => {
+                                    onPress={async (e) => {
                                         e.stopPropagation();
-                                        showAlert('¡Aceptado!', `Pedido ${order.id} en preparación.`);
+                                        try {
+                                            const { error } = await supabase
+                                                .from('orders')
+                                                .update({ status: 'confirmed' })
+                                                .eq('id', order.rawId)
+                                                .eq('business_id', myBusinessId);
+                                            if (error) throw error;
+                                            showAlert('�Aceptado!', `Pedido ${order.id} en preparaci�n.`);
+                                            fetchDashboardData();
+                                        } catch (err) {
+                                            showAlert('Error', 'No se pudo aceptar el pedido. Intent� de nuevo.');
+                                        }
                                     }}
                                 >
                                     <Text style={styles.acceptBtnText}>Aceptar</Text>

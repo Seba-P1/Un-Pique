@@ -6,7 +6,7 @@ export interface Order {
     id: string;
     created_at: string;
     status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'in_transit' | 'delivered' | 'completed' | 'cancelled';
-    total_amount: number;
+    total: number;
     delivery_fee: number;
     business_id: string;
     user_id: string;
