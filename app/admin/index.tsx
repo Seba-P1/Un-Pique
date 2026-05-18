@@ -6,7 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { AppHeader } from '../../components/ui/AppHeader';
 import { supabase } from '../../lib/supabase';
-import { RefreshCw, Store, Clock, AlertTriangle, XCircle, Search, Megaphone, Award, ChevronRight, FileText } from 'lucide-react-native';
+import { RefreshCw, Store, Clock, AlertTriangle, XCircle, Search, Megaphone, Award, ChevronRight, FileText, DollarSign, CreditCard } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { usePricingStore } from '../../stores/pricingStore';
 
@@ -188,6 +188,7 @@ export default function AdminDashboardScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [pendingClaims, setPendingClaims] = useState(0);
     const [pendingAds, setPendingAds] = useState(0);
+    const [pendingMissions, setPendingMissions] = useState(0);
 
     // Protección de ruta
     useEffect(() => {
@@ -235,12 +236,14 @@ export default function AdminDashboardScreen() {
             }
 
             // Counts for nav cards
-            const [claimsRes, adsRes] = await Promise.all([
+            const [claimsRes, adsRes, missionsRes] = await Promise.all([
                 supabase.from('listing_claim_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
                 supabase.from('advertisements').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+                supabase.from('mission_claims').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
             ]);
             setPendingClaims(claimsRes.count || 0);
             setPendingAds(adsRes.count || 0);
+            setPendingMissions(missionsRes.count || 0);
 
         } catch (error) {
             console.error('Error fetching admin data:', error);
@@ -362,6 +365,33 @@ export default function AdminDashboardScreen() {
                             <Text style={[styles.navCardTitle, { color: tc.text }]}>Club Un Pique</Text>
                             <Text style={[styles.navCardSub, { color: tc.textMuted }]}>Valor de puntos</Text>
                         </View>
+                        <ChevronRight size={16} color={tc.textMuted} />
+                    </TouchableOpacity>
+                    
+                    {/* Nuevas Tarjetas Fase 2 */}
+                    <TouchableOpacity style={[styles.navCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]} onPress={() => router.push('/admin/commissions')}>
+                        <View style={[styles.navIconCircle, { backgroundColor: 'rgba(16,185,129,0.12)' }]}><DollarSign size={18} color="#10b981" /></View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.navCardTitle, { color: tc.text }]}>Comisiones</Text>
+                            <Text style={[styles.navCardSub, { color: tc.textMuted }]}>Cobros a negocios</Text>
+                        </View>
+                        <ChevronRight size={16} color={tc.textMuted} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.navCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]} onPress={() => router.push('/admin/subscriptions')}>
+                        <View style={[styles.navIconCircle, { backgroundColor: 'rgba(168,85,247,0.12)' }]}><CreditCard size={18} color="#a855f7" /></View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.navCardTitle, { color: tc.text }]}>Suscripciones</Text>
+                            <Text style={[styles.navCardSub, { color: tc.textMuted }]}>Auditoría de planes</Text>
+                        </View>
+                        <ChevronRight size={16} color={tc.textMuted} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.navCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]} onPress={() => router.push('/admin/missions')}>
+                        <View style={[styles.navIconCircle, { backgroundColor: 'rgba(236,72,153,0.12)' }]}><Award size={18} color="#ec4899" /></View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.navCardTitle, { color: tc.text }]}>Misiones Club</Text>
+                            <Text style={[styles.navCardSub, { color: tc.textMuted }]}>{pendingMissions} pendientes</Text>
+                        </View>
+                        {pendingMissions > 0 && <View style={styles.alertDot} />}
                         <ChevronRight size={16} color={tc.textMuted} />
                     </TouchableOpacity>
                 </View>
