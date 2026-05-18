@@ -6,11 +6,12 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Minus, Plus } from 'lucide-react-native';
+import { ArrowLeft, Minus, Plus, Clock } from 'lucide-react-native';
 import { supabase } from '../../lib/supabase';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useCartStore } from '../../stores/cartStore';
+import { checkIsBusinessOpen, normalizeSchedule } from '../../utils/schedule';
 
 export default function ProductDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,7 +49,9 @@ export default function ProductDetailScreen() {
                             name,
                             slug,
                             delivery_fee,
-                            logo_url
+                            logo_url,
+                            is_open,
+                            business_hours
                         )
                     `)
                     .eq('id', id)
@@ -126,8 +129,10 @@ export default function ProductDetailScreen() {
     }
 
     const business = Array.isArray(product.businesses) ? product.businesses[0] : (product.businesses || {});
+    console.log("[PRODUCT DETAIL] business data:", business);
     const deliveryFee = business.delivery_fee ?? 0;
     const total = product.price * quantity;
+    const isBusinessOpen = business.is_open && checkIsBusinessOpen(normalizeSchedule(business.business_hours));
 
 
 
@@ -152,13 +157,18 @@ export default function ProductDetailScreen() {
                         key={i}
                         onPress={() => !isDesktop && setModalVisible(true)}
                         style={isDesktop
-                            ? styles.heroImageDesktop
+                            ? [styles.heroImageDesktop, Platform.OS === 'web' && { minHeight: 400 }]
                             : { width: screenWidth, height: 300 }
                         }
                     >
                         <Image
                             source={{ uri }}
-                            style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+                            resizeMode="cover"
+                            style={{ 
+                                width: '100%', 
+                                height: '100%',
+                                ...(Platform.OS === 'web' && isDesktop && { height: 500 })
+                            }}
                         />
                     </Pressable>
                 )) : (
@@ -221,6 +231,41 @@ export default function ProductDetailScreen() {
                     <Text style={[styles.businessName, { color: tc.text }]}>{business.name}</Text>
                 </TouchableOpacity>
             )}
+            
+            {!isBusinessOpen && (
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: tc.isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.06)',
+                    borderWidth: 1,
+                    borderColor: tc.isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.15)',
+                    borderRadius: 16,
+                    paddingHorizontal: 14,
+                    paddingVertical: 14,
+                    marginTop: 16,
+                    gap: 12
+                }}>
+                    <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: tc.isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                    }}>
+                        <Clock size={18} color={tc.isDark ? "#F87171" : "#EF4444"} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, color: tc.isDark ? "#FCA5A5" : "#DC2626", fontWeight: '700', letterSpacing: 0.2 }}>
+                            Local cerrado en este momento
+                        </Text>
+                        <Text style={{ fontSize: 13, color: tc.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)', marginTop: 2, lineHeight: 18 }}>
+                            No vas a poder agregar productos al carrito hasta que vuelvan a abrir.
+                        </Text>
+                    </View>
+                </View>
+            )}
+
             {product.description ? (
                 <Text style={[styles.description, { color: tc.textSecondary }]}>{product.description}</Text>
             ) : null}
@@ -316,7 +361,8 @@ export default function ProductDetailScreen() {
                     >
                         <Image
                             source={{ uri: images[activeImageIndex] ?? '' }}
-                            style={{ width: '100%', height: '70%', resizeMode: 'contain' }}
+                            resizeMode="contain"
+                            style={{ width: '100%', height: '70%' }}
                         />
                         <Text style={{
                             color: 'rgba(255,255,255,0.4)',
@@ -342,33 +388,34 @@ export default function ProductDetailScreen() {
                     <TouchableOpacity
                         style={[
                             {
-                                backgroundColor: '#FF6B35',
+                                backgroundColor: isBusinessOpen ? '#FF6B35' : tc.borderLight,
                                 borderRadius: 50,
                                 height: 54,
                                 justifyContent: 'center',
                                 alignItems: 'center',
                             },
-                            Platform.OS === 'web' ? {
+                            (Platform.OS === 'web' && isBusinessOpen) ? {
                                 boxShadow: '0 8px 28px rgba(255,107,53,0.5), 0 2px 8px rgba(255,107,53,0.3)'
-                            } as any : {
+                            } as any : (isBusinessOpen ? {
                                 shadowColor: '#FF6B35',
                                 shadowOffset: { width: 0, height: 6 },
                                 shadowOpacity: 0.5,
                                 shadowRadius: 18,
                                 elevation: 14,
-                            }
+                            } : {})
                         ]}
                         onPress={handleAddToCart}
-                        onPressIn={() => Animated.spring(addBtnScale, {
+                        onPressIn={() => isBusinessOpen && Animated.spring(addBtnScale, {
                             toValue: 0.96, stiffness: 200, damping: 15, useNativeDriver: true
                         }).start()}
-                        onPressOut={() => Animated.spring(addBtnScale, {
+                        onPressOut={() => isBusinessOpen && Animated.spring(addBtnScale, {
                             toValue: 1, stiffness: 200, damping: 15, useNativeDriver: true
                         }).start()}
-                        activeOpacity={0.85}
+                        activeOpacity={isBusinessOpen ? 0.85 : 1}
+                        disabled={!isBusinessOpen}
                     >
-                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.3 }}>
-                            Agregar ${total.toLocaleString()}
+                        <Text style={{ color: isBusinessOpen ? '#fff' : tc.textMuted, fontSize: 16, fontWeight: 'bold', letterSpacing: 0.3 }}>
+                            {isBusinessOpen ? `Agregar $${total.toLocaleString()}` : 'Local Cerrado'}
                         </Text>
                     </TouchableOpacity>
                 </Animated.View>
@@ -379,8 +426,8 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
     rootContainer: { flex: 1 },
-    heroImage: { width: '100%', height: 300, resizeMode: 'cover' } as any,
-    heroImageDesktop: { width: '100%', aspectRatio: 1, borderRadius: 16, resizeMode: 'cover', overflow: 'hidden' } as any,
+    heroImage: { width: '100%', height: 300 },
+    heroImageDesktop: { width: '100%', aspectRatio: 1, borderRadius: 16, overflow: 'hidden' },
     desktopScrollContent: { maxWidth: 1100, alignSelf: 'center' as const, width: '100%', paddingTop: 32 },
     desktopRow: { flexDirection: 'row' as const, gap: 0 },
     desktopImageCol: { width: '50%' as any, padding: 24, paddingRight: 0 },

@@ -74,6 +74,7 @@ import { useAuthStore } from '../stores/authStore';
 import { supabase } from '../lib/supabase';
 import colors from '../constants/colors';
 import { showAlert } from '../utils/alert';
+import { checkIsBusinessOpen, normalizeSchedule } from '../utils/schedule';
 
 type CheckoutStep = 'cart' | 'delivery' | 'payment' | 'confirm';
 
@@ -109,11 +110,12 @@ export default function CartScreen() {
             if (!businessId) return;
             const { data } = await supabase
                 .from('businesses')
-                .select('is_open, name')
+                .select('is_open, name, business_hours')
                 .eq('id', businessId)
                 .single();
             if (data) {
-                setIsBusinessOpen(data.is_open);
+                const actuallyOpen = data.is_open && checkIsBusinessOpen(normalizeSchedule(data.business_hours));
+                setIsBusinessOpen(actuallyOpen);
             }
         };
         checkBusinessStatus();
@@ -224,9 +226,6 @@ export default function CartScreen() {
                 });
             } else {
                 // Native: expo-av
-                // TODO: Para que el sonido funcione en nativo, necesitás agregar un archivo success.mp3 en assets/sounds/
-                // Y luego descomentar este bloque:
-                /*
                 const { sound } = await Audio.Sound.createAsync(
                     require('../assets/sounds/success.mp3'),
                     { shouldPlay: true, volume: 0.5 }
@@ -234,7 +233,6 @@ export default function CartScreen() {
                 sound.setOnPlaybackStatusUpdate((status) => {
                     if ('didJustFinish' in status && status.didJustFinish) sound.unloadAsync();
                 });
-                */
             }
         } catch (e) {
             // Sonido opcional, no bloquear el flujo
@@ -356,8 +354,38 @@ export default function CartScreen() {
             </View>
 
             {!isBusinessOpen && (
-                <View style={{ backgroundColor: '#FEF2F2', borderColor: '#EF4444', borderWidth: 1, borderRadius: 12, padding: 12, marginHorizontal: 16, marginTop: 12 }}>
-                    <Text style={{ fontSize: 14, color: '#EF4444', textAlign: 'center', fontWeight: 'bold' }}>⚠️ Este local está cerrado en este momento</Text>
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: tc.isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.06)',
+                    borderWidth: 1,
+                    borderColor: tc.isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.15)',
+                    borderRadius: 16,
+                    paddingHorizontal: 14,
+                    paddingVertical: 14,
+                    marginHorizontal: 16,
+                    marginTop: 16,
+                    marginBottom: 4,
+                    gap: 12
+                }}>
+                    <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: tc.isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                    }}>
+                        <Clock size={18} color={tc.isDark ? "#F87171" : "#EF4444"} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, color: tc.isDark ? "#FCA5A5" : "#DC2626", fontWeight: '700', letterSpacing: 0.2 }}>
+                            Local cerrado en este momento
+                        </Text>
+                        <Text style={{ fontSize: 13, color: tc.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)', marginTop: 2, lineHeight: 18 }}>
+                            No vas a poder confirmar el pedido hasta que vuelvan a abrir.
+                        </Text>
+                    </View>
                 </View>
             )}
 
