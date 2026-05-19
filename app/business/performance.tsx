@@ -1,123 +1,175 @@
-// Product Performance Analytics - Based on Stitch rendimiento_de_productos design
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, TrendingUp, Star, Eye, ShoppingCart, ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
+import { ArrowLeft, TrendingUp, ShoppingCart, DollarSign, Package } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import colors from '../../constants/colors';
-
-const PRODUCTS_PERF = [
-    { name: 'Pizza Margarita', views: 320, orders: 45, rating: 4.8, trend: '+15%', positive: true, image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?q=80&w=200' },
-    { name: 'Hamburguesa Clásica', views: 280, orders: 32, rating: 4.5, trend: '+8%', positive: true, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=200' },
-    { name: 'Empanadas (x6)', views: 245, orders: 28, rating: 4.7, trend: '+22%', positive: true, image: 'https://images.unsplash.com/photo-1601564921647-b446bf6e0710?q=80&w=200' },
-    { name: 'Milanesa Napolitana', views: 190, orders: 22, rating: 4.3, trend: '-5%', positive: false, image: 'https://images.unsplash.com/photo-1585325701956-60dd9c8553bc?q=80&w=200' },
-    { name: 'Ensalada César', views: 150, orders: 18, rating: 4.1, trend: '+3%', positive: true, image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=200' },
-];
+import { useBusinessAnalyticsStore } from '../../stores/businessAnalyticsStore';
+import { useBusinessStore } from '../../stores/businessStore';
 
 export default function PerformanceScreen() {
     const tc = useThemeColors();
     const router = useRouter();
+    
+    const { topProducts, loading, fetchTopProducts } = useBusinessAnalyticsStore();
+    const { selectedBusiness } = useBusinessStore();
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (selectedBusiness) {
+            // Traemos los 10 mejores para rendimiento
+            fetchTopProducts(selectedBusiness.id, 10);
+        }
+    }, [selectedBusiness]);
+
+    useEffect(() => {
+        if (!loading) {
+            Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+        } else {
+            fadeAnim.setValue(0);
+        }
+    }, [loading]);
+
+    const totalOrders = topProducts.reduce((acc, p) => acc + p.totalQuantity, 0);
+    const totalRevenue = topProducts.reduce((acc, p) => acc + p.totalRevenue, 0);
 
     const overallStats = [
-        { label: 'Vistas Totales', value: '1,185', icon: Eye },
-        { label: 'Pedidos Totales', value: '145', icon: ShoppingCart },
-        { label: 'Rating Promedio', value: '4.5', icon: Star },
+        { label: 'Unidades Vendidas', value: totalOrders.toString(), icon: ShoppingCart },
+        { label: 'Top Productos', value: topProducts.length.toString(), icon: Package },
+        { label: 'Ingresos Top', value: `$${totalRevenue.toLocaleString()}`, icon: DollarSign },
     ];
 
     return (
         <View style={[styles.container, { backgroundColor: tc.bg }]}>
-            <SafeAreaView edges={['top']}>
-                <View style={[styles.header, { borderBottomColor: tc.borderLight }]}>
+            <SafeAreaView edges={['top']} style={{ zIndex: 10 }}>
+                <View style={[styles.header, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight }]}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <ArrowLeft size={24} color={tc.text} />
+                        <ArrowLeft size={22} color={tc.text} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: tc.text }]}>Rendimiento de Productos</Text>
-                    <View style={{ width: 40 }} />
+                    <View style={{ width: 38 }} />
                 </View>
             </SafeAreaView>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Overview Stats */}
-                <View style={styles.statsRow}>
-                    {overallStats.map((stat, i) => {
-                        const Icon = stat.icon;
-                        return (
-                            <View key={i} style={[styles.statCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                                <Icon size={20} color={colors.primary.DEFAULT} />
-                                <Text style={[styles.statValue, { color: tc.text }]}>{stat.value}</Text>
-                                <Text style={[styles.statLabel, { color: tc.textMuted }]}>{stat.label}</Text>
-                            </View>
-                        );
-                    })}
+            {loading ? (
+                <View style={styles.loaderContainer}>
+                    <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
                 </View>
-
-                {/* Product Performance List */}
-                <View style={[styles.listCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                    <Text style={[styles.sectionTitle, { color: tc.text }]}>Rendimiento por Producto</Text>
-                    {PRODUCTS_PERF.map((product, i) => (
-                        <View key={i} style={[styles.productRow, { borderBottomColor: tc.borderLight }]}>
-                            <Image source={{ uri: product.image }} style={styles.productImage} />
-                            <View style={{ flex: 1 }}>
-                                <Text style={[styles.productName, { color: tc.text }]}>{product.name}</Text>
-                                <View style={styles.metricsRow}>
-                                    <View style={styles.metric}>
-                                        <Eye size={12} color={tc.textMuted} />
-                                        <Text style={[styles.metricText, { color: tc.textMuted }]}>{product.views}</Text>
+            ) : (
+                <Animated.ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={{ opacity: fadeAnim }}>
+                    
+                    {/* Overview Stats Compact */}
+                    <View style={styles.statsRow}>
+                        {overallStats.map((stat, i) => {
+                            const Icon = stat.icon;
+                            return (
+                                <View key={i} style={[styles.statCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                    <View style={[styles.iconWrap, { backgroundColor: colors.primary.DEFAULT + '15' }]}>
+                                        <Icon size={16} color={colors.primary.DEFAULT} />
                                     </View>
-                                    <View style={styles.metric}>
-                                        <ShoppingCart size={12} color={tc.textMuted} />
-                                        <Text style={[styles.metricText, { color: tc.textMuted }]}>{product.orders}</Text>
-                                    </View>
-                                    <View style={styles.metric}>
-                                        <Star size={12} color="#F59E0B" fill="#F59E0B" />
-                                        <Text style={[styles.metricText, { color: tc.textMuted }]}>{product.rating}</Text>
-                                    </View>
+                                    <Text style={[styles.statValue, { color: tc.text }]} numberOfLines={1} adjustsFontSizeToFit>{stat.value}</Text>
+                                    <Text style={[styles.statLabel, { color: tc.textSecondary }]}>{stat.label}</Text>
                                 </View>
-                            </View>
-                            <View style={styles.trendBadge}>
-                                {product.positive ? (
-                                    <ArrowUpRight size={14} color="#22C55E" />
-                                ) : (
-                                    <ArrowDownRight size={14} color="#EF4444" />
-                                )}
-                                <Text style={{ color: product.positive ? '#22C55E' : '#EF4444', fontSize: 13, fontWeight: 'bold' }}>
-                                    {product.trend}
-                                </Text>
-                            </View>
-                        </View>
-                    ))}
-                </View>
+                            );
+                        })}
+                    </View>
 
-                <View style={{ height: 32 }} />
-            </ScrollView>
+                    {/* Product Performance List */}
+                    <View style={[styles.listCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                        <View style={styles.sectionHeader}>
+                            <TrendingUp size={18} color={colors.primary.DEFAULT} />
+                            <Text style={[styles.sectionTitle, { color: tc.text }]}>Análisis por Producto</Text>
+                        </View>
+                        
+                        {topProducts.length === 0 ? (
+                            <View style={styles.emptyState}>
+                                <Package size={32} color={tc.borderLight} style={{ marginBottom: 8 }} />
+                                <Text style={[styles.emptyText, { color: tc.textMuted }]}>No hay ventas suficientes para medir rendimiento.</Text>
+                            </View>
+                        ) : (
+                            topProducts.map((product, i) => {
+                                const maxRevenue = Math.max(...topProducts.map(p => p.totalRevenue));
+                                const barWidth = maxRevenue > 0 ? (product.totalRevenue / maxRevenue) * 100 : 0;
+                                
+                                return (
+                                    <View key={product.productId} style={[styles.productRow, { borderBottomColor: tc.borderLight, borderBottomWidth: i === topProducts.length - 1 ? 0 : 1 }]}>
+                                        
+                                        <View style={styles.productInfoWrap}>
+                                            <View style={[styles.rankBadge, { backgroundColor: i < 3 ? colors.primary.DEFAULT + '20' : tc.bgInput }]}>
+                                                <Text style={[styles.rankText, { color: i < 3 ? colors.primary.DEFAULT : tc.textMuted }]}>{i + 1}</Text>
+                                            </View>
+                                            
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.productName, { color: tc.text }]} numberOfLines={1}>{product.productName}</Text>
+                                                <View style={styles.metricsRow}>
+                                                    <View style={styles.metric}>
+                                                        <ShoppingCart size={10} color={tc.textMuted} />
+                                                        <Text style={[styles.metricText, { color: tc.textSecondary }]}>{product.totalQuantity} ud.</Text>
+                                                    </View>
+                                                    <View style={styles.metric}>
+                                                        <DollarSign size={10} color={tc.textMuted} />
+                                                        <Text style={[styles.metricText, { color: tc.textSecondary }]}>${product.totalRevenue.toLocaleString()}</Text>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                        </View>
+                                        
+                                        {/* Trend Bar */}
+                                        <View style={styles.trendContainer}>
+                                            <View style={[styles.trendBarBg, { backgroundColor: tc.bgInput }]}>
+                                                <View style={[styles.trendBarFill, { width: `${Math.max(barWidth, 5)}%`, backgroundColor: i < 3 ? colors.primary.DEFAULT : colors.primary.DEFAULT + '60' }]} />
+                                            </View>
+                                            <Text style={[styles.trendLabel, { color: tc.textMuted }]}>{barWidth.toFixed(0)}% del máx</Text>
+                                        </View>
+                                    </View>
+                                );
+                            })
+                        )}
+                    </View>
+
+                    <View style={{ height: 40 }} />
+                </Animated.ScrollView>
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1,
-    },
-    backBtn: { padding: 8 },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', fontFamily: 'Nunito Sans' },
+    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1 },
+    backBtn: { padding: 6 },
+    headerTitle: { fontSize: 16, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    
     content: { padding: 16, gap: 16 },
 
-    statsRow: { flexDirection: 'row', gap: 12 },
-    statCard: { flex: 1, borderRadius: 16, padding: 14, alignItems: 'center', gap: 6, borderWidth: 1 },
-    statValue: { fontSize: 22, fontWeight: 'bold', fontFamily: 'Nunito Sans' },
-    statLabel: { fontSize: 11, fontWeight: '500', textAlign: 'center' },
+    statsRow: { flexDirection: 'row', gap: 10 },
+    statCard: { flex: 1, borderRadius: 16, padding: 12, borderWidth: 1, gap: 4 },
+    iconWrap: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
+    statValue: { fontSize: 18, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    statLabel: { fontSize: 10, fontWeight: '600', fontFamily: 'Nunito Sans', lineHeight: 14 },
 
-    listCard: { borderRadius: 16, padding: 16, gap: 8, borderWidth: 1 },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', fontFamily: 'Nunito Sans', marginBottom: 4 },
+    listCard: { borderRadius: 16, padding: 16, borderWidth: 1 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+    sectionTitle: { fontSize: 16, fontWeight: '800', fontFamily: 'Nunito Sans' },
 
-    productRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1 },
-    productImage: { width: 48, height: 48, borderRadius: 10 },
-    productName: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
+    productRow: { paddingVertical: 14, gap: 10 },
+    productInfoWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    rankBadge: { width: 30, height: 30, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    rankText: { fontSize: 14, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    productName: { fontSize: 15, fontWeight: '700', fontFamily: 'Nunito Sans', marginBottom: 4 },
+    
     metricsRow: { flexDirection: 'row', gap: 12 },
-    metric: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-    metricText: { fontSize: 12 },
-    trendBadge: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    metric: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metricText: { fontSize: 12, fontWeight: '600', fontFamily: 'Nunito Sans' },
+    
+    trendContainer: { marginTop: 4 },
+    trendBarBg: { height: 6, borderRadius: 3, width: '100%', overflow: 'hidden' },
+    trendBarFill: { height: '100%', borderRadius: 3 },
+    trendLabel: { fontSize: 10, fontWeight: '600', fontFamily: 'Nunito Sans', marginTop: 4, textAlign: 'right' },
+    
+    emptyState: { paddingVertical: 30, alignItems: 'center' },
+    emptyText: { fontSize: 13, fontWeight: '600', fontFamily: 'Nunito Sans', textAlign: 'center' }
 });

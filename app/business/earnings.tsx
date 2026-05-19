@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, Receipt } from 'lucide-react-native';
+import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, Receipt, ShoppingBag } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useBusinessEarningsStore } from '../../stores/businessEarningsStore';
@@ -13,6 +13,7 @@ export default function BusinessEarningsScreen() {
     const tc = useThemeColors();
     const { summary, commissions, loading, fetchEarningsSummary, fetchCommissionHistory } = useBusinessEarningsStore();
     const { selectedBusiness } = useBusinessStore();
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (selectedBusiness) {
@@ -21,381 +22,192 @@ export default function BusinessEarningsScreen() {
         }
     }, [selectedBusiness]);
 
-    const formatCurrency = (amount: number) => {
-        return `$${amount.toLocaleString('es-AR')}`;
-    };
+    useEffect(() => {
+        if (!loading) {
+            Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+        } else {
+            fadeAnim.setValue(0);
+        }
+    }, [loading]);
+
+    const formatCurrency = (amount: number) => `$${amount.toLocaleString('es-AR')}`;
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+        return new Date(dateString).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
     };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             <View style={[styles.header, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <ArrowLeft size={24} color={tc.text} />
+                    <ArrowLeft size={22} color={tc.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: tc.text }]}>Ganancias</Text>
-                <View style={{ width: 40 }} />
+                <Text style={[styles.headerTitle, { color: tc.text }]}>Resumen de Ganancias</Text>
+                <View style={{ width: 38 }} />
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {summary && (
-                    <>
-                        {/* Net Earnings Card */}
-                        <View style={styles.earningsCard}>
-                            <DollarSign size={32} color={colors.white} />
-                            <Text style={styles.earningsLabel}>Ganancias Netas</Text>
-                            <Text style={styles.earningsAmount}>
-                                {formatCurrency(summary.netEarnings)}
-                            </Text>
-                            <Text style={styles.earningsSubtext}>
-                                Después de comisiones y delivery
-                            </Text>
-                        </View>
-
-                        {/* Breakdown Card */}
-                        <View style={[styles.card, { backgroundColor: tc.bgCard }]}>
-                            <Text style={[styles.cardTitle, { color: tc.text }]}>Desglose</Text>
-
-                            <View style={styles.breakdownItem}>
-                                <View style={styles.breakdownLabel}>
-                                    <TrendingUp size={20} color={colors.success} />
-                                    <Text style={styles.breakdownText}>Ventas Brutas</Text>
+            {loading ? (
+                <View style={styles.loaderContainer}>
+                    <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+                </View>
+            ) : (
+                <Animated.ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} style={{ opacity: fadeAnim }}>
+                    {summary ? (
+                        <>
+                            {/* Net Earnings Hero Card */}
+                            <View style={[styles.heroCard, { backgroundColor: colors.success }]}>
+                                <View style={styles.heroHeader}>
+                                    <View style={styles.heroIconWrap}>
+                                        <DollarSign size={20} color={colors.success} />
+                                    </View>
+                                    <Text style={styles.heroLabel}>Ganancia Neta Mensual</Text>
                                 </View>
-                                <Text style={styles.breakdownValue}>
-                                    {formatCurrency(summary.grossRevenue)}
-                                </Text>
+                                <Text style={styles.heroAmount}>{formatCurrency(summary.netEarnings)}</Text>
                             </View>
 
-                            <View style={styles.breakdownItem}>
-                                <View style={styles.breakdownLabel}>
-                                    <TrendingDown size={20} color={colors.danger} />
-                                    <Text style={styles.breakdownText}>
-                                        Comisiones ({(summary.currentCommissionRate * 100).toFixed(0)}%)
-                                    </Text>
+                            {/* Two-Column Stats */}
+                            <View style={styles.statsRow}>
+                                <View style={[styles.statBox, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                    <View style={[styles.iconWrapSm, { backgroundColor: '#F59E0B15' }]}>
+                                        <ShoppingBag size={14} color="#F59E0B" />
+                                    </View>
+                                    <Text style={[styles.statVal, { color: tc.text }]}>{summary.totalOrders}</Text>
+                                    <Text style={[styles.statSub, { color: tc.textSecondary }]}>Ventas</Text>
                                 </View>
-                                <Text style={[styles.breakdownValue, { color: colors.danger }]}>
-                                    -{formatCurrency(summary.totalCommissions)}
-                                </Text>
-                            </View>
-
-                            <View style={styles.breakdownItem}>
-                                <View style={styles.breakdownLabel}>
-                                    <TrendingDown size={20} color={colors.danger} />
-                                    <Text style={styles.breakdownText}>Delivery</Text>
+                                <View style={[styles.statBox, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                    <View style={[styles.iconWrapSm, { backgroundColor: '#3B82F615' }]}>
+                                        <TrendingUp size={14} color="#3B82F6" />
+                                    </View>
+                                    <Text style={[styles.statVal, { color: tc.text }]}>{formatCurrency(summary.grossRevenue / (summary.totalOrders || 1))}</Text>
+                                    <Text style={[styles.statSub, { color: tc.textSecondary }]}>Ticket Promedio</Text>
                                 </View>
-                                <Text style={[styles.breakdownValue, { color: colors.danger }]}>
-                                    -{formatCurrency(summary.totalDeliveryFees)}
-                                </Text>
                             </View>
 
-                            <View style={styles.divider} />
+                            {/* Breakdown */}
+                            <View style={[styles.card, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                                <Text style={[styles.cardTitle, { color: tc.text }]}>Desglose Financiero</Text>
 
-                            <View style={styles.breakdownItem}>
-                                <Text style={styles.totalLabel}>Total Neto</Text>
-                                <Text style={styles.totalValue}>
-                                    {formatCurrency(summary.netEarnings)}
-                                </Text>
-                            </View>
-                        </View>
+                                <View style={styles.breakdownItem}>
+                                    <Text style={[styles.bdLabel, { color: tc.text }]}>Ingresos Brutos</Text>
+                                    <Text style={[styles.bdVal, { color: tc.text }]}>{formatCurrency(summary.grossRevenue)}</Text>
+                                </View>
+                                
+                                <View style={styles.breakdownItem}>
+                                    <Text style={[styles.bdLabel, { color: tc.textSecondary }]}>Comisión Un Pique ({(summary.currentCommissionRate * 100).toFixed(0)}%)</Text>
+                                    <Text style={[styles.bdVal, { color: colors.danger }]}>-{formatCurrency(summary.totalCommissions)}</Text>
+                                </View>
+                                
+                                <View style={styles.breakdownItem}>
+                                    <Text style={[styles.bdLabel, { color: tc.textSecondary }]}>Cargos de Delivery</Text>
+                                    <Text style={[styles.bdVal, { color: colors.danger }]}>-{formatCurrency(summary.totalDeliveryFees)}</Text>
+                                </View>
 
-                        {/* Stats Card */}
-                        <View style={[styles.statsCard, { backgroundColor: tc.bgCard }]}>
-                            <View style={styles.statItem}>
-                                <Text style={styles.statValue}>{summary.totalOrders}</Text>
-                                <Text style={styles.statLabel}>Pedidos Totales</Text>
+                                <View style={[styles.divider, { backgroundColor: tc.borderLight }]} />
+                                
+                                <View style={styles.breakdownItem}>
+                                    <Text style={[styles.totalLabel, { color: tc.text }]}>Total Neto a Recibir</Text>
+                                    <Text style={[styles.totalVal, { color: colors.success }]}>{formatCurrency(summary.netEarnings)}</Text>
+                                </View>
                             </View>
-                            <View style={styles.statDivider} />
-                            <View style={styles.statItem}>
-                                <Text style={styles.statValue}>
-                                    {formatCurrency(summary.grossRevenue / (summary.totalOrders || 1))}
-                                </Text>
-                                <Text style={styles.statLabel}>Ticket Promedio</Text>
-                            </View>
-                        </View>
 
-                        {/* Commission Rate Info */}
-                        <View style={styles.infoCard}>
-                            <Text style={styles.infoTitle}>
-                                {summary.currentCommissionRate === 0.04 ? '👑 Plan Pro' : '📦 Plan Gratis'}
-                            </Text>
-                            <Text style={styles.infoText}>
-                                Estás pagando {(summary.currentCommissionRate * 100).toFixed(0)}% de comisión por cada venta.
-                            </Text>
+                            {/* Plan Info */}
                             {summary.currentCommissionRate === 0.09 && (
-                                <TouchableOpacity
-                                    style={styles.upgradeButton}
-                                    onPress={() => router.push('/business/subscription' as any)}
-                                >
-                                    <Text style={styles.upgradeButtonText}>
-                                        Upgrade a Pro (4% comisión)
-                                    </Text>
-                                </TouchableOpacity>
+                                <View style={[styles.planCard, { borderColor: tc.borderLight, backgroundColor: tc.bgInput }]}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.planTitle, { color: tc.text }]}>Plan Básico Activo</Text>
+                                        <Text style={[styles.planDesc, { color: tc.textSecondary }]}>
+                                            Estás pagando 9% por venta. ¡Pásate a Pro y baja al 4%!
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity 
+                                        style={styles.planBtn}
+                                        onPress={() => router.push('/business/subscription' as any)}
+                                    >
+                                        <Text style={styles.planBtnText}>Mejorar Plan</Text>
+                                    </TouchableOpacity>
+                                </View>
                             )}
-                        </View>
-                    </>
-                )}
+                        </>
+                    ) : null}
 
-                {/* Commission History */}
-                <View style={[styles.card, { backgroundColor: tc.bgCard }]}>
-                    <View style={styles.cardHeader}>
-                        <Receipt size={24} color={colors.gray[700]} />
-                        <Text style={styles.cardTitle}>Historial de Comisiones</Text>
+                    {/* Commission History */}
+                    <View style={[styles.card, { backgroundColor: tc.bgCard, borderColor: tc.borderLight, marginTop: 4 }]}>
+                        <View style={styles.cardHeader}>
+                            <Receipt size={18} color={colors.primary.DEFAULT} />
+                            <Text style={[styles.cardTitle, { color: tc.text, marginBottom: 0 }]}>Historial de Cobros</Text>
+                        </View>
+
+                        {commissions.length > 0 ? (
+                            commissions.slice(0, 8).map((commission, i) => (
+                                <View key={commission.id} style={[styles.historyRow, { borderBottomColor: tc.borderLight, borderBottomWidth: i === 7 || i === commissions.length -1 ? 0 : 1 }]}>
+                                    <View>
+                                        <Text style={[styles.histDate, { color: tc.text }]}>{formatDate(commission.createdAt)}</Text>
+                                        <Text style={[styles.histOrder, { color: tc.textSecondary }]}>Pedido #{commission.orderId.slice(0, 5)} ({(commission.commissionRate * 100).toFixed(0)}%)</Text>
+                                    </View>
+                                    <View style={{ alignItems: 'flex-end' }}>
+                                        <Text style={[styles.histAmount, { color: tc.text }]}>{formatCurrency(commission.totalAmount)}</Text>
+                                        <Text style={[styles.histFee, { color: colors.danger }]}>-{formatCurrency(commission.commissionAmount)}</Text>
+                                    </View>
+                                </View>
+                            ))
+                        ) : (
+                            <Text style={[styles.emptyText, { color: tc.textMuted }]}>No hay comisiones aún</Text>
+                        )}
                     </View>
 
-                    {commissions.length > 0 ? (
-                        commissions.slice(0, 10).map((commission) => (
-                            <View key={commission.id} style={styles.commissionItem}>
-                                <View style={styles.commissionInfo}>
-                                    <Text style={styles.commissionDate}>
-                                        {formatDate(commission.createdAt)}
-                                    </Text>
-                                    <Text style={styles.commissionRate}>
-                                        {(commission.commissionRate * 100).toFixed(0)}% • Pedido #{commission.orderId.slice(0, 8)}
-                                    </Text>
-                                </View>
-                                <View style={styles.commissionAmounts}>
-                                    <Text style={styles.commissionTotal}>
-                                        {formatCurrency(commission.totalAmount)}
-                                    </Text>
-                                    <Text style={styles.commissionFee}>
-                                        -{formatCurrency(commission.commissionAmount)}
-                                    </Text>
-                                </View>
-                            </View>
-                        ))
-                    ) : (
-                        <Text style={styles.emptyText}>No hay comisiones registradas</Text>
-                    )}
-                </View>
-
-                <View style={{ height: 40 }} />
-            </ScrollView>
+                    <View style={{ height: 40 }} />
+                </Animated.ScrollView>
+            )}
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.gray[50],
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.gray[100],
-    },
-    backButton: {
-        padding: 8,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    content: {
-        flex: 1,
-        padding: 16,
-    },
-    earningsCard: {
-        backgroundColor: colors.success,
-        borderRadius: 16,
-        padding: 24,
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    earningsLabel: {
-        fontSize: 14,
-        color: colors.white,
-        opacity: 0.9,
-        marginTop: 8,
-        fontFamily: 'Nunito Sans',
-    },
-    earningsAmount: {
-        fontSize: 40,
-        fontWeight: '700',
-        color: colors.white,
-        marginTop: 8,
-        fontFamily: 'Nunito Sans',
-    },
-    earningsSubtext: {
-        fontSize: 12,
-        color: colors.white,
-        opacity: 0.8,
-        marginTop: 4,
-        fontFamily: 'Nunito Sans',
-    },
-    card: {
-        backgroundColor: colors.white,
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-        gap: 8,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: colors.gray[900],
-        marginBottom: 16,
-        fontFamily: 'Nunito Sans',
-    },
-    breakdownItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 12,
-    },
-    breakdownLabel: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    breakdownText: {
-        fontSize: 14,
-        color: colors.gray[700],
-        fontFamily: 'Nunito Sans',
-    },
-    breakdownValue: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: colors.gray[100],
-        marginVertical: 8,
-    },
-    totalLabel: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    totalValue: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: colors.success,
-        fontFamily: 'Nunito Sans',
-    },
-    statsCard: {
-        backgroundColor: colors.white,
-        borderRadius: 12,
-        padding: 16,
-        flexDirection: 'row',
-        marginBottom: 16,
-    },
-    statItem: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    statDivider: {
-        width: 1,
-        backgroundColor: colors.gray[100],
-        marginHorizontal: 16,
-    },
-    statValue: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    statLabel: {
-        fontSize: 12,
-        color: colors.gray[500],
-        marginTop: 4,
-        textAlign: 'center',
-        fontFamily: 'Nunito Sans',
-    },
-    infoCard: {
-        backgroundColor: '#FFF5F2',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-        borderLeftWidth: 4,
-        borderLeftColor: colors.primary.DEFAULT,
-    },
-    infoTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: colors.gray[900],
-        marginBottom: 8,
-        fontFamily: 'Nunito Sans',
-    },
-    infoText: {
-        fontSize: 14,
-        color: colors.gray[700],
-        lineHeight: 20,
-        fontFamily: 'Nunito Sans',
-    },
-    upgradeButton: {
-        backgroundColor: colors.primary.DEFAULT,
-        borderRadius: 8,
-        paddingVertical: 12,
-        marginTop: 12,
-        alignItems: 'center',
-    },
-    upgradeButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.white,
-        fontFamily: 'Nunito Sans',
-    },
-    commissionItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.gray[100],
-    },
-    commissionInfo: {
-        flex: 1,
-    },
-    commissionDate: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    commissionRate: {
-        fontSize: 12,
-        color: colors.gray[500],
-        marginTop: 2,
-        fontFamily: 'Nunito Sans',
-    },
-    commissionAmounts: {
-        alignItems: 'flex-end',
-    },
-    commissionTotal: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    commissionFee: {
-        fontSize: 12,
-        color: colors.danger,
-        marginTop: 2,
-        fontFamily: 'Nunito Sans',
-    },
-    emptyText: {
-        fontSize: 14,
-        color: colors.gray[400],
-        textAlign: 'center',
-        paddingVertical: 20,
-        fontFamily: 'Nunito Sans',
-    },
+    container: { flex: 1 },
+    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1 },
+    backButton: { padding: 6 },
+    headerTitle: { fontSize: 16, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    
+    content: { padding: 16, gap: 12 },
+
+    heroCard: { borderRadius: 16, padding: 20, shadowColor: colors.success, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4 },
+    heroHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+    heroIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center' },
+    heroLabel: { fontSize: 14, fontWeight: '700', color: '#FFF', fontFamily: 'Nunito Sans', opacity: 0.9 },
+    heroAmount: { fontSize: 36, fontWeight: '800', color: '#FFF', fontFamily: 'Nunito Sans', letterSpacing: -1 },
+
+    statsRow: { flexDirection: 'row', gap: 12 },
+    statBox: { flex: 1, borderRadius: 16, padding: 14, borderWidth: 1, gap: 4 },
+    iconWrapSm: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+    statVal: { fontSize: 20, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    statSub: { fontSize: 12, fontWeight: '600', fontFamily: 'Nunito Sans' },
+
+    card: { borderRadius: 16, padding: 16, borderWidth: 1 },
+    cardTitle: { fontSize: 16, fontWeight: '800', fontFamily: 'Nunito Sans', marginBottom: 16 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+
+    breakdownItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
+    bdLabel: { fontSize: 13, fontWeight: '600', fontFamily: 'Nunito Sans' },
+    bdVal: { fontSize: 14, fontWeight: '700', fontFamily: 'Nunito Sans' },
+    
+    divider: { height: 1, marginVertical: 12 },
+    
+    totalLabel: { fontSize: 15, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    totalVal: { fontSize: 18, fontWeight: '800', fontFamily: 'Nunito Sans' },
+
+    planCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed' },
+    planTitle: { fontSize: 14, fontWeight: '800', fontFamily: 'Nunito Sans', marginBottom: 2 },
+    planDesc: { fontSize: 11, fontWeight: '600', fontFamily: 'Nunito Sans', lineHeight: 16 },
+    planBtn: { backgroundColor: colors.primary.DEFAULT, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+    planBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800', fontFamily: 'Nunito Sans' },
+
+    historyRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12 },
+    histDate: { fontSize: 14, fontWeight: '700', fontFamily: 'Nunito Sans', marginBottom: 2 },
+    histOrder: { fontSize: 12, fontWeight: '600', fontFamily: 'Nunito Sans' },
+    histAmount: { fontSize: 14, fontWeight: '700', fontFamily: 'Nunito Sans', marginBottom: 2 },
+    histFee: { fontSize: 12, fontWeight: '700', fontFamily: 'Nunito Sans' },
+    
+    emptyText: { fontSize: 13, textAlign: 'center', marginVertical: 20, fontWeight: '600', fontFamily: 'Nunito Sans' },
 });

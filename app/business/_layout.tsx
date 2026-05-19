@@ -140,7 +140,7 @@ export default function BusinessLayout() {
                 >
                     <Stack.Screen name="dashboard" />
                     <Stack.Screen name="orders" />
-                    <Stack.Screen name="menu" />
+
                     <Stack.Screen name="products" />
                     <Stack.Screen name="products/add" />
                     <Stack.Screen name="missions" />

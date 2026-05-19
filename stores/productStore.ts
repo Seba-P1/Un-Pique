@@ -33,6 +33,7 @@ interface ProductState {
     createProduct: (businessId: string, data: CreateProductData, imageUri?: string) => Promise<boolean>;
     updateProduct: (id: string, data: Partial<CreateProductData>, imageUri?: string) => Promise<boolean>;
     deleteProduct: (id: string) => Promise<boolean>;
+    duplicateProduct: (id: string) => Promise<boolean>;
     toggleAvailability: (id: string) => Promise<boolean>;
 }
 
@@ -156,6 +157,23 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
     deleteProduct: async (id) => {
         try {
+            // Get product to find image path for cleanup
+            const product = get().products.find(p => p.id === id);
+
+            // Delete image from storage if exists
+            if (product?.image_url) {
+                try {
+                    // Extract path from URL: .../products/businessId/filename.jpg
+                    const url = new URL(product.image_url);
+                    const pathParts = url.pathname.split('/storage/v1/object/public/products/');
+                    if (pathParts[1]) {
+                        await deleteImage('products', decodeURIComponent(pathParts[1]));
+                    }
+                } catch (imgErr) {
+                    console.warn('Could not delete product image from storage:', imgErr);
+                }
+            }
+
             const { error } = await supabase
                 .from('products')
                 .delete()
@@ -171,6 +189,43 @@ export const useProductStore = create<ProductState>((set, get) => ({
         } catch (error) {
             console.error('Error al eliminar producto:', error);
             return false;
+        }
+    },
+
+    duplicateProduct: async (id) => {
+        set({ saving: true });
+        try {
+            const product = get().products.find(p => p.id === id);
+            if (!product) return false;
+
+            const duplicatePayload: any = {
+                business_id: product.business_id,
+                name: `${product.name} (copia)`,
+                description: product.description,
+                price: product.price,
+                stock_quantity: product.stock || 0,
+                image_url: product.image_url, // Reuse the same image URL
+                is_available: product.is_available,
+                options: product.options,
+            };
+
+            if (product.category_id && product.category_id !== 'general') {
+                duplicatePayload.category_id = product.category_id;
+            }
+
+            const { error } = await supabase
+                .from('products')
+                .insert(duplicatePayload);
+
+            if (error) throw error;
+
+            await get().fetchProducts(product.business_id);
+            return true;
+        } catch (error) {
+            console.error('Error al duplicar producto:', error);
+            return false;
+        } finally {
+            set({ saving: false });
         }
     },
 

@@ -1,5 +1,5 @@
 // Configuración — Corregido: componentes extraídos fuera del render
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,7 @@ import colors from '../constants/colors';
 import { useThemeStore } from '../stores/themeStore';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { showAlert } from '../utils/alert';
+import { supabase } from '../lib/supabase';
 
 const renderIcon = (IconComp: any, color: string, size = 20) => <IconComp size={size} color={color} />;
 
@@ -66,11 +67,72 @@ export default function SettingsScreen() {
     const { theme, setTheme } = useThemeStore();
 
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [notificationSettings, setNotificationSettings] = useState<Record<string, any>>({});
     const [biometricsEnabled, setBiometricsEnabled] = useState(false);
     const [emailNotifications, setEmailNotifications] = useState(true);
     const [soundEnabled, setSoundEnabled] = useState(true);
 
     const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+
+    useEffect(() => {
+        supabase.auth.getUser().then(async ({ data: { user } }) => {
+            if (!user?.id) return;
+            const { data } = await supabase
+                .from('users')
+                .select('notification_settings')
+                .eq('id', user.id)
+                .single();
+            const settings = data?.notification_settings || {};
+            setNotificationSettings(settings);
+            if (settings.push_notifications !== undefined) {
+                setNotificationsEnabled(Boolean(settings.push_notifications));
+            }
+        });
+    }, []);
+
+    const handleChangePassword = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.email) {
+            showAlert('Error', 'No se encontróó tu email.');
+            return;
+        }
+        const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+            redirectTo: 'unpique://reset-password'
+        });
+        if (error) {
+            showAlert('Error', error.message);
+        } else {
+            showAlert('Email enviado', `Te enviamos instrucciones a ${user.email} para cambiar tu contraseña.`);
+        }
+    };
+
+    const handleToggleNotifications = async (value: boolean) => {
+        const previousValue = notificationsEnabled;
+        const previousSettings = notificationSettings;
+        const nextSettings = { ...notificationSettings, push_notifications: value };
+
+        setNotificationsEnabled(value);
+        setNotificationSettings(nextSettings);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) {
+            setNotificationsEnabled(previousValue);
+            setNotificationSettings(previousSettings);
+            showAlert('Error', 'No se pudo guardar la preferencia.');
+            return;
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .update({ notification_settings: nextSettings })
+            .eq('id', user.id);
+
+        if (error) {
+            setNotificationsEnabled(previousValue);
+            setNotificationSettings(previousSettings);
+            showAlert('Error', 'No se pudo guardar la preferencia.');
+        }
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
@@ -86,17 +148,17 @@ export default function SettingsScreen() {
                 {/* CUENTA */}
                 <Text style={[styles.sectionTitle, { color: tc.textSecondary }]}>CUENTA</Text>
                 <View style={[styles.section, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                    <SettingLink tc={tc} icon={User} iconBg={tc.isDark ? '#1E3A5F' : '#E0F2FE'} iconColor={colors.info} label="Editar perfil" onPress={() => router.push('/(tabs)/profile' as any)} />
+                    <SettingLink tc={tc} icon={User} iconBg={tc.isDark ? '#1E3A5F' : '#E0F2FE'} iconColor={colors.info} label="Editar perfil" onPress={() => router.push('/edit-profile' as any)} />
                     <SettingDivider tc={tc} />
-                    <SettingLink tc={tc} icon={Lock} iconBg={tc.isDark ? '#3B1F5E' : '#F3E8FF'} iconColor="#9333EA" label="Cambiar contraseña" onPress={() => showAlert('Cambiar contraseña', 'Te enviaremos un email con instrucciones para cambiar tu contraseña.')} />
+                    <SettingLink tc={tc} icon={Lock} iconBg={tc.isDark ? '#3B1F5E' : '#F3E8FF'} iconColor="#9333EA" label="Cambiar contraseña" onPress={handleChangePassword} />
                     <SettingDivider tc={tc} />
-                    <SettingLink tc={tc} icon={CreditCard} iconBg={tc.isDark ? '#1A3A2A' : '#DCFCE7'} iconColor={colors.success} label="Métodos de pago" onPress={() => showAlert('Métodos de pago', 'Próximamente podrás agregar y gestionar tus tarjetas y métodos de pago.')} />
+                    <SettingLink tc={tc} icon={CreditCard} iconBg={tc.isDark ? '#1A3A2A' : '#DCFCE7'} iconColor={colors.success} label="Métodos de pago" onPress={() => showAlert('Métodos de pago', 'Esta opción es automática en el checkout.')} />
                 </View>
 
                 {/* NOTIFICACIONES */}
                 <Text style={[styles.sectionTitle, { color: tc.textSecondary }]}>NOTIFICACIONES</Text>
                 <View style={[styles.section, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                    <SettingSwitch tc={tc} icon={Bell} iconBg={tc.isDark ? '#1E3A5F' : '#E0F2FE'} iconColor={colors.info} label="Notificaciones Push" value={notificationsEnabled} onToggle={setNotificationsEnabled} />
+                    <SettingSwitch tc={tc} icon={Bell} iconBg={tc.isDark ? '#1E3A5F' : '#E0F2FE'} iconColor={colors.info} label="Notificaciones Push" value={notificationsEnabled} onToggle={handleToggleNotifications} />
                     <SettingDivider tc={tc} />
                     <SettingSwitch tc={tc} icon={Mail} iconBg={tc.isDark ? '#3D2E0A' : '#FEF3C7'} iconColor={colors.warning} label="Notificaciones por Email" value={emailNotifications} onToggle={setEmailNotifications} />
                     <SettingDivider tc={tc} />
@@ -108,7 +170,7 @@ export default function SettingsScreen() {
                 <View style={[styles.section, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
                     <SettingSwitch tc={tc} icon={Moon} iconBg={tc.isDark ? '#3B1F5E' : '#F3E8FF'} iconColor="#9333EA" label="Modo Oscuro" value={theme === 'dark'} onToggle={toggleTheme} />
                     <SettingDivider tc={tc} />
-                    <SettingLink tc={tc} icon={Globe} iconBg={tc.isDark ? '#2D3748' : '#F4F5F7'} iconColor={tc.isDark ? '#ccc' : '#555'} label="Idioma" detail="Español" onPress={() => showAlert('Idioma', 'Actualmente solo Español está disponible.')} />
+                    <SettingLink tc={tc} icon={Globe} iconBg={tc.isDark ? '#2D3748' : '#F4F5F7'} iconColor={tc.isDark ? '#ccc' : '#555'} label="Idioma" detail="Español" onPress={() => showAlert('Idioma', 'Actualmente solo Español estáá disponible.')} />
                 </View>
 
                 {/* SEGURIDAD */}
@@ -122,15 +184,15 @@ export default function SettingsScreen() {
                 <View style={[styles.section, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
                     <SettingLink tc={tc} icon={HelpCircle} iconBg={tc.isDark ? '#3D2E0A' : '#FEF3C7'} iconColor={colors.warning} label="Centro de Ayuda" onPress={() => router.push('/help' as any)} />
                     <SettingDivider tc={tc} />
-                    <SettingLink tc={tc} icon={Info} iconBg={tc.isDark ? '#2D3748' : '#F4F5F7'} iconColor={tc.isDark ? '#ccc' : '#555'} label="Acerca de Un Pique" onPress={() => showAlert('Un Pique', 'Versión 1.0.0 (Build 100)\n\nTodo tu barrio, en una app.\n\n© 2024 Un Pique.')} />
+                    <SettingLink tc={tc} icon={Info} iconBg={tc.isDark ? '#2D3748' : '#F4F5F7'} iconColor={tc.isDark ? '#ccc' : '#555'} label="Acerca de Un Pique" onPress={() => showAlert('Un Pique', 'Versión 1.0.0 (Build 100)\n\nTodo tu barrio, en una app.\n\n©©© 2024 Un Pique.')} />
                     <SettingDivider tc={tc} />
-                    <SettingLink tc={tc} icon={Globe} iconBg={tc.isDark ? '#1E3A5F' : '#E0F2FE'} iconColor={colors.info} label="Política de Privacidad" onPress={() => showAlert('Privacidad', 'La política de privacidad estará disponible próximamente.')} />
+                    <SettingLink tc={tc} icon={Globe} iconBg={tc.isDark ? '#1E3A5F' : '#E0F2FE'} iconColor={colors.info} label="Política de Privacidad" onPress={() => showAlert('Privacidad', 'La política de privacidad estáará disponible próximamente.')} />
                 </View>
 
                 {/* ZONA PELIGROSA */}
                 <Text style={[styles.sectionTitle, { color: colors.danger }]}>ZONA PELIGROSA</Text>
                 <View style={[styles.section, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
-                    <SettingLink tc={tc} icon={Trash2} iconBg={tc.isDark ? '#3B1010' : '#FEE2E2'} iconColor={colors.danger} label="Eliminar mi cuenta" danger onPress={() => showAlert('Eliminar cuenta', '¿Estás seguro? Contactá a soporte para proceder con la eliminación.')} />
+                    <SettingLink tc={tc} icon={Trash2} iconBg={tc.isDark ? '#3B1010' : '#FEE2E2'} iconColor={colors.danger} label="Eliminar mi cuenta" danger onPress={() => showAlert('Eliminar cuenta', '¿Estás seguro? Contactáá a soporte para proceder con la eliminación.')} />
                 </View>
 
                 <Text style={[styles.version, { color: tc.textMuted }]}>v1.0.0 (Build 100)</Text>

@@ -69,7 +69,7 @@ function getExtraItems(roles: string[] = [], isLoggedIn: boolean = false) {
         items.unshift({ key: 'club-un-pique', label: 'Club Un Pique', icon: Crown, route: '/loyalty' });
     }
     if (roles.includes('business_owner')) {
-        items.push({ key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business' });
+        items.push({ key: 'business-dashboard', label: 'Dashboard Vendedor', icon: Store, route: '/business/dashboard' });
     }
     if (roles.includes('delivery_driver')) {
         items.push({ key: 'driver-dashboard', label: 'Dashboard Repartidor', icon: Bike, route: '/driver' });

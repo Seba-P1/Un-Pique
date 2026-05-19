@@ -52,6 +52,7 @@ export default function ProfileScreen() {
     const [loadingPosts, setLoadingPosts] = useState(true);
     const [followersCount, setFollowersCount] = useState(0);
     const [followingCount, setFollowingCount] = useState(0);
+    const [localityName, setLocalityName] = useState<string>('');
 
     const isDesktop = width >= 1024;
     const isTablet = width >= 768 && width < 1024;
@@ -68,6 +69,21 @@ export default function ProfileScreen() {
     useEffect(() => {
         fetchUserListings();
     }, []);
+
+    useEffect(() => {
+        if (profile?.locality_id) {
+            supabase
+                .from('localities')
+                .select('name')
+                .eq('id', profile.locality_id)
+                .single()
+                .then(({ data }) => {
+                    if (data?.name) setLocalityName(data.name);
+                });
+        } else {
+            setLocalityName('');
+        }
+    }, [profile?.locality_id]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -228,10 +244,12 @@ export default function ProfileScreen() {
                         <View style={[styles.profileMeta, isMobile && styles.profileMetaMobile]}>
                             <Text style={[styles.profileName, { color: tc.text }]}>{profile?.full_name || 'Usuario'}</Text>
                             <View style={styles.metaRow}>
-                                <View style={styles.metaItem}>
-                                    <MapPin size={13} color={tc.textMuted} />
-                                    <Text style={[styles.metaText, { color: tc.textMuted }]}>Río Colorado</Text>
-                                </View>
+                                {localityName && (
+                                    <View style={styles.metaItem}>
+                                        <MapPin size={13} color={tc.textMuted} />
+                                        <Text style={[styles.metaText, { color: tc.textMuted }]}>{localityName}</Text>
+                                    </View>
+                                )}
                             </View>
                             <View style={styles.statsRow}>
                                 <Text style={[styles.statNumber, { color: tc.text }]}>{followersCount}</Text>
@@ -290,7 +308,7 @@ export default function ProfileScreen() {
                 {/* ====== CONTENT AREA ====== */}
                 <View style={[styles.contentArea, !isMobile && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
                     {activeView === 'wall' ? (
-                        <WallView posts={posts} loading={loadingPosts} tc={tc} isDesktop={isDesktop} isMobile={isMobile} isLiked={isLiked} toggleLike={toggleLike} isSaved={isSaved} toggleSave={toggleSave} router={router} savedPosts={savedPosts} profile={profile} userListings={userListings} hasBusinessRole={hasBusinessRole} />
+                        <WallView posts={posts} loading={loadingPosts} tc={tc} isDesktop={isDesktop} isMobile={isMobile} isLiked={isLiked} toggleLike={toggleLike} isSaved={isSaved} toggleSave={toggleSave} router={router} savedPosts={savedPosts} profile={profile} userListings={userListings} hasBusinessRole={hasBusinessRole} localityName={localityName} />
                     ) : activeView === 'photos' ? (
                         <PhotosView userId={user?.id || ''} isOwner={true} />
                     ) : (
@@ -312,7 +330,7 @@ export default function ProfileScreen() {
 // =============================================
 // WALL VIEW — Mi muro integrado
 // =============================================
-function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike, isSaved, toggleSave, router, savedPosts, profile, userListings, hasBusinessRole }: any) {
+function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike, isSaved, toggleSave, router, savedPosts, profile, userListings, hasBusinessRole, localityName }: any) {
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
     const [myBusiness, setMyBusiness] = useState<any>(null);
 
@@ -349,10 +367,12 @@ function WallView({ posts, loading, tc, isDesktop, isMobile, isLiked, toggleLike
                 <View style={wallStyles.sidebar}>
                     <View style={[wallStyles.sidebarCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
                         <Text style={[wallStyles.sidebarTitle, { color: tc.text }]}>Intro</Text>
-                        <View style={wallStyles.introItem}>
-                            <MapPin size={15} color={tc.textMuted} />
-                            <Text style={[wallStyles.introText, { color: tc.textSecondary }]}>Vive en <Text style={{ fontWeight: '600', color: tc.text }}>Río Colorado</Text></Text>
-                        </View>
+                        {localityName && (
+                            <View style={wallStyles.introItem}>
+                                <MapPin size={15} color={tc.textMuted} />
+                                <Text style={[wallStyles.introText, { color: tc.textSecondary }]}>Vive en <Text style={{ fontWeight: '600', color: tc.text }}>{localityName}</Text></Text>
+                            </View>
+                        )}
                         <View style={wallStyles.introItem}>
                             <Briefcase size={15} color={tc.textMuted} />
                             <Text style={[wallStyles.introText, { color: tc.textSecondary }]}>Miembro de la comunidad Un Pique</Text>
@@ -504,7 +524,7 @@ function SettingsView({ tc, router, hasListings, showRolesSection, hasBusinessRo
                         <SidebarButton icon={Briefcase} label="Mis Publicaciones" tc={tc} active={activeSettingsBtn === 'listings'} onPress={() => { setActiveSettingsBtn('listings'); router.push('/my-listings' as any); }} />
                         <SidebarButton icon={Settings} label="Configuración" tc={tc} active={activeSettingsBtn === 'settings'} onPress={() => { setActiveSettingsBtn('settings'); router.push('/settings' as any); }} />
                         {hasBusinessRole && (
-                            <SidebarButton icon={Store} label="Panel de Vendedor" tc={tc} active={activeSettingsBtn === 'business'} onPress={() => { setActiveSettingsBtn('business'); router.push('/business' as any); }} />
+                            <SidebarButton icon={Store} label="Panel de Vendedor" tc={tc} active={activeSettingsBtn === 'business'} onPress={() => { setActiveSettingsBtn('business'); router.push('/business/dashboard' as any); }} />
                         )}
                         {/* Divider */}
                         <View style={{ height: 1, backgroundColor: tc.borderLight, marginVertical: 8, marginHorizontal: 14 }} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Switch, FlatList, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Clock, DollarSign, ChevronRight, Navigation } from 'lucide-react-native';
@@ -7,16 +7,51 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { HeaderTypeA } from '../../components/ui';
 import { useRouter } from 'expo-router';
 import { useDriverOrders } from '../../hooks/useDriverOrders';
+import { useAuthStore } from '../../stores/authStore';
+import { supabase } from '../../lib/supabase';
+import { showAlert } from '../../utils/alert';
 
 // Mock Data para pedidos asignados
 
 
 export default function DriverDashboard() {
+    const { user, profile } = useAuthStore();
     const [isOnline, setIsOnline] = useState(false);
+    const [togglingOnline, setTogglingOnline] = useState(false);
     const router = useRouter();
     const tc = useThemeColors();
 
-    const toggleSwitch = () => setIsOnline(previousState => !previousState);
+    useEffect(() => {
+        if (!user?.id) return;
+        supabase
+            .from('delivery_drivers')
+            .select('is_online')
+            .eq('user_id', user.id)
+            .single()
+            .then(({ data }) => {
+                if (data) setIsOnline(data.is_online ?? false);
+            });
+    }, [user?.id]);
+
+    const toggleSwitch = async () => {
+        if (!user?.id || togglingOnline) return;
+        setTogglingOnline(true);
+        const newValue = !isOnline;
+        try {
+            const { error } = await supabase
+                .from('delivery_drivers')
+                .upsert(
+                    { user_id: user.id, is_online: newValue, updated_at: new Date().toISOString() },
+                    { onConflict: 'user_id' }
+                );
+            if (error) throw error;
+            setIsOnline(newValue);
+        } catch (err) {
+            showAlert('Error', 'No se pudo cambiar el estado. Intentá de nuevo.');
+        } finally {
+            setTogglingOnline(false);
+        }
+    };
 
     const { data: orders = [], isLoading, refetch } = useDriverOrders();
 
@@ -64,11 +99,11 @@ export default function DriverDashboard() {
             <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                     <Navigation size={16} color={colors.gray[500]} />
-                    <Text style={styles.statText}>2.5 km</Text>
+                    <Text style={styles.statText}>{item.distance_km ? `${item.distance_km} km` : '—'}</Text>
                 </View>
                 <View style={styles.statItem}>
                     <Clock size={16} color={colors.gray[500]} />
-                    <Text style={styles.statText}>20 min</Text>
+                    <Text style={styles.statText}>{item.estimated_minutes ? `${item.estimated_minutes} min` : '—'}</Text>
                 </View>
                 <View style={styles.statItem}>
                     <DollarSign size={16} color={colors.gray[500]} />
@@ -88,7 +123,9 @@ export default function DriverDashboard() {
             {/* Custom Header for Driver */}
             <View style={[styles.header, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight }]}>
                 <View>
-                    <Text style={[styles.greeting, { color: tc.text }]}>Hola, Sebastián</Text>
+                    <Text style={[styles.greeting, { color: tc.text }]}>
+                        Hola, {profile?.full_name?.split(' ')[0] || 'Repartidor'}
+                    </Text>
                     <Text style={[styles.statusLabel, { color: tc.textSecondary }]}>
                         {isOnline ? 'Estás en línea' : 'Estás desconectado'}
                     </Text>
@@ -100,6 +137,7 @@ export default function DriverDashboard() {
                         ios_backgroundColor={colors.gray[300]}
                         onValueChange={toggleSwitch}
                         value={isOnline}
+                        disabled={togglingOnline}
                     />
                 </View>
             </View>

@@ -75,7 +75,7 @@ export default function CreateBusinessScreen() {
                 [
                     { 
                         text: "Ir a mi Panel", 
-                        onPress: () => router.replace('/business' as any) 
+                        onPress: () => router.replace('/business/dashboard' as any) 
                     }
                 ]
             );

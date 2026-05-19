@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, TrendingUp, Award, Clock } from 'lucide-react-native';
-import { LineChart } from 'react-native-chart-kit';
+import { ArrowLeft, TrendingUp, Award, Clock, BarChart2 } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useBusinessAnalyticsStore } from '../../stores/businessAnalyticsStore';
@@ -11,12 +10,20 @@ import { useBusinessStore } from '../../stores/businessStore';
 
 const { width } = Dimensions.get('window');
 
+const PERIODS = [
+    { label: 'Hoy', value: 'day' },
+    { label: 'Semana', value: 'week' },
+    { label: 'Mes', value: 'month' }
+];
+
 export default function BusinessAnalyticsScreen() {
     const router = useRouter();
     const tc = useThemeColors();
     const { salesData, topProducts, peakHours, loading, fetchSalesData, fetchTopProducts, fetchPeakHours } = useBusinessAnalyticsStore();
     const { selectedBusiness } = useBusinessStore();
     const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'week' | 'month'>('week');
+
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (selectedBusiness) {
@@ -26,307 +33,186 @@ export default function BusinessAnalyticsScreen() {
         }
     }, [selectedBusiness, selectedPeriod]);
 
-    const chartData = {
-        labels: salesData.map(d => d.label),
-        datasets: [{
-            data: salesData.length > 0 ? salesData.map(d => d.revenue) : [0],
-        }],
-    };
+    useEffect(() => {
+        if (!loading) {
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 400,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            fadeAnim.setValue(0);
+        }
+    }, [loading]);
+
+    const maxSalesValue = salesData.length > 0 ? Math.max(...salesData.map(d => d.revenue)) : 0;
+    const maxPeakCount = peakHours.length > 0 ? Math.max(...peakHours.map(d => d.orderCount)) : 0;
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             <View style={[styles.header, { backgroundColor: tc.bgCard, borderBottomColor: tc.borderLight }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <ArrowLeft size={24} color={tc.text} />
+                    <ArrowLeft size={22} color={tc.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: tc.text }]}>Analytics</Text>
-                <View style={{ width: 40 }} />
+                <Text style={[styles.headerTitle, { color: tc.text }]}>Analíticas Detalladas</Text>
+                <View style={{ width: 38 }} />
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Period Selector */}
-                <View style={[styles.periodSelector, { backgroundColor: tc.bgCard }]}>
-                    <TouchableOpacity
-                        style={[styles.periodButton, selectedPeriod === 'day' && styles.periodButtonActive]}
-                        onPress={() => setSelectedPeriod('day')}
-                    >
-                        <Text style={[styles.periodText, selectedPeriod === 'day' && styles.periodTextActive]}>
-                            Hoy
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.periodButton, selectedPeriod === 'week' && styles.periodButtonActive]}
-                        onPress={() => setSelectedPeriod('week')}
-                    >
-                        <Text style={[styles.periodText, selectedPeriod === 'week' && styles.periodTextActive]}>
-                            Semana
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.periodButton, selectedPeriod === 'month' && styles.periodButtonActive]}
-                        onPress={() => setSelectedPeriod('month')}
-                    >
-                        <Text style={[styles.periodText, selectedPeriod === 'month' && styles.periodTextActive]}>
-                            Mes
-                        </Text>
-                    </TouchableOpacity>
+            {/* Period Selector Compacto */}
+            <View style={{ backgroundColor: tc.bgCard }}>
+                <View style={[styles.periodRow, { backgroundColor: tc.bgInput }]}>
+                    {PERIODS.map(p => {
+                        const isActive = selectedPeriod === p.value;
+                        return (
+                            <TouchableOpacity
+                                key={p.value}
+                                style={[styles.periodBtn, isActive && { backgroundColor: tc.bgCard, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }]}
+                                onPress={() => setSelectedPeriod(p.value as any)}
+                            >
+                                <Text style={[styles.periodText, { color: isActive ? tc.text : tc.textMuted }]}>{p.label}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
+            </View>
 
-                {/* Sales Chart */}
-                <View style={[styles.chartCard, { backgroundColor: tc.bgCard }]}>
-                    <View style={styles.cardHeader}>
-                        <TrendingUp size={24} color={colors.primary.DEFAULT} />
-                        <Text style={[styles.cardTitle, { color: tc.text }]}>Ventas</Text>
-                    </View>
-                    {salesData.length > 0 ? (
-                        <LineChart
-                            data={chartData}
-                            width={width - 64}
-                            height={220}
-                            chartConfig={{
-                                backgroundColor: colors.primary.DEFAULT,
-                                backgroundGradientFrom: colors.primary.DEFAULT,
-                                backgroundGradientTo: colors.primary.light,
-                                decimalPlaces: 0,
-                                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                                style: {
-                                    borderRadius: 16,
-                                },
-                                propsForDots: {
-                                    r: '6',
-                                    strokeWidth: '2',
-                                    stroke: colors.white,
-                                },
-                            }}
-                            bezier
-                            style={styles.chart}
-                        />
-                    ) : (
-                        <View style={styles.emptyChart}>
-                            <Text style={styles.emptyText}>No hay datos para mostrar</Text>
+            {loading ? (
+                <View style={styles.loaderContainer}>
+                    <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+                </View>
+            ) : (
+                <Animated.ScrollView style={[styles.content, { opacity: fadeAnim }]} showsVerticalScrollIndicator={false}>
+                    
+                    {/* Sales Chart (Compact Native Bar) */}
+                    <View style={[styles.card, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                        <View style={styles.cardHeader}>
+                            <TrendingUp size={18} color={colors.primary.DEFAULT} />
+                            <Text style={[styles.cardTitle, { color: tc.text }]}>Tendencia de Ventas</Text>
                         </View>
-                    )}
-                </View>
-
-                {/* Top Products */}
-                <View style={[styles.card, { backgroundColor: tc.bgCard }]}>
-                    <View style={styles.cardHeader}>
-                        <Award size={24} color={colors.warning} />
-                        <Text style={[styles.cardTitle, { color: tc.text }]}>Productos Más Vendidos</Text>
+                        
+                        <View style={styles.chartArea}>
+                            {salesData.length === 0 ? (
+                                <View style={styles.emptyChart}>
+                                    <BarChart2 size={32} color={tc.borderLight} />
+                                    <Text style={[styles.emptyChartText, { color: tc.textMuted }]}>No hay ventas suficientes</Text>
+                                </View>
+                            ) : (
+                                <View style={styles.chartBars}>
+                                    {salesData.map((d, i) => {
+                                        const hPct = maxSalesValue > 0 ? Math.max((d.revenue / maxSalesValue) * 100, 5) : 5;
+                                        return (
+                                            <View key={i} style={styles.barColumn}>
+                                                <View style={[
+                                                    styles.bar, 
+                                                    { 
+                                                        height: `${hPct}%`, 
+                                                        backgroundColor: d.revenue === maxSalesValue ? colors.primary.DEFAULT : colors.primary.DEFAULT + '50' 
+                                                    }
+                                                ]} />
+                                                <Text style={[styles.barLabel, { color: tc.textSecondary }]} numberOfLines={1}>
+                                                    {d.label.slice(0, 3)}
+                                                </Text>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            )}
+                        </View>
                     </View>
-                    {topProducts.length > 0 ? (
-                        topProducts.map((product, index) => (
-                            <View key={product.productId} style={styles.productItem}>
-                                <View style={styles.productRank}>
-                                    <Text style={styles.rankNumber}>{index + 1}</Text>
-                                </View>
-                                <View style={styles.productInfo}>
-                                    <Text style={[styles.productName, { color: tc.text }]}>{product.productName}</Text>
-                                    <Text style={[styles.productStats, { color: tc.textSecondary }]}>
-                                        {product.totalQuantity} vendidos • ${product.totalRevenue.toLocaleString()}
-                                    </Text>
-                                </View>
-                            </View>
-                        ))
-                    ) : (
-                        <Text style={styles.emptyText}>No hay datos disponibles</Text>
-                    )}
-                </View>
 
-                {/* Peak Hours */}
-                <View style={[styles.card, { backgroundColor: tc.bgCard }]}>
-                    <View style={styles.cardHeader}>
-                        <Clock size={24} color={colors.info} />
-                        <Text style={[styles.cardTitle, { color: tc.text }]}>Horarios Pico</Text>
+                    {/* Peak Hours Grid (Taste Skill Density) */}
+                    <View style={[styles.card, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                        <View style={styles.cardHeader}>
+                            <Clock size={18} color={colors.info} />
+                            <Text style={[styles.cardTitle, { color: tc.text }]}>Horarios de Mayor Demanda</Text>
+                        </View>
+                        
+                        {peakHours.length > 0 ? (
+                            <View style={styles.hoursGrid}>
+                                {peakHours.map((hour, index) => {
+                                    const intensity = hour.orderCount / maxPeakCount;
+                                    const bgOp = Math.max(0.1, intensity * 0.4);
+                                    return (
+                                        <View key={index} style={[styles.hourItem, { backgroundColor: `${colors.info}${Math.round(bgOp * 255).toString(16).padStart(2, '0')}` }]}>
+                                            <Text style={[styles.hourTime, { color: tc.text }]}>{hour.hour}:00</Text>
+                                            <Text style={[styles.hourPercentage, { color: colors.info }]}>{hour.percentage.toFixed(0)}%</Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        ) : (
+                            <Text style={[styles.emptyChartText, { color: tc.textMuted, marginVertical: 20, textAlign: 'center' }]}>No hay datos suficientes de horarios</Text>
+                        )}
                     </View>
-                    {peakHours.length > 0 ? (
-                        peakHours.map((hour, index) => (
-                            <View key={index} style={styles.hourItem}>
-                                <Text style={styles.hourTime}>
-                                    {hour.hour}:00 - {hour.hour + 1}:00
-                                </Text>
-                                <View style={styles.hourBar}>
-                                    <View
-                                        style={[
-                                            styles.hourBarFill,
-                                            { width: `${hour.percentage}%`, backgroundColor: colors.info },
-                                        ]}
-                                    />
-                                </View>
-                                <Text style={styles.hourPercentage}>{hour.percentage.toFixed(0)}%</Text>
-                            </View>
-                        ))
-                    ) : (
-                        <Text style={styles.emptyText}>No hay datos disponibles</Text>
-                    )}
-                </View>
 
-                <View style={{ height: 40 }} />
-            </ScrollView>
+                    {/* Top Products */}
+                    <View style={[styles.card, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                        <View style={styles.cardHeader}>
+                            <Award size={18} color={colors.warning} />
+                            <Text style={[styles.cardTitle, { color: tc.text }]}>Productos Más Populares</Text>
+                        </View>
+                        
+                        {topProducts.length > 0 ? (
+                            topProducts.map((product, index) => (
+                                <View key={product.productId} style={[styles.productItem, { borderBottomColor: tc.borderLight, borderBottomWidth: index === topProducts.length - 1 ? 0 : 1 }]}>
+                                    <View style={[styles.productRank, { backgroundColor: index < 3 ? `${colors.warning}15` : tc.bgInput }]}>
+                                        <Text style={[styles.rankNumber, { color: index < 3 ? colors.warning : tc.textMuted }]}>{index + 1}</Text>
+                                    </View>
+                                    <View style={styles.productInfo}>
+                                        <Text style={[styles.productName, { color: tc.text }]} numberOfLines={1}>{product.productName}</Text>
+                                        <Text style={[styles.productStats, { color: tc.textSecondary }]}>
+                                            {product.totalQuantity} ud. • ${product.totalRevenue.toLocaleString()}
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))
+                        ) : (
+                            <Text style={[styles.emptyChartText, { color: tc.textMuted, marginVertical: 20, textAlign: 'center' }]}>Sin productos vendidos aún</Text>
+                        )}
+                    </View>
+
+                    <View style={{ height: 40 }} />
+                </Animated.ScrollView>
+            )}
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.gray[50],
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.gray[100],
-    },
-    backButton: {
-        padding: 8,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    content: {
-        flex: 1,
-        padding: 16,
-    },
-    periodSelector: {
-        flexDirection: 'row',
-        backgroundColor: colors.white,
-        borderRadius: 12,
-        padding: 4,
-        marginBottom: 16,
-    },
-    periodButton: {
-        flex: 1,
-        paddingVertical: 10,
-        alignItems: 'center',
-        borderRadius: 8,
-    },
-    periodButtonActive: {
-        backgroundColor: colors.primary.DEFAULT,
-    },
-    periodText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.gray[600],
-        fontFamily: 'Nunito Sans',
-    },
-    periodTextActive: {
-        color: colors.white,
-    },
-    chartCard: {
-        backgroundColor: colors.white,
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 16,
-    },
-    card: {
-        backgroundColor: colors.white,
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-        gap: 8,
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    chart: {
-        marginVertical: 8,
-        borderRadius: 16,
-    },
-    emptyChart: {
-        height: 220,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emptyText: {
-        fontSize: 14,
-        color: colors.gray[400],
-        textAlign: 'center',
-        fontFamily: 'Nunito Sans',
-    },
-    productItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.gray[100],
-    },
-    productRank: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: colors.primary.DEFAULT + '20',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    rankNumber: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: colors.primary.DEFAULT,
-        fontFamily: 'Nunito Sans',
-    },
-    productInfo: {
-        flex: 1,
-    },
-    productName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.gray[900],
-        fontFamily: 'Nunito Sans',
-    },
-    productStats: {
-        fontSize: 12,
-        color: colors.gray[500],
-        marginTop: 2,
-        fontFamily: 'Nunito Sans',
-    },
-    hourItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    hourTime: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: colors.gray[700],
-        width: 100,
-        fontFamily: 'Nunito Sans',
-    },
-    hourBar: {
-        flex: 1,
-        height: 8,
-        backgroundColor: colors.gray[100],
-        borderRadius: 4,
-        marginHorizontal: 12,
-        overflow: 'hidden',
-    },
-    hourBarFill: {
-        height: '100%',
-        borderRadius: 4,
-    },
-    hourPercentage: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: colors.gray[700],
-        width: 40,
-        textAlign: 'right',
-        fontFamily: 'Nunito Sans',
-    },
+    container: { flex: 1 },
+    loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1 },
+    backButton: { padding: 6 },
+    headerTitle: { fontSize: 16, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    
+    periodRow: { flexDirection: 'row', borderRadius: 12, padding: 4, marginHorizontal: 16, marginVertical: 12 },
+    periodBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
+    periodText: { fontSize: 13, fontWeight: '700', fontFamily: 'Nunito Sans' },
+
+    content: { padding: 16 },
+
+    card: { borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1 },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+    cardTitle: { fontSize: 16, fontWeight: '800', fontFamily: 'Nunito Sans' },
+
+    chartArea: { height: 160, justifyContent: 'flex-end', paddingTop: 10 },
+    emptyChart: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
+    emptyChartText: { fontSize: 13, fontFamily: 'Nunito Sans', fontWeight: '600' },
+    
+    chartBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: '100%' },
+    barColumn: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' },
+    bar: { width: '100%', maxWidth: 24, borderRadius: 6, minHeight: 4 },
+    barLabel: { fontSize: 10, marginTop: 6, fontWeight: '700', fontFamily: 'Nunito Sans', height: 16 },
+
+    hoursGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    hourItem: { flex: 1, minWidth: '30%', padding: 12, borderRadius: 12, alignItems: 'center', gap: 4 },
+    hourTime: { fontSize: 14, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    hourPercentage: { fontSize: 12, fontWeight: '700', fontFamily: 'Nunito Sans' },
+
+    productItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+    productRank: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    rankNumber: { fontSize: 15, fontWeight: '800', fontFamily: 'Nunito Sans' },
+    productInfo: { flex: 1 },
+    productName: { fontSize: 14, fontWeight: '700', fontFamily: 'Nunito Sans', marginBottom: 2 },
+    productStats: { fontSize: 12, fontWeight: '600', fontFamily: 'Nunito Sans' },
 });

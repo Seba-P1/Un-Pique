@@ -17,7 +17,8 @@ const TABS = [
     { id: 'perfil', label: 'Perfil', icon: Store },
     { id: 'tienda', label: 'Info', icon: Info },
     { id: 'horarios', label: 'Horarios', icon: Clock },
-    { id: 'envio', label: 'Envíos', icon: Bike }
+    { id: 'envio', label: 'Envíos', icon: Bike },
+    { id: 'pagos', label: 'Mercado Pago', icon: CreditCard }
 ];
 
 const DAYS_OF_WEEK = [
@@ -416,42 +417,73 @@ export default function CentralizedSettingsScreen() {
                             )}
                         </SectionCard>
 
-                        <SectionCard title="Métodos de Pago" tc={tc}>
-                            <ToggleRow label="Efectivo al recibir" value={acceptsCash} onChange={setAcceptsCash} tc={tc} />
-                            
-                            <View style={{ marginTop: 8, padding: 16, backgroundColor: tc.bgInput, borderRadius: 12, borderWidth: 1, borderColor: tc.borderLight }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                        <View style={{ width: 32, height: 32, backgroundColor: '#009EE3', borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-                                            <CreditCard size={16} color="white" />
+                        <SectionCard title="Pagos Físicos" tc={tc}>
+                            <ToggleRow label="Aceptar efectivo al recibir" value={acceptsCash} onChange={setAcceptsCash} tc={tc} />
+                        </SectionCard>
+                    </View>
+                )}
+
+                {/* TAB: MERCADO PAGO */}
+                {activeTab === 'pagos' && (
+                    <View style={styles.tabSection}>
+                        <View style={styles.sectionHeader}>
+                            <View style={[styles.sectionIcon, { backgroundColor: '#009EE315' }]}>
+                                <CreditCard color="#009EE3" size={22} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.sectionTitle, { color: tc.text }]}>Cuenta Mercado Pago</Text>
+                                <Text style={[styles.sectionSubtitle, { color: tc.textMuted }]}>Vincula tu cuenta para recibir pagos digitales de tus clientes.</Text>
+                            </View>
+                        </View>
+
+                        <SectionCard title="Estado de la Integración" tc={tc}>
+                            <View style={{ padding: 20, backgroundColor: selectedBusiness?.mercadopago_connected ? '#10B98110' : tc.bgInput, borderRadius: 16, borderWidth: 1, borderColor: selectedBusiness?.mercadopago_connected ? '#10B98140' : tc.borderLight }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                        <View style={{ width: 44, height: 44, backgroundColor: '#009EE3', borderRadius: 12, alignItems: 'center', justifyContent: 'center', shadowColor: '#009EE3', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }}>
+                                            <CreditCard size={20} color="white" />
                                         </View>
-                                        <Text style={{ fontSize: 16, fontWeight: '800', fontFamily: 'Nunito Sans', color: tc.text }}>MercadoPago</Text>
+                                        <View>
+                                            <Text style={{ fontSize: 18, fontWeight: '800', fontFamily: 'Nunito Sans', color: tc.text }}>Mercado Pago</Text>
+                                            <Text style={{ fontSize: 13, color: tc.textMuted, fontFamily: 'Nunito Sans', marginTop: 2 }}>Billetera Virtual</Text>
+                                        </View>
                                     </View>
                                     
                                     {selectedBusiness?.mercadopago_connected ? (
-                                        <View style={{ backgroundColor: '#10B98120', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                                            <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '700', fontFamily: 'Nunito Sans' }}>✓ Cuenta conectada</Text>
+                                        <View style={{ backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Text style={{ color: 'white', fontSize: 13, fontWeight: '800', fontFamily: 'Nunito Sans' }}>✓ Vinculada</Text>
                                         </View>
-                                    ) : null}
+                                    ) : (
+                                        <View style={{ backgroundColor: tc.textMuted + '30', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+                                            <Text style={{ color: tc.text, fontSize: 13, fontWeight: '700', fontFamily: 'Nunito Sans' }}>Desconectada</Text>
+                                        </View>
+                                    )}
                                 </View>
 
                                 {selectedBusiness?.mercadopago_connected ? (
-                                    <View style={{ gap: 12 }}>
-                                        <ToggleRow label="Aceptar pagos con MercadoPago" value={acceptsMercadoPago} onChange={setAcceptsMercadoPago} tc={tc} />
+                                    <View style={{ gap: 16 }}>
+                                        <View style={{ height: 1, backgroundColor: tc.borderLight, marginVertical: 4 }} />
+                                        <ToggleRow label="Aceptar pagos con Mercado Pago" value={acceptsMercadoPago} onChange={setAcceptsMercadoPago} tc={tc} />
                                         <TouchableOpacity
-                                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#EF4444', borderRadius: 10, marginTop: 4 }}
-                                            onPress={() => showAlert('Próximamente', 'La desconexión estará disponible pronto.')}
+                                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#EF4444', borderRadius: 12, marginTop: 8 }}
+                                            onPress={() => showAlert('Desconectar', 'Al desconectar, tus clientes no podrán pagarte con Mercado Pago.')}
                                         >
-                                            <Text style={{ color: '#EF4444', fontWeight: '700', fontFamily: 'Nunito Sans' }}>Desconectar</Text>
+                                            <Text style={{ color: '#EF4444', fontSize: 15, fontWeight: '800', fontFamily: 'Nunito Sans' }}>Desvincular Cuenta</Text>
                                         </TouchableOpacity>
                                     </View>
                                 ) : (
-                                    <TouchableOpacity
-                                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, backgroundColor: colors.primary.DEFAULT, borderRadius: 12 }}
-                                        onPress={() => showAlert('Próximamente', 'La integración con MercadoPago estará disponible pronto.')}
-                                    >
-                                        <Text style={{ color: 'white', fontWeight: 'bold', fontFamily: 'Nunito Sans' }}>Conectar MercadoPago</Text>
-                                    </TouchableOpacity>
+                                    <View style={{ gap: 16, marginTop: 8 }}>
+                                        <Text style={{ color: tc.textSecondary, fontSize: 14, lineHeight: 20, fontFamily: 'Nunito Sans' }}>
+                                            Al vincular tu cuenta, el dinero de las ventas ingresará directamente a tu Mercado Pago en el instante.
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: '#009EE3', borderRadius: 12, shadowColor: '#009EE3', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 }}
+                                            onPress={() => showAlert('Próximamente', 'El flujo de OAuth de MercadoPago estará listo muy pronto.')}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Text style={{ color: 'white', fontSize: 16, fontWeight: '800', fontFamily: 'Nunito Sans' }}>Vincular Mercado Pago</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 )}
                             </View>
                         </SectionCard>
