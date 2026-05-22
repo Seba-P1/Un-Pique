@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator,
-  useWindowDimensions, SafeAreaView, Platform
+  useWindowDimensions, Platform
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, Plus, FolderOpen } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { usePhotosStore, UserPhoto } from '../../stores/photosStore';
@@ -66,7 +66,7 @@ export default function AlbumViewScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: tc.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tc.bg }} edges={['top']}>
       {/* HEADER */}
       <View style={{
         flexDirection: 'row', alignItems: 'center',

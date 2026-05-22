@@ -18,7 +18,7 @@ export default function OrderDetailScreen() {
 
     if (isLoading || !order) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <Text>Cargando pedido...</Text>
                 </View>
@@ -51,7 +51,7 @@ export default function OrderDetailScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['bottom']}>
+        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top', 'bottom']}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
 
                 {/* Map Placeholder */}

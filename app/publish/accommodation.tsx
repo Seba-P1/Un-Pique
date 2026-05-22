@@ -915,7 +915,8 @@ export default function PublishAccommodationScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]}>
+    // Corrección de Safe Area: Se limita el área segura solo a la parte superior ('top')
+    <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

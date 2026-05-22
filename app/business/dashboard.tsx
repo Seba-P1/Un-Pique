@@ -80,7 +80,7 @@ export default function BusinessDashboard() {
                     .from('orders')
                     .select('*', { count: 'exact', head: true })
                     .eq('business_id', myBusinessId)
-                    .in('status', ['accepted', 'preparing', 'confirmed']);
+                    .in('status', ['confirmed', 'preparing']);
                 if (!error) itemsCount = count || 0;
                 else console.warn('[Dashboard] q3:', error.message);
             } catch (e) { console.warn('[Dashboard] q3 fail'); }
@@ -114,7 +114,7 @@ export default function BusinessDashboard() {
                     .select(`
                         id,
                         total,
-                        user_id,
+                        customer_id,
                         created_at,
                         order_items ( quantity, product:products(name) )
                     `)
@@ -125,7 +125,7 @@ export default function BusinessDashboard() {
 
                 if (!error && pendingData) {
                     // Fetch user names separately to avoid FK ambiguity
-                    const userIds = [...new Set(pendingData.map(o => o.user_id).filter(Boolean))];
+                    const userIds = [...new Set(pendingData.map(o => o.customer_id).filter(Boolean))];
                     let usersMap: Record<string, { full_name: string; avatar_url: string | null }> = {};
                     if (userIds.length > 0) {
                         const { data: usersData } = await supabase
@@ -138,7 +138,7 @@ export default function BusinessDashboard() {
                     }
 
                     const formattedPending = pendingData.map(order => {
-                        const userData = usersMap[order.user_id] || {};
+                        const userData = usersMap[order.customer_id] || {};
                         const fullName = userData.full_name || 'Cliente anónimo';
                         const avatarUrl = userData.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}`;
 
@@ -239,18 +239,19 @@ export default function BusinessDashboard() {
                 <Animated.View style={[styles.kpiGrid, { opacity: fadeAnim }]}>
                     {KPI_DATA.map((kpi, i) => {
                         const Icon = kpi.icon;
+                        const cardWidth = (width - 32 - 20) / 3; // padding 16*2, gaps 10*2
                         return (
-                            <View key={i} style={[styles.kpiCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+                            <View key={i} style={[styles.kpiCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight, width: cardWidth }]}>
                                 <View style={styles.kpiHeader}>
                                     <View style={[styles.kpiIconWrapper, { backgroundColor: kpi.color + '15' }]}>
-                                        <Icon size={14} color={kpi.color} />
+                                        <Icon size={isDesktop ? 14 : 12} color={kpi.color} />
                                     </View>
                                     <View style={[styles.badge, { backgroundColor: tc.bgInput }]}>
-                                        <Text style={[styles.badgeText, { color: tc.textMuted }]}>{kpi.change}</Text>
+                                        <Text style={[styles.badgeText, { color: tc.textMuted }]} numberOfLines={1}>{kpi.change}</Text>
                                     </View>
                                 </View>
-                                <Text style={[styles.kpiValue, { color: tc.text }]}>{kpi.value}</Text>
-                                <Text style={[styles.kpiLabel, { color: tc.textSecondary }]}>{kpi.label}</Text>
+                                <Text style={[styles.kpiValue, { color: tc.text, fontSize: isDesktop ? 22 : 18 }]} numberOfLines={1} adjustsFontSizeToFit>{kpi.value}</Text>
+                                <Text style={[styles.kpiLabel, { color: tc.textSecondary, fontSize: isDesktop ? 11 : 10 }]} numberOfLines={1}>{kpi.label}</Text>
                             </View>
                         );
                     })}
@@ -397,14 +398,14 @@ const styles = StyleSheet.create({
     content: { padding: 16, paddingTop: 8 },
     
     // KPIs
-    kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-    kpiCard: { flex: 1, minWidth: '30%', padding: 14, borderRadius: 16, borderWidth: 1 },
-    kpiHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    kpiIconWrapper: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-    badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-    badgeText: { fontSize: 9, fontWeight: '700', fontFamily: 'Nunito Sans', textTransform: 'uppercase' },
-    kpiValue: { fontSize: 22, fontWeight: '800', fontFamily: 'Nunito Sans', letterSpacing: -0.5, marginBottom: 2 },
-    kpiLabel: { fontSize: 11, fontWeight: '600', fontFamily: 'Nunito Sans' },
+    kpiGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+    kpiCard: { padding: 12, borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+    kpiHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+    kpiIconWrapper: { width: 26, height: 26, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    badge: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, maxWidth: 50 },
+    badgeText: { fontSize: 8, fontWeight: '700', fontFamily: 'Nunito Sans', textTransform: 'uppercase' },
+    kpiValue: { fontSize: 18, fontWeight: '800', fontFamily: 'Nunito Sans', letterSpacing: -0.5, marginBottom: 1 },
+    kpiLabel: { fontSize: 10, fontWeight: '600', fontFamily: 'Nunito Sans' },
 
     // Layout
     mainLayout: { gap: 20, flexDirection: 'column' },

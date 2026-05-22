@@ -107,7 +107,7 @@ export const StoryViewer = ({ visible, stories, initialStoryIndex = 0, onClose }
                     locations={[0, 0.2, 1]}
                 />
 
-                <SafeAreaView style={styles.safeArea}>
+                <SafeAreaView style={styles.safeArea} edges={['top']}>
                     {/* Progress Bars */}
                     <View style={styles.progressContainer}>
                         {stories.map((story, index) => (

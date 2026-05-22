@@ -228,7 +228,8 @@ export default function UserProfileScreen() {
 
     if (loading) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]}>
+            // Corrección de Safe Area: Se limita el área segura solo a la parte superior ('top')
+            <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
                     <Text style={[styles.loadingText, { color: tc.textMuted }]}>Cargando perfil...</Text>
@@ -239,7 +240,8 @@ export default function UserProfileScreen() {
 
     if (!profileData) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]}>
+            // Corrección de Safe Area: Se limita el área segura solo a la parte superior ('top')
+            <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.floatingBack}>
                     <ArrowLeft size={22} color="#fff" />
                 </TouchableOpacity>

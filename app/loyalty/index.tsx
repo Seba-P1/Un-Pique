@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Pressable, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated, Pressable, Image, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Zap, TrendingUp, Target, ShoppingBag, Camera, Gift, Star, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,8 +46,11 @@ export default function LoyaltyScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const tc = useThemeColors();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const loyalty = useLoyaltyStore((s) => s.loyalty);
   const transactions = useLoyaltyStore((s) => s.transactions);
+  const pointsByBusiness = useLoyaltyStore((s) => s.pointsByBusiness);
   const { missions, loading: missionsLoading, fetchMissions, claimMission } = useMissionsStore();
 
   const [expanded, setExpanded] = useState(false);
@@ -71,6 +74,7 @@ export default function LoyaltyScreen() {
   useEffect(() => {
     fetchMissions();
     useLoyaltyStore.getState().fetchTransactions(5);
+    useLoyaltyStore.getState().fetchPointsByBusiness();
 
     // Entry Animations
     Animated.parallel([
@@ -171,6 +175,61 @@ export default function LoyaltyScreen() {
           <LoyaltyCard loyalty={loyalty} />
         </Animated.View>
 
+        {/* SECCIÓN 1b - Mis puntos por negocio */}
+        {Object.values(pointsByBusiness).length > 0 && (
+          <View style={{ marginTop: 24 }}>
+            <Text style={[styles.sectionTitle, { color: tc.text, marginLeft: 20, marginBottom: 12 }]}>
+              Mis puntos por negocio
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+            >
+              {Object.values(pointsByBusiness).map(biz => (
+                <View
+                  key={biz.businessId}
+                  style={{
+                    width: 130,
+                    borderRadius: 16,
+                    padding: 14,
+                    backgroundColor: tc.bgCard,
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  {biz.logoUrl ? (
+                    <Image
+                      source={{ uri: biz.logoUrl }}
+                      style={{ width: 44, height: 44, borderRadius: 10 }}
+                    />
+                  ) : (
+                    <View style={{
+                      width: 44, height: 44, borderRadius: 10,
+                      backgroundColor: 'rgba(255,107,53,0.15)',
+                      justifyContent: 'center', alignItems: 'center',
+                    }}>
+                      <Text style={{ fontSize: 20, color: COLOR_PRIMARY, fontWeight: '700' }}>
+                        {biz.businessName.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <Text
+                    style={{ fontSize: 12, fontWeight: '600', color: tc.text, textAlign: 'center' }}
+                    numberOfLines={2}
+                  >
+                    {biz.businessName}
+                  </Text>
+                  <Text style={{ fontSize: 22, fontWeight: '800', color: COLOR_PRIMARY }}>
+                    {biz.points}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: tc.textMuted }}>puntos</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* SECCIÓN 2 - Quick Stats */}
         <View style={styles.statsContainer}>
           <StatCard 
@@ -241,22 +300,47 @@ export default function LoyaltyScreen() {
         {/* SECCIÓN 4 - Últimos Movimientos */}
         <Animated.View style={{ opacity: sectionAnims[1].opacity, transform: [{ translateY: sectionAnims[1].translateY }] }}>
           <Text style={[styles.sectionTitle, { marginLeft: 20, marginTop: 24, marginBottom: 16, color: tc.text }]}>Últimos movimientos</Text>
-          <View style={[styles.transactionsContainer, { backgroundColor: tc.bgCard }]}>
+          <View style={[
+            styles.transactionsContainer,
+            { backgroundColor: tc.bgCard },
+            isMobile && {
+              backgroundColor: 'transparent',
+              borderRadius: 0,
+              marginHorizontal: 0,
+              padding: 0,
+              shadowOpacity: 0,
+              elevation: 0,
+            }
+          ]}>
             {transactions.length === 0 ? (
               <Text style={[styles.emptyText, { color: tc.textMuted }]}>No tienes movimientos aún.</Text>
             ) : (
               transactions.map((tx) => (
-                <View key={tx.id} style={[styles.transactionRow, { borderBottomColor: tc.bg }]}>
-                  <View style={styles.txLeft}>
-                    <View style={[styles.txIcon, { backgroundColor: tx.amount > 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }]}>
-                      {renderTransactionIcon(tx.type, tx.amount)}
-                    </View>
-                    <View>
-                      <Text style={[styles.txDesc, { color: tc.text }]} numberOfLines={1}>{tx.description}</Text>
-                      <Text style={[styles.txDate, { color: tc.textMuted }]}>{formatRelativeDate(tx.created_at)}</Text>
-                    </View>
+                <View key={tx.id} style={[
+                  styles.transactionRow,
+                  { borderBottomColor: tc.border },
+                  isMobile && { paddingHorizontal: 20 }
+                ]}>
+                  {/* Ícono */}
+                  <View style={[styles.txIcon, { backgroundColor: tx.amount > 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }]}>
+                    {renderTransactionIcon(tx.type, tx.amount)}
                   </View>
-                  <Text style={[styles.txAmount, { color: tx.amount > 0 ? '#10B981' : '#EF4444' }]}>
+
+                  {/* Texto — columna central */}
+                  <View style={{ flex: 1, marginHorizontal: 12 }}>
+                    <Text style={[styles.txDesc, { color: tc.text }]} numberOfLines={2}>
+                      {tx.description}
+                    </Text>
+                    <Text style={[styles.txDate, { color: tc.textMuted }]}>
+                      {formatRelativeDate(tx.created_at)}
+                    </Text>
+                  </View>
+
+                  {/* Puntos — siempre a la derecha, sin superponerse */}
+                  <Text style={[
+                    styles.txAmount,
+                    { color: tx.amount > 0 ? '#10B981' : '#EF4444' }
+                  ]}>
                     {tx.amount > 0 ? '+' : ''}{tx.amount} pts
                   </Text>
                 </View>
@@ -275,17 +359,26 @@ export default function LoyaltyScreen() {
             {expanded ? <ChevronUp size={20} color={tc.textMuted} /> : <ChevronDown size={20} color={tc.textMuted} />}
           </Pressable>
           <Animated.View style={[styles.accordionContent, { backgroundColor: tc.bg, height: accordionHeight, opacity: accordionHeight.interpolate({ inputRange: [0, 200], outputRange: [0, 1] }) }]}>
-            <View style={[styles.helpItem, { borderBottomColor: tc.border }]}>
-              <ShoppingBag size={18} color={COLOR_PRIMARY} />
-              <Text style={[styles.helpText, { color: tc.textSecondary }]}>1 punto por cada $100 de compra en la app.</Text>
-            </View>
+            {/* Ítem 1 — Misiones publicitarias */}
             <View style={[styles.helpItem, { borderBottomColor: tc.border }]}>
               <Camera size={18} color={COLOR_PRIMARY} />
-              <Text style={[styles.helpText, { color: tc.textSecondary }]}>Cumple misiones de tus tiendas favoritas.</Text>
+              <Text style={[styles.helpText, { color: tc.textSecondary }]}>
+                Los negocios publican misiones publicitarias para sus productos. Completá la misión (como compartir en redes) y ganá puntos.
+              </Text>
             </View>
+            {/* Ítem 2 — Cupos limitados y tiers */}
+            <View style={[styles.helpItem, { borderBottomColor: tc.border }]}>
+              <Target size={18} color={COLOR_PRIMARY} />
+              <Text style={[styles.helpText, { color: tc.textSecondary }]}>
+                Estar atentos a las misiones disponibles — tienen cupos limitados y pueden vencer. Los de mayor tier las ven primero.
+              </Text>
+            </View>
+            {/* Ítem 3 — Canje por negocio */}
             <View style={[styles.helpItem, { borderBottomColor: 'transparent' }]}>
-              <Star size={18} color={COLOR_PRIMARY} />
-              <Text style={[styles.helpText, { color: tc.textSecondary }]}>Califica tus pedidos y deja reseñas.</Text>
+              <Gift size={18} color={COLOR_PRIMARY} />
+              <Text style={[styles.helpText, { color: tc.textSecondary }]}>
+                Los puntos ganados en cada negocio se pueden canjear únicamente en ese negocio, por descuentos o productos. Revisá tus puntos por local en la sección 'Mis puntos por negocio'.
+              </Text>
             </View>
           </Animated.View>
         </Animated.View>
@@ -387,7 +480,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   cardSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,  // era 20 — reducido para que la card no se corte en mobile
     marginTop: 16,
   },
   statsContainer: {
@@ -587,15 +680,9 @@ const styles = StyleSheet.create({
   },
   transactionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  txLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   txIcon: {
     width: 40,
@@ -617,7 +704,8 @@ const styles = StyleSheet.create({
   txAmount: {
     fontSize: 14,
     fontFamily: 'NunitoSans-Bold',
-    marginLeft: 12,
+    textAlign: 'right',
+    minWidth: 64,
   },
   accordionContainer: {
     marginHorizontal: 20,

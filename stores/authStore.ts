@@ -4,8 +4,10 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
 import { useLoyaltyStore } from './loyaltyStore';
 
 // User role type
@@ -50,35 +52,41 @@ interface AuthState {
 
 async function registerPushToken(userId: string) {
     if (Platform.OS === 'web') return;
-    try {
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status !== 'granted') return;
-        const tokenData = await Notifications.getExpoPushTokenAsync();
-        await supabase.from('push_tokens').upsert(
-            {
-                user_id: userId,
-                token: tokenData.data,
-                platform: Platform.OS,
-                is_active: true,
-                updated_at: new Date().toISOString()
-            },
-            { onConflict: 'user_id,token' }
-        );
-    } catch (error) {
-        console.warn('Push token:', error);
+    if (!IS_EXPO_GO) {
+        try {
+            const Notifications = require('expo-notifications');
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status !== 'granted') return;
+            const tokenData = await Notifications.getExpoPushTokenAsync();
+            await supabase.from('push_tokens').upsert(
+                {
+                    user_id: userId,
+                    token: tokenData.data,
+                    platform: Platform.OS,
+                    is_active: true,
+                    updated_at: new Date().toISOString()
+                },
+                { onConflict: 'user_id,token' }
+            );
+        } catch (error) {
+            console.warn('Push token:', error);
+        }
     }
 }
 
 async function deregisterPushToken(userId: string) {
     if (Platform.OS === 'web') return;
-    try {
-        const tokenData = await Notifications.getExpoPushTokenAsync();
-        await supabase.from('push_tokens')
-            .update({ is_active: false })
-            .eq('user_id', userId)
-            .eq('token', tokenData.data);
-    } catch (error) {
-        console.warn('Push deregister:', error);
+    if (!IS_EXPO_GO) {
+        try {
+            const Notifications = require('expo-notifications');
+            const tokenData = await Notifications.getExpoPushTokenAsync();
+            await supabase.from('push_tokens')
+                .update({ is_active: false })
+                .eq('user_id', userId)
+                .eq('token', tokenData.data);
+        } catch (error) {
+            console.warn('Push deregister:', error);
+        }
     }
 }
 

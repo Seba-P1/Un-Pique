@@ -48,7 +48,7 @@ export default function RegisterScreen() {
     const iconColor = tc.isDark ? colors.gray[400] : colors.gray[400];
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: tc.bg }]}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: tc.bg }]} edges={['top']}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <ScrollView
                     contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}

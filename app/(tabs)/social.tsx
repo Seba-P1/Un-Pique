@@ -403,6 +403,7 @@ function CreatePostBox({ tc, onPress }: { tc: ReturnType<typeof useThemeColors>;
                     <MapPin size={16} color="#ef4444" />
                     <Text style={[styles.createActionText, { color: tc.textSecondary }]}>Ubicación</Text>
                 </TouchableOpacity>
+                <View style={{ flex: 1 }} />
                 <TouchableOpacity
                     style={[styles.publishBtn, { backgroundColor: colors.primary.DEFAULT }]}
                     onPress={onPress}
@@ -421,6 +422,9 @@ function InlineComments({ postId, tc, visible }: { postId: string; tc: ReturnTyp
     const { user } = useAuthStore();
     const { profile } = useAuthStore();
     const [comments, setComments] = useState<any[]>([]);
+    const [repliesMap, setRepliesMap] = useState<Record<string, any[]>>({});
+    const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null);
+    const [commentLikes, setCommentLikes] = useState<Set<string>>(new Set());
     const [newComment, setNewComment] = useState('');
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
@@ -433,38 +437,89 @@ function InlineComments({ postId, tc, visible }: { postId: string; tc: ReturnTyp
         if (!postId) return;
         setLoading(true);
         try {
-            // Step 1: fetch comments
-            const { data: rawComments, error } = await supabase
+            const { data, error } = await supabase
                 .from('post_comments')
-                .select('*')
+                .select(`
+                  id,
+                  content,
+                  created_at,
+                  user_id,
+                  parent_comment_id,
+                  likes_count
+                `)
                 .eq('post_id', postId)
-                .order('created_at', { ascending: true })
-                .limit(20);
-            if (error || !rawComments) { setLoading(false); return; }
+                .order('created_at', { ascending: true });
 
-            // Step 2: fetch user profiles for unique user_ids
-            const userIds = [...new Set(rawComments.map(c => c.user_id))];
+            if (error) {
+                console.error('[Comments] error:', error);
+                setLoading(false);
+                return;
+            }
+
+            // Fetch de usuarios por separado
+            const userIds = [...new Set((data || []).map(c => c.user_id))];
+            
             let usersMap: Record<string, any> = {};
             if (userIds.length > 0) {
                 const { data: usersData } = await supabase
                     .from('users')
                     .select('id, full_name, avatar_url')
                     .in('id', userIds);
-                if (usersData) {
-                    usersData.forEach((u: any) => { usersMap[u.id] = u; });
-                }
+                
+                (usersData || []).forEach(u => { usersMap[u.id] = u; });
             }
 
-            // Merge
-            const merged = rawComments.map(c => ({
+            // Combinar comentarios con datos de usuario
+            const commentsWithUsers = (data || []).map(c => ({
                 ...c,
-                user: usersMap[c.user_id] || { id: c.user_id, full_name: 'Usuario', avatar_url: null },
+                users: usersMap[c.user_id] || { id: c.user_id, full_name: 'Usuario', avatar_url: null }
             }));
-            setComments(merged);
+
+            // Separar raíz vs replies
+            const rootComments = commentsWithUsers.filter(c => 
+                c.parent_comment_id === null || c.parent_comment_id === undefined
+            );
+            const rMap: Record<string, any[]> = {};
+            commentsWithUsers.filter(c => c.parent_comment_id).forEach(c => {
+                if (!rMap[c.parent_comment_id]) rMap[c.parent_comment_id] = [];
+                rMap[c.parent_comment_id].push(c);
+            });
+
+            setComments(rootComments);
+            setRepliesMap(rMap);
         } catch (err) {
             console.error('Error al obtener comentarios:', err);
         }
         setLoading(false);
+    };
+
+    const handleLikeComment = async (commentId: string) => {
+        if (!user) return;
+        
+        const { data, error } = await supabase.rpc('toggle_comment_like', {
+            p_comment_id: commentId,
+            p_user_id: user.id,
+        });
+        
+        if (!error && data) {
+            setComments(prev => prev.map(c =>
+                c.id === commentId ? { ...c, likes_count: data.likes_count } : c
+            ));
+            setRepliesMap(prev => {
+                const nextMap = { ...prev };
+                for (const parent in nextMap) {
+                    nextMap[parent] = nextMap[parent].map(c => 
+                        c.id === commentId ? { ...c, likes_count: data.likes_count } : c
+                    );
+                }
+                return nextMap;
+            });
+            setCommentLikes(prev => {
+                const next = new Set(prev);
+                data.liked ? next.add(commentId) : next.delete(commentId);
+                return next;
+            });
+        }
     };
 
     const handleSend = async () => {
@@ -475,25 +530,21 @@ function InlineComments({ postId, tc, visible }: { postId: string; tc: ReturnTyp
         if (!newComment.trim() || !postId) return;
         setSending(true);
         try {
-            const { data, error } = await supabase
-                .from('post_comments')
-                .insert({ post_id: postId, user_id: user.id, content: newComment.trim() })
-                .select('*')
-                .single();
-            if (error) throw error;
-            if (data) {
-                // Attach current user info locally (no need for another DB call)
-                const enrichedComment = {
-                    ...data,
-                    user: {
-                        id: user.id,
-                        full_name: profile?.full_name || user.user_metadata?.full_name || 'Yo',
-                        avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null,
-                    },
-                };
-                setComments(prev => [...prev, enrichedComment]);
-                setNewComment('');
+            const payload: any = {
+                post_id: postId,
+                user_id: user.id,
+                content: newComment.trim(),
+            };
+            if (replyingTo) {
+                payload.parent_comment_id = replyingTo.id;
             }
+
+            const { error } = await supabase.from('post_comments').insert(payload);
+            if (error) throw error;
+            
+            setNewComment('');
+            setReplyingTo(null);
+            fetchComments();
         } catch (err) {
             console.error('Error al enviar comentario:', err);
             showAlert('Error', 'No se pudo enviar el comentario. Intenta de nuevo.');
@@ -512,35 +563,117 @@ function InlineComments({ postId, tc, visible }: { postId: string; tc: ReturnTyp
                     {comments.length > 0 ? (
                         <View style={styles.commentsList}>
                             {comments.map((c) => (
-                                <View key={c.id} style={styles.commentItem}>
-                                    <Image source={{ uri: c.user?.avatar_url || 'https://via.placeholder.com/30' }} style={[styles.commentAvatar, { backgroundColor: tc.bgInput }]} />
-                                    <View style={[styles.commentBubble, { backgroundColor: tc.bgHover }]}>
-                                        <Text style={[styles.commentUser, { color: tc.text }]}>{c.user?.full_name || 'Usuario'}</Text>
-                                        <Text style={[styles.commentText, { color: tc.textSecondary }]}>{c.content}</Text>
+                                <View key={c.id} style={{ marginBottom: 12 }}>
+                                    {/* Root Comment Row */}
+                                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                                        <Image source={{ uri: c.users?.avatar_url || 'https://via.placeholder.com/30' }} style={[styles.commentAvatar, { backgroundColor: tc.bgInput }]} />
+                                        <View style={{ flex: 1 }}>
+                                            <View style={[styles.commentBubble, { backgroundColor: tc.bgHover }]}>
+                                                <Text style={[styles.commentUser, { color: tc.text }]}>{c.users?.full_name || 'Usuario'}</Text>
+                                                <Text style={[styles.commentText, { color: tc.textSecondary }]}>{c.content}</Text>
+                                            </View>
+                                            {/* Acciones y Tiempo */}
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4, marginLeft: 4 }}>
+                                                <Text style={[styles.commentTime, { color: tc.textMuted }]}>
+                                                    {formatDistanceToNow(new Date(c.created_at), { addSuffix: false, locale: es })}
+                                                </Text>
+                                                <TouchableOpacity
+                                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                                                    onPress={() => handleLikeComment(c.id)}
+                                                >
+                                                    <Heart
+                                                        size={13}
+                                                        color={commentLikes.has(c.id) ? '#ef4444' : tc.textMuted}
+                                                        fill={commentLikes.has(c.id) ? '#ef4444' : 'transparent'}
+                                                    />
+                                                    {(c.likes_count || 0) > 0 && (
+                                                        <Text style={{ fontSize: 12, color: tc.textMuted }}>{c.likes_count}</Text>
+                                                    )}
+                                                </TouchableOpacity>
+
+                                                <TouchableOpacity onPress={() => setReplyingTo({ id: c.id, name: c.users?.full_name || 'Usuario' })}>
+                                                    <Text style={{ fontSize: 12, color: tc.textMuted, fontWeight: '500' }}>Responder</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
                                     </View>
-                                    <Text style={[styles.commentTime, { color: tc.textMuted }]}>
-                                        {formatDistanceToNow(new Date(c.created_at), { addSuffix: false, locale: es })}
-                                    </Text>
+
+                                    {/* Replies */}
+                                    {repliesMap[c.id]?.map(reply => (
+                                        <View key={reply.id} style={{ flexDirection: 'row', marginTop: 8, paddingLeft: 44, alignItems: 'flex-start' }}>
+                                            <Image
+                                                source={{ uri: reply.users?.avatar_url || 'https://via.placeholder.com/30' }}
+                                                style={[styles.commentAvatar, { width: 28, height: 28, borderRadius: 14, backgroundColor: tc.bgInput }]}
+                                            />
+                                            <View style={{ flex: 1 }}>
+                                                <View style={[styles.commentBubble, { backgroundColor: tc.bgHover, padding: 8, borderRadius: 12 }]}>
+                                                    <Text style={{ fontSize: 12, fontWeight: '600', color: tc.text }}>
+                                                        {reply.users?.full_name || 'Usuario'}
+                                                    </Text>
+                                                    <Text style={{ fontSize: 13, color: tc.text }}>{reply.content}</Text>
+                                                </View>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4, marginLeft: 4 }}>
+                                                    <Text style={[styles.commentTime, { color: tc.textMuted }]}>
+                                                        {formatDistanceToNow(new Date(reply.created_at), { addSuffix: false, locale: es })}
+                                                    </Text>
+                                                    <TouchableOpacity
+                                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                                                        onPress={() => handleLikeComment(reply.id)}
+                                                    >
+                                                        <Heart
+                                                            size={13}
+                                                            color={commentLikes.has(reply.id) ? '#ef4444' : tc.textMuted}
+                                                            fill={commentLikes.has(reply.id) ? '#ef4444' : 'transparent'}
+                                                        />
+                                                        {(reply.likes_count || 0) > 0 && (
+                                                            <Text style={{ fontSize: 12, color: tc.textMuted }}>{reply.likes_count}</Text>
+                                                        )}
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity onPress={() => setReplyingTo({ id: c.id, name: reply.users?.full_name || 'Usuario' })}>
+                                                        <Text style={{ fontSize: 12, color: tc.textMuted, fontWeight: '500' }}>Responder</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))}
                                 </View>
                             ))}
                         </View>
                     ) : (
                         <Text style={[styles.noComments, { color: tc.textMuted }]}>Sé el primero en comentar</Text>
                     )}
-                    <View style={[styles.commentInputRow, { borderTopColor: tc.borderLight }]}>
-                        <Image source={{ uri: profile?.avatar_url || user?.user_metadata?.avatar_url || 'https://via.placeholder.com/30' }} style={[styles.commentAvatar, { backgroundColor: tc.bgInput }]} />
-                        <TextInput
-                            style={[styles.commentInput, { backgroundColor: tc.bgInput, color: tc.text }]}
-                            placeholder="Escribí un comentario..."
-                            placeholderTextColor={tc.textMuted}
-                            value={newComment}
-                            onChangeText={setNewComment}
-                            maxLength={500}
-                            onSubmitEditing={handleSend}
-                        />
-                        <TouchableOpacity style={[styles.sendBtn, { opacity: newComment.trim() ? 1 : 0.4 }]} onPress={handleSend} disabled={!newComment.trim() || sending}>
-                            {sending ? <ActivityIndicator size="small" color={colors.primary.DEFAULT} /> : <Send size={18} color={colors.primary.DEFAULT} />}
-                        </TouchableOpacity>
+
+                    <View style={{ marginTop: 8 }}>
+                        {replyingTo && (
+                            <View style={{
+                                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                                paddingHorizontal: 12, paddingVertical: 6,
+                                backgroundColor: 'rgba(255,107,53,0.1)',
+                                borderTopLeftRadius: 8, borderTopRightRadius: 8,
+                            }}>
+                                <Text style={{ fontSize: 12, color: '#FF6B35' }}>
+                                    Respondiendo a {replyingTo.name}
+                                </Text>
+                                <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                                    <X size={14} color='#FF6B35' />
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                        <View style={[styles.commentInputRow, { borderTopColor: tc.borderLight }]}>
+                            <Image source={{ uri: profile?.avatar_url || user?.user_metadata?.avatar_url || 'https://via.placeholder.com/30' }} style={[styles.commentAvatar, { backgroundColor: tc.bgInput }]} />
+                            <TextInput
+                                style={[styles.commentInput, { backgroundColor: tc.bgInput, color: tc.text }]}
+                                placeholder="Escribí un comentario..."
+                                placeholderTextColor={tc.textMuted}
+                                value={newComment}
+                                onChangeText={setNewComment}
+                                maxLength={500}
+                                onSubmitEditing={handleSend}
+                            />
+                            <TouchableOpacity style={[styles.sendBtn, { opacity: newComment.trim() ? 1 : 0.4 }]} onPress={handleSend} disabled={!newComment.trim() || sending}>
+                                {sending ? <ActivityIndicator size="small" color={colors.primary.DEFAULT} /> : <Send size={18} color={colors.primary.DEFAULT} />}
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </>
             )}
@@ -650,6 +783,9 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
                 contentContainerStyle={{ paddingBottom: 100, paddingTop: 4 }}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
+                ItemSeparatorComponent={() => (
+                    <View style={{ height: 8, backgroundColor: 'rgba(128,128,128,0.15)' }} />
+                )}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary.DEFAULT]} tintColor={colors.primary.DEFAULT} />
                 }
@@ -815,6 +951,7 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
     const [saveFlash, setSaveFlash] = useState(false);
     const { width } = useWindowDimensions();
     const showActionText = width >= 768;
+    const isMobile = width < 768;
 
     const handleSave = () => {
         if (!user) {
@@ -867,7 +1004,20 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
     const parsed = parseContent(item.content);
 
     return (
-        <View style={[styles.postCard, { backgroundColor: tc.bgCard, borderColor: tc.borderLight }]}>
+        <View style={[
+            styles.postCard, 
+            { backgroundColor: tc.bgCard },
+            isMobile ? {
+                borderWidth: 0,
+                borderRadius: 0,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: tc.borderLight,
+                marginHorizontal: 0,
+                marginBottom: 0,
+            } : {
+                borderColor: tc.borderLight,
+            }
+        ]}>
             {/* Cabecera — Avatar + Nombre + Hora + Ubicación */}
             <View style={styles.postHeader}>
                 <Pressable style={[styles.userInfo, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={() => router.push(`/profile/${item.author_id}` as any)}>
@@ -958,19 +1108,29 @@ function PostCard({ item, tc, isDesktop, toggleLike, isLiked, toggleComments, ex
             {/* Acciones — Me gusta, Comentar, Compartir, Guardar */}
             <View style={[styles.actionBar, { borderBottomColor: tc.borderLight }]}>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={() => toggleLike(item.id)}>
-                    <Heart size={18} color={liked ? colors.danger : tc.textSecondary} fill={liked ? colors.danger : 'transparent'} />
+                    <Heart size={20} color={liked ? colors.danger : tc.textSecondary} fill={liked ? colors.danger : 'transparent'} />
+                    {item.likes_count > 0 && (
+                        <Text style={[styles.actionCount, { color: liked ? colors.danger : tc.textSecondary }]}>
+                            {item.likes_count}
+                        </Text>
+                    )}
                     {showActionText && <Text style={[styles.actionText, { color: liked ? colors.danger : tc.textSecondary }]}>Me gusta</Text>}
                 </Pressable>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={() => toggleComments(item.id)}>
-                    <MessageCircle size={18} color={tc.textSecondary} />
+                    <MessageCircle size={20} color={tc.textSecondary} />
+                    {item.comments_count > 0 && (
+                        <Text style={[styles.actionCount, { color: tc.textSecondary }]}>
+                            {item.comments_count}
+                        </Text>
+                    )}
                     {showActionText && <Text style={[styles.actionText, { color: tc.textSecondary }]}>Comentar</Text>}
                 </Pressable>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={handleShare}>
-                    <Share2 size={18} color={tc.textSecondary} />
+                    <Share2 size={20} color={tc.textSecondary} />
                     {showActionText && <Text style={[styles.actionText, { color: tc.textSecondary }]}>Compartir</Text>}
                 </Pressable>
                 <Pressable style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.6 }]} onPress={handleSave}>
-                    <Bookmark size={18} color={saved ? colors.primary.DEFAULT : tc.textSecondary} fill={saved ? colors.primary.DEFAULT : 'transparent'} />
+                    <Bookmark size={20} color={saved ? colors.primary.DEFAULT : tc.textSecondary} fill={saved ? colors.primary.DEFAULT : 'transparent'} />
                     {showActionText && <Text style={[styles.actionText, { color: saved ? colors.primary.DEFAULT : tc.textSecondary }]}>{saved ? 'Guardado' : 'Guardar'}</Text>}
                 </Pressable>
             </View>
@@ -1251,6 +1411,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderTopWidth: 1,
         gap: 4,
+        flexWrap: 'wrap',
     },
     createAction: {
         flexDirection: 'row',
@@ -1345,17 +1506,18 @@ const styles = StyleSheet.create({
     actionBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 5,
-        paddingVertical: 10,
-        paddingHorizontal: 10,
-        borderRadius: 999,
-        flex: 1,
+        gap: 4,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+    },
+    actionCount: {
+        fontSize: 13,
+        fontWeight: '500',
     },
     actionText: { fontSize: 11, fontWeight: '600' },
 
     // — Comentarios —
-    inlineComments: { borderTopWidth: 0.5 },
+    inlineComments: { borderTopWidth: 0.5, paddingBottom: 12 },
     commentsList: { padding: 10, gap: 8 },
     commentItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
     commentAvatar: { width: 30, height: 30, borderRadius: 15 },

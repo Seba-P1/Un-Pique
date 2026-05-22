@@ -242,16 +242,21 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
             <View style={styles.drawerOverlay}>
-                <TouchableOpacity style={styles.drawerOverlayBg} activeOpacity={1} onPress={onClose} />
-                <View style={[styles.drawerPanel, { backgroundColor: tc.bgCard, paddingBottom: Math.max(insets.bottom, 16) }]}>
+                <View style={[styles.drawerPanel, { backgroundColor: tc.bgCard, paddingBottom: Math.max(insets.bottom, 16), paddingTop: insets.top + 8 }]}>
                     {/* Logo Area - Maximized */}
                     <View style={styles.drawerLogoArea}>
+                        {/* Botón X — posición absoluta para no empujar el logo */}
+                        <TouchableOpacity 
+                            onPress={onClose} 
+                            style={{ position: 'absolute', right: 12, padding: 8, zIndex: 1 }}
+                        >
+                            <X size={22} color={tc.text} />
+                        </TouchableOpacity>
+
+                        {/* Logo centrado */}
                         <View style={styles.drawerLogoWrapper}>
                             <Image source={logoSource} style={{ width: '100%', height: '100%' }} contentFit="contain" />
                         </View>
-                        <TouchableOpacity onPress={onClose} style={styles.drawerCloseBtn}>
-                            <X size={20} color={tc.text} />
-                        </TouchableOpacity>
                     </View>
 
                     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -408,7 +413,6 @@ export default function TabsLayout() {
                         listeners={{
                             tabPress: () => { },
                         }}
-                        initialParams={{ openDrawer: () => setDrawerVisible(true) }}
                     />
                     <Tabs.Screen
                         name="marketplace"
@@ -605,29 +609,27 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.4)',
     },
     drawerPanel: {
-        width: '85%',
-        maxWidth: 300,
+        width: '100%',
         height: '100%',
         position: 'absolute',
         left: 0,
         top: 0,
         bottom: 0,
-        paddingTop: 40,
     },
     drawerLogoArea: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingBottom: 20,
+        justifyContent: 'center',
+        paddingHorizontal: 12,
+        paddingBottom: 16,
         borderBottomWidth: 0,
     },
     drawerLogoWrapper: {
-        width: 150,
-        height: 44,
+        width: 220,
+        height: 64,
     },
     drawerCloseBtn: {
-        padding: 6,
+        padding: 8,
     },
     drawerSectionTitle: {
         fontSize: 10,

@@ -40,15 +40,24 @@ export interface LoyaltyTransaction {
   business_id: string | null;
 }
 
+export interface PointsByBusinessEntry {
+  businessId: string;
+  businessName: string;
+  logoUrl: string | null;
+  points: number;
+}
+
 export interface LoyaltyState {
   loyalty: UserLoyalty | null;
   transactions: LoyaltyTransaction[];
+  pointsByBusiness: Record<string, PointsByBusinessEntry>;
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   fetchLoyalty: () => Promise<void>;
   fetchTransactions: (limit?: number) => Promise<void>;
+  fetchPointsByBusiness: () => Promise<void>;
   refreshLoyalty: () => Promise<void>;
   reset: () => void;
 }
@@ -56,6 +65,7 @@ export interface LoyaltyState {
 export const useLoyaltyStore = create<LoyaltyState>((set, get) => ({
   loyalty: null,
   transactions: [],
+  pointsByBusiness: {},
   loading: false,
   error: null,
 
@@ -132,7 +142,61 @@ export const useLoyaltyStore = create<LoyaltyState>((set, get) => ({
     ]);
   },
 
+  fetchPointsByBusiness: async () => {
+    const userId = useAuthStore.getState().user?.id;
+    if (!userId) return;
+
+    try {
+      // Paso 1: traer transacciones agrupadas por business_id
+      const { data: txData, error } = await supabase
+        .from('loyalty_transactions')
+        .select('business_id, amount')
+        .eq('user_id', userId)
+        .not('business_id', 'is', null);
+
+      if (error || !txData) return;
+
+      // Calcular puntos netos por negocio (positivos y negativos)
+      const pointsMap: Record<string, number> = {};
+      txData.forEach(tx => {
+        if (tx.business_id) {
+          pointsMap[tx.business_id] = (pointsMap[tx.business_id] || 0) + tx.amount;
+        }
+      });
+
+      // Solo mostrar negocios con puntos positivos
+      const businessIds = Object.keys(pointsMap).filter(id => pointsMap[id] > 0);
+      if (businessIds.length === 0) {
+        set({ pointsByBusiness: {} });
+        return;
+      }
+
+      // Paso 2: traer info de los negocios
+      const { data: businessData } = await supabase
+        .from('businesses')
+        .select('id, name, logo_url')
+        .in('id', businessIds);
+
+      const result: Record<string, PointsByBusinessEntry> = {};
+      businessIds.forEach(bizId => {
+        const biz = businessData?.find(b => b.id === bizId);
+        if (biz && pointsMap[bizId] > 0) {
+          result[bizId] = {
+            businessId: bizId,
+            businessName: biz.name,
+            logoUrl: biz.logo_url,
+            points: pointsMap[bizId],
+          };
+        }
+      });
+
+      set({ pointsByBusiness: result });
+    } catch (err) {
+      console.error('Error fetching points by business:', err);
+    }
+  },
+
   reset: () => {
-    set({ loyalty: null, transactions: [], loading: false, error: null });
+    set({ loyalty: null, transactions: [], pointsByBusiness: {}, loading: false, error: null });
   }
 }));

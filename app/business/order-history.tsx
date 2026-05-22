@@ -39,7 +39,7 @@ export default function OrderHistoryScreen() {
 
     const renderOrder = ({ item }: { item: Order }) => {
         const isCancelled = item.status === 'cancelled';
-        const user = item.user;
+        const user = item.customer;
         const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Cliente')}`;
         
         const simplifiedItems = item.order_items
@@ -69,13 +69,13 @@ export default function OrderHistoryScreen() {
                         )}
                     </View>
                     <Text style={[styles.customerName, { color: tc.textSecondary }]} numberOfLines={1}>
-                        {user?.full_name || user?.email || 'Cliente anónimo'}
+                        {user?.full_name || 'Cliente anónimo'}
                     </Text>
                     <Text style={[styles.itemsText, { color: tc.textMuted }]} numberOfLines={2}>
                         {simplifiedItems}
                     </Text>
                     <View style={styles.orderFooter}>
-                        <Text style={[styles.totalText, { color: tc.text }]}>${(item.total_amount || 0).toLocaleString()}</Text>
+                        <Text style={[styles.totalText, { color: tc.text }]}>${(item.total || 0).toLocaleString()}</Text>
                         <View style={styles.dateRow}>
                             <Clock size={10} color={tc.textMuted} />
                             <Text style={[styles.dateText, { color: tc.textMuted }]}>{formatTime(item.created_at)}</Text>

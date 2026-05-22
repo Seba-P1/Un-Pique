@@ -107,7 +107,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
                 supabase.from('subscriptions').select('plan_type, status, price, expires_at'),
                 supabase.from('advertisements').select('price, status, impressions, clicks'),
                 supabase.from('businesses').select('id, is_open'),
-                supabase.from('orders').select('id, total_amount, created_at'),
+                supabase.from('orders').select('id, total, created_at'),
             ]);
 
             const commissions = commissionsRes.data || [];

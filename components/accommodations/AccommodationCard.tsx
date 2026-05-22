@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Share, Animated, Pressable, Platform } from 'react-native';
 import { Heart, Share2, Star, MapPin, Users, Home } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -38,40 +38,30 @@ export function AccommodationCard({ listing, onPress, onShare, isDesktop = false
     }
   };
 
+  // State to handle shadow elevation on press
+  const [isPressed, setIsPressed] = useState(false);
+
   // Premium interaction animations
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const shadowAnim = useRef(new Animated.Value(Platform.OS === 'web' ? 0.08 : 0.08)).current;
 
   const handlePressIn = () => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 0.97,
-        stiffness: 250,
-        damping: 20,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.timing(shadowAnim, {
-        toValue: 0.15,
-        duration: 200,
-        useNativeDriver: false, // shadowOpacity not supported by native driver
-      })
-    ]).start();
+    setIsPressed(true);
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      stiffness: 250,
+      damping: 20,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handlePressOut = () => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        stiffness: 250,
-        damping: 20,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.timing(shadowAnim, {
-        toValue: 0.08,
-        duration: 200,
-        useNativeDriver: false,
-      })
-    ]).start();
+    setIsPressed(false);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      stiffness: 250,
+      damping: 20,
+      useNativeDriver: true,
+    }).start();
   };
 
   return (
@@ -88,7 +78,8 @@ export function AccommodationCard({ listing, onPress, onShare, isDesktop = false
             borderColor: tc.borderLight,
             height: isDesktop ? 120 : 110,
             transform: [{ scale: scaleAnim }],
-            shadowOpacity: shadowAnim as any,
+            elevation: isPressed ? 2 : 8,
+            shadowOpacity: isPressed ? 0.1 : 0.3,
           },
           Platform.OS === 'web' && {
             transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',

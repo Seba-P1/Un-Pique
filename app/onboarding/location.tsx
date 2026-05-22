@@ -34,7 +34,7 @@ export default function OnboardingLocation() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             <View style={styles.header}>
                 <Text style={[styles.title, { color: tc.text }]}>Elegí tu localidad</Text>
                 <Text style={[styles.subtitle, { color: tc.textMuted }]}>Seleccioná dónde querés usar Un Pique</Text>

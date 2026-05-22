@@ -8,6 +8,7 @@ import {
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { showAlert } from '../../utils/alert';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const renderIcon = (Icon: any, size: number, color: string) => <Icon size={size} color={color} />;
 
@@ -117,13 +118,18 @@ export const CategoriesGrid = () => {
                         activeOpacity={0.8}
                     >
                         <Image source={{ uri: item.image }} style={styles.cardImage} resizeMode="cover" />
-                        <View style={[styles.cardOverlay, { backgroundColor: item.gradient + 'CC' }]}>
-                            <View style={styles.iconBadge}>
-                                {renderIcon(item.icon, 20, '#fff')}
-                            </View>
+                        {/* Ícono flotante arriba — sin overlay de fondo sólido */}
+                        <View style={styles.iconBadgeFloat}>
+                            {renderIcon(item.icon, 18, '#fff')}
+                        </View>
+                        {/* Overlay gradiente solo en la parte inferior */}
+                        <LinearGradient
+                            colors={['transparent', 'rgba(0,0,0,0.75)']}
+                            style={styles.cardBottomOverlay}
+                        >
                             <Text style={styles.cardName}>{item.name}</Text>
                             <Text style={styles.cardDesc}>{item.description}</Text>
-                        </View>
+                        </LinearGradient>
                     </TouchableOpacity>
                 ))}
             </ScrollView>
@@ -145,8 +151,29 @@ const styles = StyleSheet.create({
         ...(Platform.OS === 'web' ? { boxShadow: '0px 8px 24px rgba(0,0,0,0.1)' } : { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 6 }),
     },
     cardImage: { width: '100%', height: '100%', position: 'absolute' },
-    cardOverlay: { flex: 1, justifyContent: 'flex-end', padding: 12 },
-    iconBadge: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+    iconBadgeFloat: {
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: 'rgba(0,0,0,0.35)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cardBottomOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: '45%',
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        justifyContent: 'flex-end',
+        padding: 12,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+    },
     cardName: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
     cardDesc: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '500', marginTop: 3 },
 });

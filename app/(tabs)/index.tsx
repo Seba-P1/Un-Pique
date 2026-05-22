@@ -17,7 +17,6 @@ import { useLocationStore, Locality } from '../../stores/locationStore';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useRouter } from 'expo-router';
 import { showAlert } from '../../utils/alert';
-import { openMobileDrawer } from './_layout';
 import { AppHeader } from '../../components/ui/AppHeader';
 import { supabase } from '../../lib/supabase';
 import { Business } from '../../stores/businessStore';

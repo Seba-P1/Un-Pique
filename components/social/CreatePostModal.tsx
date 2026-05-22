@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback } from 'react-native';
-import { X, Image as ImageIcon, Loader, Send } from 'lucide-react-native';
+import { X, Image as ImageIcon, Loader, Send, Camera } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useSocialStore } from '../../stores/socialStore';
 import { useLocationStore } from '../../stores/locationStore';
@@ -63,6 +63,27 @@ export function CreatePostModal({ visible, onClose, editPost }: CreatePostModalP
         } catch (error) {
             console.error('Error uploading image:', error);
             throw error;
+        }
+    };
+
+    const handleCameraCapture = async () => {
+        if (Platform.OS === 'web') return; // cámara no disponible en web
+
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            showAlert('Permiso denegado', 'Necesitamos acceso a la cámara para tomar fotos');
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets?.[0]) {
+            setSelectedImage(result.assets[0].uri);
         }
     };
 
@@ -190,13 +211,26 @@ export function CreatePostModal({ visible, onClose, editPost }: CreatePostModalP
 
                             {/* Actions Footer */}
                             <View style={[styles.footer, { borderTopColor: tc.borderLight }]}>
-                                <TouchableOpacity
-                                    style={styles.actionButton}
-                                    onPress={pickImage}
-                                    disabled={uploading || !!selectedImage}
-                                >
-                                    <ImageIcon size={24} color={selectedImage ? tc.textMuted : colors.success} />
-                                </TouchableOpacity>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <TouchableOpacity
+                                        style={styles.actionButton}
+                                        onPress={pickImage}
+                                        disabled={uploading || !!selectedImage}
+                                    >
+                                        <ImageIcon size={24} color={selectedImage ? tc.textMuted : colors.success} />
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={styles.actionButton}
+                                        onPress={handleCameraCapture}
+                                        disabled={uploading || !!selectedImage}
+                                    >
+                                        <Camera
+                                            size={24}
+                                            color={selectedImage ? tc.textMuted : colors.primary.DEFAULT}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
 
                                 <TouchableOpacity
                                     style={[

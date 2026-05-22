@@ -44,7 +44,7 @@ export default function LoginScreen() {
     const iconColor = tc.isDark ? colors.gray[400] : colors.gray[400];
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: tc.bg }]}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: tc.bg }]} edges={['top']}>
             {/* Theme Toggle */}
             <TouchableOpacity
                 style={[styles.themeToggle, { backgroundColor: tc.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}

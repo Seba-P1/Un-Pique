@@ -215,7 +215,11 @@ export default function RootLayout() {
 
     // Sync theme store with NativeWind
     useEffect(() => {
-        setColorScheme(theme);
+        try {
+            setColorScheme(theme);
+        } catch (e) {
+            // silenciar: ocurre solo en Expo Go antes de que NativeWind esté inicializado
+        }
         if (Platform.OS === 'web') {
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark');

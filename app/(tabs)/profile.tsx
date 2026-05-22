@@ -15,7 +15,7 @@ import {
 import colors from '../../constants/colors';
 import { showAlert } from '../../utils/alert';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useOpenMobileDrawer, setOpenCreatePostFn } from './_layout';
+import { setOpenCreatePostFn } from './_layout';
 import { formatDistanceToNow, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AppHeader } from '../../components/ui/AppHeader';
@@ -39,7 +39,6 @@ export default function ProfileScreen() {
     const tc = useThemeColors();
     const router = useRouter();
     const { width } = useWindowDimensions();
-    const openDrawer = useOpenMobileDrawer();
     const [activeView, setActiveView] = useState<ProfileView>('wall');
     const [createPostVisible, setCreatePostVisible] = useState(false);
 

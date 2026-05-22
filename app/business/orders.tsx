@@ -99,7 +99,7 @@ export default function BusinessOrdersScreen() {
                     <View style={styles.orderTopLeft}>
                         <Text style={[styles.orderId, { color: tc.text }]}>#{order.id.slice(0, 5)}</Text>
                         <Text style={[styles.orderCustomer, { color: tc.textSecondary }]} numberOfLines={1}>
-                            {order.user?.full_name || order.user?.email || 'Cliente'}
+                            {order.customer?.full_name || 'Cliente'}
                         </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
@@ -118,7 +118,7 @@ export default function BusinessOrdersScreen() {
                 </View>
 
                 <View style={[styles.orderBot, { borderTopColor: tc.borderLight }]}>
-                    <Text style={[styles.orderTotal, { color: tc.text }]}>${(order.total_amount || 0).toLocaleString()}</Text>
+                    <Text style={[styles.orderTotal, { color: tc.text }]}>${(order.total || 0).toLocaleString()}</Text>
                     
                     <View style={styles.actionRow}>
                         {order.status === 'pending' && (

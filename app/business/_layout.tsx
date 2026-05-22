@@ -8,10 +8,12 @@ import { Menu, Home, ListOrdered, Settings, AlertTriangle } from 'lucide-react-n
 import { useAuthStore } from '../../stores/authStore';
 import { useBusinessStore } from '../../stores/businessStore';
 import { usePricingStore } from '../../stores/pricingStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BusinessLayout() {
     const tc = useThemeColors();
     const { width } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
     const isDesktop = width >= 768;
     const router = useRouter();
 
@@ -106,8 +108,10 @@ export default function BusinessLayout() {
     return (
         <View style={{ flex: 1, backgroundColor: tc.bg }}>
             {/* Header estilizado */}
+            {/* Corrección de Safe Area: Ajuste dinámico de la altura y espaciado superior en móviles para no superponerse con el notch o barra de estado */}
             <View style={{
-                height: 52,
+                height: 52 + insets.top,
+                paddingTop: insets.top,
                 backgroundColor: 'rgba(25, 25, 25, 0.95)',
                 borderBottomLeftRadius: 20,
                 borderBottomRightRadius: 20,

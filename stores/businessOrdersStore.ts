@@ -5,7 +5,7 @@ export interface Order {
     id: string;
     business_id: string;
     user_id: string;
-    total_amount: number;
+    total: number;
     delivery_fee: number;
     status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'in_transit' | 'delivered' | 'completed' | 'cancelled';
     payment_status: 'pending' | 'approved' | 'rejected';
@@ -14,10 +14,10 @@ export interface Order {
     created_at: string;
     updated_at: string;
     // Relaciones
-    user?: {
+    customer?: {
         id: string;
-        email: string;
         full_name?: string;
+        avatar_url?: string;
     };
     order_items?: OrderItem[];
 }
@@ -77,7 +77,7 @@ export const useBusinessOrdersStore = create<BusinessOrdersState>((set, get) => 
                 .from('orders')
                 .select(`
                     *,
-                    user:users(id, email, full_name),
+                    customer:users!customer_id(id, full_name, avatar_url),
                     order_items(
                         *,
                         product:products(id, name, image_url)
@@ -104,24 +104,29 @@ export const useBusinessOrdersStore = create<BusinessOrdersState>((set, get) => 
     fetchOrderStats: async (businessId: string) => {
         try {
             const { data, error } = await supabase
-                .from('business_order_summary')
-                .select('*')
-                .eq('business_id', businessId)
-                .single();
+                .from('orders')
+                .select('status, total')
+                .eq('business_id', businessId);
 
             if (error) throw error;
 
+            const orders = data || [];
             const stats: OrderStats = {
-                total: data.total_orders || 0,
-                pending: data.pending_orders || 0,
-                preparing: data.preparing_orders || 0,
-                ready: data.ready_orders || 0,
-                in_transit: data.in_transit_orders || 0,
-                delivered: data.delivered_orders || 0,
-                cancelled: data.cancelled_orders || 0,
-                total_revenue: data.total_revenue || 0,
+                total: orders.length,
+                pending: orders.filter(o => o.status === 'pending').length,
+                preparing: orders.filter(o => 
+                    o.status === 'preparing' || o.status === 'confirmed'
+                ).length,
+                ready: orders.filter(o => o.status === 'ready').length,
+                in_transit: orders.filter(o => o.status === 'in_transit').length,
+                delivered: orders.filter(o => 
+                    o.status === 'delivered' || o.status === 'completed'
+                ).length,
+                cancelled: orders.filter(o => o.status === 'cancelled').length,
+                total_revenue: orders
+                    .filter(o => o.status === 'delivered' || o.status === 'completed')
+                    .reduce((acc, o) => acc + (Number(o.total) || 0), 0),
             };
-
             set({ stats });
         } catch (error: any) {
             console.error('Error fetching order stats:', error);
@@ -173,7 +178,7 @@ export const useBusinessOrdersStore = create<BusinessOrdersState>((set, get) => 
                         .from('orders')
                         .select(`
                             *,
-                            user:users(id, email, full_name),
+                            customer:users!customer_id(id, full_name, avatar_url),
                             order_items(
                                 *,
                                 product:products(id, name, image_url)

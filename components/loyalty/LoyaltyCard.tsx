@@ -25,8 +25,9 @@ const TIER_LABELS = {
 };
 
 const { width: windowWidth } = Dimensions.get('window');
-const CARD_WIDTH = Math.min(windowWidth - 24, 380);
-const CARD_HEIGHT = CARD_WIDTH / 1.586; // Tarjeta de crédito aspect ratio
+// Usamos el ancho de ventana para el shimmer, pero el layout se maneja con '100%'
+const CARD_WIDTH = Math.min(windowWidth - 32, 380);
+const CARD_HEIGHT = CARD_WIDTH / 1.586; // Proporción tarjeta de crédito
 
 export default function LoyaltyCard({ loyalty, compact = false, onPress }: LoyaltyCardProps) {
   const profile = useAuthStore((s) => s.profile);
@@ -124,7 +125,6 @@ export default function LoyaltyCard({ loyalty, compact = false, onPress }: Loyal
           {
             opacity: opacityAnim,
             transform: [{ scale: scaleAnim }],
-            width: CARD_WIDTH,
             height: CARD_HEIGHT,
           }
         ]}>
@@ -198,8 +198,8 @@ export default function LoyaltyCard({ loyalty, compact = false, onPress }: Loyal
 
 const styles = StyleSheet.create({
   container: {
-    width: CARD_WIDTH,
-    maxWidth: '100%',
+    width: '100%',
+    maxWidth: 420,
     alignSelf: 'center',
     marginVertical: 12,
   },
@@ -300,8 +300,8 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     marginTop: 24,
-    width: CARD_WIDTH,
-    maxWidth: '100%',
+    width: '100%',
+    maxWidth: 420,
     alignSelf: 'center',
   },
   progressLabels: {

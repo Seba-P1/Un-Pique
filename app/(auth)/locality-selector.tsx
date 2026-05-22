@@ -101,7 +101,7 @@ export default function LocalitySelectorScreen() {
     }
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             <View style={[styles.header, { backgroundColor: tc.bgCard }]}>
                 <Text style={[styles.title, { color: tc.text }]}>Selecciona tu localidad</Text>
                 <Text style={[styles.subtitle, { color: tc.textSecondary }]}>

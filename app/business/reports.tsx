@@ -62,14 +62,14 @@ export default function ReportsScreen() {
 
             const { data, error } = await supabase
                 .from('orders')
-                .select('total, user_id')
+                .select('total, customer_id')
                 .eq('business_id', bId)
                 .in('status', ['completed', 'delivered'])
                 .gte('created_at', dateFilter.toISOString());
 
             if (data) {
                 const totalRev = data.reduce((acc, curr) => acc + Number(curr.total), 0);
-                const uniqueCustomers = new Set(data.map(d => d.user_id)).size;
+                const uniqueCustomers = new Set(data.map(d => d.customer_id)).size;
                 const orderCount = data.length;
                 
                 setRealStats({

@@ -17,7 +17,7 @@ export default function OnboardingFeatures() {
     ];
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.push('/onboarding/location')}>
                     <Text style={[styles.skipText, { color: tc.textMuted }]}>Omitir</Text>
