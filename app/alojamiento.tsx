@@ -228,6 +228,7 @@ export default function AlojamientoScreen() {
   const tc = useThemeColors();
   const { width, height: windowHeight } = useWindowDimensions();
   const isDesktop = width >= 768;
+  const isMobile = !isDesktop;
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuthStore();
 
@@ -492,7 +493,7 @@ export default function AlojamientoScreen() {
               </View>
 
               {/* CONTENIDO */}
-              <View style={s.detailContent}>
+              <View style={[s.detailContent, isMobile && { paddingHorizontal: 12 }]}>
                 <View style={s.detailHeaderRow}>
                   <View style={{ flex: 1, paddingRight: 16 }}>
                     <Text style={[s.detailTitle, { color: tc.text }]}>{l.title}</Text>
@@ -745,7 +746,8 @@ export default function AlojamientoScreen() {
             {/* BOTTOM BAR */}
             <View style={[
               s.bottomBar,
-              { paddingBottom: isDesktop ? 20 : insets.bottom + 12 }
+              { paddingBottom: isDesktop ? 20 : insets.bottom + 12 },
+              isMobile && { paddingHorizontal: 12 }
             ]}>
               <View style={[s.bottomBarRow, { justifyContent: 'center' }]}>
                 {l.phone ? (
@@ -927,7 +929,7 @@ export default function AlojamientoScreen() {
   const renderListHeader = () => (
     <>
       {/* SEARCH BAR */}
-      <View style={[s.searchContainer, { backgroundColor: tc.bgInput }]}>
+      <View style={[s.searchContainer, { backgroundColor: tc.bgInput }, isMobile && { marginHorizontal: 8 }]}>
         <Search size={18} color={tc.textSecondary} />
         <TextInput
           style={[s.searchInput, { color: tc.text }, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}

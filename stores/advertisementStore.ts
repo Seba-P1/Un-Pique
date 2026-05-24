@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { usePricingStore } from './pricingStore';
 
 export interface Advertisement {
     id: string;
@@ -38,7 +39,7 @@ export const AD_PLANS: Record<string, AdPlan> = {
         price: 15000,
         duration: 7,
         placements: ['social_feed', 'stories', 'home_banner'],
-        description: 'Ahorrá $20,000 con el plan semanal',
+        description: 'Ahorrá con el plan semanal',
     },
     monthly: {
         id: 'monthly',
@@ -49,6 +50,16 @@ export const AD_PLANS: Record<string, AdPlan> = {
         description: 'Máxima visibilidad, mejor precio',
     },
 };
+
+// Retorna los planes con precios dinámicos desde pricingStore (o los defaults si no cargó aún)
+export function getAdPlans(): Record<string, AdPlan> {
+    const { getAdPrice } = usePricingStore.getState();
+    return {
+        daily: { ...AD_PLANS.daily, price: getAdPrice('daily') },
+        weekly: { ...AD_PLANS.weekly, price: getAdPrice('weekly') },
+        monthly: { ...AD_PLANS.monthly, price: getAdPrice('monthly') },
+    };
+}
 
 interface AdvertisementState {
     ads: Advertisement[];
@@ -113,7 +124,8 @@ export const useAdvertisementStore = create<AdvertisementState>((set, get) => ({
     purchaseAd: async (businessId: string, planType: 'daily' | 'weekly' | 'monthly') => {
         set({ loading: true, error: null });
         try {
-            const plan = AD_PLANS[planType];
+            // Usar precios dinámicos desde pricingStore
+            const plan = getAdPlans()[planType];
 
             // Crear registro de publicidad (estado pending)
             const { data: ad, error } = await supabase

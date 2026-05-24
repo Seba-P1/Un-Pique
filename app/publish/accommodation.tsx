@@ -192,6 +192,7 @@ export default function PublishAccommodationScreen() {
   const webInputStyle = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null;
   const { width: screenWidth } = useWindowDimensions();
   const isDesktop = screenWidth >= 768;
+  const isMobile = screenWidth < 768;
   const mapFadeAnim = useRef(new Animated.Value(0)).current;
   // Contribution system
   const [isContribution, setIsContribution] = useState(false);
@@ -937,7 +938,7 @@ export default function PublishAccommodationScreen() {
 
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, isMobile && { paddingHorizontal: 12 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
