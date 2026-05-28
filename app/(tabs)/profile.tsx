@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, Platform, Image, Pressable, ActivityIndicator, Animated } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocialStore, Post } from '../../stores/socialStore';
 import { useListingStore } from '../../stores/listingStore';
@@ -37,6 +38,7 @@ export default function ProfileScreen() {
     const { userListings, fetchUserListings } = useListingStore();
     const { theme, setTheme } = useThemeStore();
     const tc = useThemeColors();
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const { width } = useWindowDimensions();
     const [activeView, setActiveView] = useState<ProfileView>('wall');
@@ -164,7 +166,6 @@ export default function ProfileScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: tc.bg }]}>
-            {/* Header flotante sobre el cover */}
             <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 }}>
                 <AppHeader
                     subtitle="MI CUENTA"
@@ -172,6 +173,7 @@ export default function ProfileScreen() {
                     leftIcon="menu"
                     rightButtons={['messages', 'notifications']}
                     scrollY={scrollY}
+                    safeAreaTop
                 />
             </View>
 

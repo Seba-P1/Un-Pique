@@ -84,23 +84,28 @@ export default function HomeScreen() {
         // Independent loading states — never block the whole screen
         setLoadingFeatured(true);
         setLoadingNew(true);
+        console.log('[Home] fetchHomeData triggered. currentLocality:', currentLocality?.id);
 
         try {
             // Step 1: Get all locality IDs in this region
-            const { data: regionLocalities } = await supabase
+            const { data: regionLocalities, error: regionErr } = await supabase
                 .from('localities')
                 .select('id')
                 .eq('region_id', REGION_ID);
+
+            console.log('[Home] regionLocalities result:', regionLocalities?.length, 'error:', regionErr?.message);
 
             const localityIds = regionLocalities && regionLocalities.length > 0
                 ? regionLocalities.map((l: any) => l.id)
                 : [currentLocality?.id || FALLBACK_LOCALITY_ID];
 
+            console.log('[Home] resolved localityIds for query:', localityIds.length, 'ids');
+
             // ── Fetch Featured (independent) ──────────────────────
             (async () => {
                 try {
                     // Try is_featured = true first
-                    const { data: featuredData } = await supabase
+                    const { data: featuredData, error: featErr } = await supabase
                         .from('businesses')
                         .select('*')
                         .eq('is_active', true)
@@ -109,11 +114,13 @@ export default function HomeScreen() {
                         .order('created_at', { ascending: false })
                         .limit(6);
 
+                    console.log('[Home] fetchFeatured (is_featured=true):', featuredData?.length, 'err:', featErr?.message);
+
                     if (featuredData && featuredData.length > 0) {
                         setFeaturedBusinesses(featuredData.map(formatBusiness));
                     } else {
                         // Fallback: top by total_orders
-                        const { data: fallbackData } = await supabase
+                        const { data: fallbackData, error: fallErr } = await supabase
                             .from('businesses')
                             .select('*')
                             .eq('is_active', true)
@@ -121,6 +128,7 @@ export default function HomeScreen() {
                             .order('total_orders', { ascending: false, nullsFirst: false })
                             .limit(6);
 
+                        console.log('[Home] fetchFeatured fallback:', fallbackData?.length, 'err:', fallErr?.message);
                         setFeaturedBusinesses((fallbackData || []).map(formatBusiness));
                     }
                 } catch (err) {
@@ -134,7 +142,7 @@ export default function HomeScreen() {
             // ── Fetch New in Zone (independent) ───────────────────
             (async () => {
                 try {
-                    const { data: newData } = await supabase
+                    const { data: newData, error: newErr } = await supabase
                         .from('businesses')
                         .select('*')
                         .eq('is_active', true)
@@ -142,6 +150,7 @@ export default function HomeScreen() {
                         .order('created_at', { ascending: false })
                         .limit(8);
 
+                    console.log('[Home] fetchNew:', newData?.length, 'err:', newErr?.message);
                     setNewBusinesses((newData || []).map(formatBusiness));
                 } catch (err) {
                     console.error('[Home] Error fetching new businesses:', err);
@@ -157,9 +166,29 @@ export default function HomeScreen() {
         }
     }, [currentLocality?.id]);
 
+    // Primary trigger: fetch when locality is available
     useEffect(() => {
+        if (!currentLocality?.id) {
+            console.log('[Home] useEffect: currentLocality?.id is missing. Waiting to hydrate...');
+            return;
+        }
+        console.log('[Home] useEffect: currentLocality?.id is active:', currentLocality.id, '. Fetching data...');
         fetchHomeData();
-    }, [fetchHomeData]);
+    }, [currentLocality?.id, fetchHomeData]);
+
+    // Fallback trigger: if currentLocality never arrives (mobile hydration issue),
+    // fetch data anyway after 2 seconds using FALLBACK_LOCALITY_ID via region query
+    useEffect(() => {
+        if (currentLocality?.id) return; // Already have locality, primary effect handles it
+        console.log('[Home] Fallback timer started (2s) — will fetch without locality if needed');
+        const timer = setTimeout(() => {
+            if (!currentLocality?.id) {
+                console.log('[Home] Fallback timer fired — fetching data without currentLocality');
+                fetchHomeData();
+            }
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, []);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);

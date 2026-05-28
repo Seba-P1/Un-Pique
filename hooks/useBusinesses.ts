@@ -6,15 +6,24 @@ export const useBusinesses = (localityId?: string) => {
     return useQuery({
         queryKey: ['businesses', localityId],
         queryFn: async (): Promise<Business[]> => {
-            if (!localityId) return [];
+            if (!localityId) {
+                console.log('[useBusinesses] No localityId provided, returning empty');
+                return [];
+            }
 
+            console.log('[useBusinesses] Fetching businesses for locality:', localityId);
             const { data, error } = await supabase
                 .from('businesses')
                 .select('*')
                 .eq('locality_id', localityId)
+                .eq('is_active', true)
                 .order('is_open', { ascending: false }); // Open first
 
-            if (error) throw error;
+            if (error) {
+                console.error('[useBusinesses] Query error:', error.message);
+                throw error;
+            }
+            console.log('[useBusinesses] Fetched', data?.length, 'businesses');
             return data as Business[];
         },
         enabled: !!localityId,

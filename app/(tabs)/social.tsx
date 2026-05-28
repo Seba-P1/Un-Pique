@@ -22,7 +22,8 @@ import { useChatStore, ChatRoom } from '../../stores/chatStore';
 import { useLocationStore } from '../../stores/locationStore';
 import { useAuthStore } from '../../stores/authStore';
 import { CreatePostModal, SharedBusinessCard, SharedServiceCard, SharedAccommodationCard } from '../../components/social';
-import { CreateStoryModal } from '../../components/home';
+import { CreateStoryModal, StoryViewer } from '../../components/stories';
+import { useStoriesStore, Story } from '../../stores/storiesStore';
 import { useRouter } from 'expo-router';
 import { AppHeader } from '../../components/ui/AppHeader';
 import { setOpenCreatePostFn } from './_layout';
@@ -324,12 +325,59 @@ function DMDrawer({ visible, onClose, tc }: { visible: boolean; onClose: () => v
 // =============================================
 // HISTORIAS LOCALES — Con botón "+" para agregar
 // =============================================
-function LocalStories({ tc, onAddStory }: { tc: ReturnType<typeof useThemeColors>; onAddStory: () => void }) {
+// =============================================
+// HISTORIAS LOCALES — Con botón "+" para agregar
+// =============================================
+function LocalStories({ 
+    tc, 
+    onAddStory, 
+    setViewerStories, 
+    setViewerInitialIndex, 
+    setViewerVisible 
+}: { 
+    tc: ReturnType<typeof useThemeColors>; 
+    onAddStory: () => void; 
+    setViewerStories: (stories: Story[]) => void;
+    setViewerInitialIndex: (index: number) => void;
+    setViewerVisible: (visible: boolean) => void;
+}) {
     const { user } = useAuthStore();
+    const { stories, fetchStories, viewedStoryIds } = useStoriesStore();
+    const { currentLocality } = useLocationStore();
+
+    useEffect(() => {
+        if (currentLocality) {
+            fetchStories(currentLocality.id);
+        }
+    }, [currentLocality]);
 
     const handleAddStory = () => {
         onAddStory();
     };
+
+    const grouped = stories.reduce((acc, story) => {
+        const key = story.author_id;
+        if (!key) return acc;
+        if (!acc[key]) {
+            acc[key] = {
+                userId: key,
+                authorName: story.author?.full_name || 'Usuario',
+                authorAvatar: story.author?.avatar_url || null,
+                stories: [],
+            };
+        }
+        acc[key].stories.push(story);
+        return acc;
+    }, {} as Record<string, {
+        userId: string;
+        authorName: string;
+        authorAvatar: string | null;
+        stories: any[];
+    }>);
+
+    const groupedList = Object.values(grouped);
+    const myGroup = groupedList.find(g => g.userId === user?.id);
+    const otherGroups = groupedList.filter(g => g.userId !== user?.id);
 
     return (
         <View style={styles.storiesSection}>
@@ -352,15 +400,74 @@ function LocalStories({ tc, onAddStory }: { tc: ReturnType<typeof useThemeColors
                     <Text style={[styles.storyName, { color: tc.textSecondary }]}>Tu historia</Text>
                 </TouchableOpacity>
 
-                {/* Placeholder — las historias reales se integrarán en el futuro */}
-                <View style={[styles.storyItem, { opacity: 0.5 }]}>
-                    <View style={[styles.storyAvatarRing, { borderColor: tc.borderLight }]}>
-                        <View style={[styles.addStoryCircle, { backgroundColor: tc.bgInput }]}>
-                            <Calendar size={20} color={tc.textMuted} />
+                {/* Historias del usuario */}
+                {myGroup && (
+                    <TouchableOpacity 
+                        style={styles.storyItem} 
+                        activeOpacity={0.7} 
+                        onPress={() => {
+                            const allGroups = [myGroup, ...otherGroups];
+                            setViewerStories(allGroups.flatMap(g => g.stories));
+                            setViewerInitialIndex(0);
+                            setViewerVisible(true);
+                        }}
+                    >
+                        <View style={[
+                            styles.storyAvatarRing, 
+                            { 
+                                borderColor: myGroup.stories.some(s => !viewedStoryIds.has(s.id)) ? '#FF6B35' : 'rgba(128,128,128,0.4)',
+                                borderWidth: 2.5
+                            }
+                        ]}>
+                            <Image
+                                source={{ uri: myGroup.authorAvatar || 'https://via.placeholder.com/100' }}
+                                style={styles.storyAvatar}
+                            />
                         </View>
-                    </View>
-                    <Text style={[styles.storyName, { color: tc.textMuted }]} numberOfLines={1}>Pronto...</Text>
-                </View>
+                        <Text style={[styles.storyName, { color: tc.textSecondary }]} numberOfLines={1}>
+                            {myGroup.authorName.split(' ')[0]}
+                        </Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Otras historias */}
+                {otherGroups.map((group) => {
+                    const hasUnseen = group.stories.some(s => !viewedStoryIds.has(s.id));
+                    return (
+                        <TouchableOpacity 
+                            key={group.userId} 
+                            style={styles.storyItem} 
+                            activeOpacity={0.7} 
+                            onPress={() => {
+                                const allGroups = [myGroup, ...otherGroups].filter(Boolean) as typeof otherGroups;
+                                const groupIndex = allGroups.findIndex(g => g.userId === group.userId);
+                                let flatIndex = 0;
+                                for (let i = 0; i < groupIndex; i++) {
+                                    flatIndex += allGroups[i].stories.length;
+                                }
+                                setViewerStories(allGroups.flatMap(g => g.stories));
+                                setViewerInitialIndex(flatIndex);
+                                setViewerVisible(true);
+                            }}
+                        >
+                            <View style={[
+                                styles.storyAvatarRing, 
+                                { 
+                                    borderColor: hasUnseen ? '#FF6B35' : 'rgba(128,128,128,0.4)',
+                                    borderWidth: 2.5
+                                }
+                            ]}>
+                                <Image
+                                    source={{ uri: group.authorAvatar || 'https://via.placeholder.com/100' }}
+                                    style={styles.storyAvatar}
+                                />
+                            </View>
+                            <Text style={[styles.storyName, { color: tc.textSecondary }]} numberOfLines={1}>
+                                {group.authorName.split(' ')[0]}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </ScrollView>
         </View>
     );
@@ -693,6 +800,9 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
     const [showCreateStory, setShowCreateStory] = useState(false);
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
     const [repostTarget, setRepostTarget] = useState<Post | null>(null);
+    const [viewerVisible, setViewerVisible] = useState(false);
+    const [viewerStories, setViewerStories] = useState<Story[]>([]);
+    const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
     // Post options menu state
     const [menuPost, setMenuPost] = useState<Post | null>(null);
@@ -791,7 +901,13 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
                 }
                 ListHeaderComponent={
                     <View>
-                        <LocalStories tc={tc} onAddStory={() => setShowCreateStory(true)} />
+                        <LocalStories 
+                            tc={tc} 
+                            onAddStory={() => setShowCreateStory(true)} 
+                            setViewerStories={setViewerStories}
+                            setViewerInitialIndex={setViewerInitialIndex}
+                            setViewerVisible={setViewerVisible}
+                        />
                         <CreatePostBox tc={tc} onPress={() => { setEditPost(null); setCreateModalVisible(true); }} />
                     </View>
                 }
@@ -819,7 +935,21 @@ function FeedSection({ tc, isDesktop, scrollY }: { tc: ReturnType<typeof useThem
             )}
 
             <CreatePostModal visible={createModalVisible} onClose={handleCloseCreateModal} editPost={editPost} />
-            <CreateStoryModal visible={showCreateStory} onClose={() => setShowCreateStory(false)} />
+            <CreateStoryModal 
+                visible={showCreateStory} 
+                onClose={() => setShowCreateStory(false)} 
+                onStoryCreated={(newStory) => {
+                    setViewerStories([newStory]);
+                    setViewerInitialIndex(0);
+                    setViewerVisible(true);
+                }}
+            />
+            <StoryViewer
+                visible={viewerVisible}
+                stories={viewerStories}
+                initialIndex={viewerInitialIndex}
+                onClose={() => setViewerVisible(false)}
+            />
             <RepostModal post={repostTarget} onClose={() => setRepostTarget(null)} tc={tc} />
             <PostOptionsMenu
                 post={menuPost}
@@ -1679,4 +1809,13 @@ const styles = StyleSheet.create({
     // — Save flash toast —
     saveFlash: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 8 },
     saveFlashText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+    storyRing: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        borderWidth: 2.5,
+        padding: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });

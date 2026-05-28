@@ -190,16 +190,9 @@ export default function BusinessLayout() {
             </View>
 
             {/* Drawer Modal */}
-            <Modal visible={drawerVisible} animationType="slide" transparent>
-                <View style={{ flex: 1, flexDirection: 'row' }}>
-                    <TouchableOpacity 
-                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} 
-                        activeOpacity={1} 
-                        onPress={() => setDrawerVisible(false)} 
-                    />
-                    <View style={{ width: 280, backgroundColor: tc.bg, height: '100%', position: 'absolute', left: 0 }}>
-                        <BusinessSidebar />
-                    </View>
+            <Modal visible={drawerVisible} animationType="slide" transparent={false} onRequestClose={() => setDrawerVisible(false)}>
+                <View style={{ flex: 1, backgroundColor: tc.bg }}>
+                    <BusinessSidebar isDrawer={true} onClose={() => setDrawerVisible(false)} />
                 </View>
             </Modal>
         </View>

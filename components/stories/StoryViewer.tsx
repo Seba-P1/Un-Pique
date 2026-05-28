@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -9,19 +9,25 @@ import {
     Dimensions,
     Animated,
     StatusBar,
+    ActivityIndicator,
 } from 'react-native';
-import { X } from 'lucide-react-native';
+import { X, Music } from 'lucide-react-native';
+import { Audio } from 'expo-av';
 import colors from '../../constants/colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useStoriesStore } from '../../stores/storiesStore';
 
 const { width, height } = Dimensions.get('window');
 
 interface Story {
     id: string;
     url: string;
+    media_url?: string;
     media_type: 'image' | 'video';
     duration: number;
     created_at: string;
+    audio_url?: string | null;
+    has_audio?: boolean;
     user?: {
         id: string;
         name: string;
@@ -39,15 +45,128 @@ interface StoryViewerProps {
 export function StoryViewer({ visible, stories, initialIndex = 0, onClose }: StoryViewerProps) {
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [progress] = useState(new Animated.Value(0));
+    const [imageReady, setImageReady] = useState(false);
+    const soundRef = useRef<Audio.Sound | null>(null);
+    const { markAsViewed } = useStoriesStore();
 
+    // Synchronize current index when the modal opens
     useEffect(() => {
+        if (visible) {
+            setCurrentIndex(initialIndex);
+        }
+    }, [visible, initialIndex]);
+
+    // Reset imageReady when changing story
+    useEffect(() => {
+        setImageReady(false);
+    }, [currentIndex]);
+
+    // Mark story as viewed
+    useEffect(() => {
+        if (visible && stories.length > 0 && currentIndex < stories.length) {
+            const story = stories[currentIndex];
+            if (story?.id) {
+                markAsViewed(story.id);
+            }
+        }
+    }, [visible, currentIndex, stories]);
+
+    // Prefetch next story image
+    useEffect(() => {
+        if (visible && stories.length > 0) {
+            const nextStory = stories[currentIndex + 1];
+            const nextUrl = nextStory?.url || nextStory?.media_url;
+            if (nextUrl) {
+                Image.prefetch(nextUrl).catch(() => {});
+            }
+        }
+    }, [visible, currentIndex, stories]);
+
+    // Handle background audio playback and cleanup
+    useEffect(() => {
+        let isCancelled = false;
+        let soundInstance: Audio.Sound | null = null;
+
+        const playAudio = async () => {
+            if (visible && stories.length > 0 && currentIndex < stories.length) {
+                const currentStory = stories[currentIndex];
+                if (currentStory?.audio_url) {
+                    try {
+                        // Stop and unload any previous sound
+                        if (soundRef.current) {
+                            const prevSound = soundRef.current;
+                            soundRef.current = null;
+                            await prevSound.stopAsync();
+                            await prevSound.unloadAsync();
+                        }
+
+                        if (isCancelled) return;
+
+                        console.log('[StoryViewer] Loading background audio:', currentStory.audio_url);
+                        const { sound } = await Audio.Sound.createAsync(
+                            { uri: currentStory.audio_url },
+                            { shouldPlay: true, isLooping: false }
+                        );
+
+                        if (isCancelled) {
+                            await sound.unloadAsync();
+                            return;
+                        }
+
+                        soundInstance = sound;
+                        soundRef.current = sound;
+                    } catch (error) {
+                        console.error('[StoryViewer] Error playing audio:', error);
+                    }
+                } else {
+                    // No audio on current story, clean up active sound
+                    if (soundRef.current) {
+                        const prevSound = soundRef.current;
+                        soundRef.current = null;
+                        await prevSound.stopAsync();
+                        await prevSound.unloadAsync();
+                    }
+                }
+            } else {
+                // Not visible or invalid state, clean up active sound
+                if (soundRef.current) {
+                    const prevSound = soundRef.current;
+                    soundRef.current = null;
+                    await prevSound.stopAsync();
+                    await prevSound.unloadAsync();
+                }
+            }
+        };
+
+        playAudio();
+
+        return () => {
+            isCancelled = true;
+            if (soundInstance) {
+                soundInstance.stopAsync()
+                    .then(() => soundInstance?.unloadAsync())
+                    .catch(err => console.log('[StoryViewer] Sound cleanup error:', err));
+            }
+            if (soundRef.current) {
+                const prevSound = soundRef.current;
+                soundRef.current = null;
+                prevSound.stopAsync()
+                    .then(() => prevSound.unloadAsync())
+                    .catch(err => console.log('[StoryViewer] Ref cleanup error:', err));
+            }
+        };
+    }, [visible, currentIndex, stories]);
+
+    // Handle progress bar animation — wait for image to be ready
+    useEffect(() => {
+        if (!imageReady) return;
         if (visible && stories.length > 0) {
             startProgress();
         }
         return () => {
             progress.setValue(0);
         };
-    }, [visible, currentIndex]);
+    }, [visible, currentIndex, imageReady]);
 
     const startProgress = () => {
         progress.setValue(0);
@@ -82,6 +201,8 @@ export function StoryViewer({ visible, stories, initialIndex = 0, onClose }: Sto
 
     if (!currentStory) return null;
 
+    const storyImageUrl = currentStory.url || currentStory.media_url;
+
     return (
         <Modal
             visible={visible}
@@ -93,10 +214,19 @@ export function StoryViewer({ visible, stories, initialIndex = 0, onClose }: Sto
             <View style={styles.container}>
                 {/* Story Image */}
                 <Image
-                    source={{ uri: currentStory.url }}
+                    source={{ uri: storyImageUrl }}
                     style={styles.storyImage}
                     resizeMode="cover"
+                    onLoad={() => setImageReady(true)}
+                    onError={() => setImageReady(true)}
                 />
+
+                {/* Loading indicator while image loads */}
+                {!imageReady && (
+                    <View style={styles.loadingOverlay}>
+                        <ActivityIndicator color="#FF6B35" size="large" />
+                    </View>
+                )}
 
                 {/* Gradient Overlay */}
                 <LinearGradient
@@ -142,6 +272,14 @@ export function StoryViewer({ visible, stories, initialIndex = 0, onClose }: Sto
                     </TouchableOpacity>
                 </View>
 
+                {/* Background Music Badge */}
+                {currentStory.has_audio && (
+                    <View style={styles.musicBadge} pointerEvents="none">
+                        <Music size={14} color={colors.white} />
+                        <Text style={styles.musicText} numberOfLines={1}>Con música</Text>
+                    </View>
+                )}
+
                 {/* Touch Areas */}
                 <View style={styles.touchAreas}>
                     <TouchableOpacity
@@ -168,6 +306,17 @@ const styles = StyleSheet.create({
     storyImage: {
         width,
         height,
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#000',
+        zIndex: 5,
     },
     gradient: {
         position: 'absolute',
@@ -243,5 +392,23 @@ const styles = StyleSheet.create({
     },
     touchRight: {
         flex: 1,
+    },
+    musicBadge: {
+        position: 'absolute',
+        bottom: 50,
+        left: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        gap: 6,
+        zIndex: 5,
+    },
+    musicText: {
+        color: colors.white,
+        fontSize: 12,
+        fontWeight: '500',
     },
 });

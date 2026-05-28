@@ -11,7 +11,7 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 
 export function StoriesRail() {
     const tc = useThemeColors();
-    const { stories, loading, fetchStories } = useStoriesStore();
+    const { stories, loading, fetchStories, viewedStoryIds } = useStoriesStore();
     const { currentLocality } = useLocationStore();
     const { user } = useAuthStore();
 
@@ -22,7 +22,10 @@ export function StoriesRail() {
 
     useEffect(() => {
         if (currentLocality) {
-            fetchStories(currentLocality.id);
+            console.log('[StoriesRail] Fetching stories for locality:', currentLocality.id);
+            fetchStories(currentLocality.id, { isSponsored: true });
+        } else {
+            console.log('[StoriesRail] No currentLocality, skipping stories fetch');
         }
     }, [currentLocality]);
 
@@ -39,8 +42,38 @@ export function StoriesRail() {
         setCreateModalVisible(true);
     };
 
-    const otherStories = stories.filter(s => s.user.id !== user?.id);
-    const myStory = stories.find(s => s.user.id === user?.id);
+    // Group flat stories by author/user locally for display compatibility
+    const groupedStories = React.useMemo(() => {
+        const groupsMap: Record<string, { id: string; user: { id: string; name: string; avatar_url: string }; stories: any[] }> = {};
+        
+        stories.forEach(story => {
+            const userId = story.author_id || story.user?.id;
+            if (!userId) return;
+            
+            if (!groupsMap[userId]) {
+                groupsMap[userId] = {
+                    id: userId,
+                    user: {
+                        id: userId,
+                        name: story.user?.name || story.author?.full_name || 'Usuario',
+                        avatar_url: story.user?.avatar_url || story.author?.avatar_url || 'https://via.placeholder.com/100',
+                    },
+                    stories: [],
+                };
+            }
+            groupsMap[userId].stories.push({
+                ...story,
+                url: story.url || story.media_url,
+                user: groupsMap[userId].user
+            });
+        });
+        
+        return Object.values(groupsMap);
+    }, [stories]);
+
+    const otherStories = groupedStories.filter(g => g.id !== user?.id);
+    const myStories = groupedStories.find(g => g.id === user?.id)?.stories || [];
+    const myStory = myStories.length > 0 ? myStories[0] : null;
 
     return (
         <View style={[styles.container, { backgroundColor: tc.bg, borderBottomColor: tc.borderLight }]}>
@@ -61,7 +94,7 @@ export function StoriesRail() {
                         </View>
                         {myStory && (
                             <LinearGradient
-                                colors={[colors.primary.DEFAULT, colors.warning]}
+                                colors={myStories.some(s => !viewedStoryIds.has(s.id)) ? [colors.primary.DEFAULT, colors.warning] : ['rgba(128,128,128,0.4)', 'rgba(128,128,128,0.4)']}
                                 style={[styles.gradientBorder, { position: 'absolute', zIndex: -1 }]}
                             />
                         )}
@@ -70,36 +103,39 @@ export function StoriesRail() {
                 </TouchableOpacity>
 
                 {/* Other Stories */}
-                {otherStories.map((storyGroup, index) => (
-                    <TouchableOpacity
-                        key={storyGroup.id}
-                        style={styles.storyItem}
-                        onPress={() => handleStoryPress(0, storyGroup.stories)}
-                    >
-                        <View style={styles.gradientBorderContainer}>
-                            <LinearGradient
-                                colors={[colors.primary.DEFAULT, colors.warning]}
-                                style={styles.gradientBorder}
-                            />
-                            <View style={[styles.avatarContainerInner, { backgroundColor: tc.bg }]}>
-                                <Image
-                                    source={{ uri: storyGroup.user.avatar_url }}
-                                    style={styles.avatar}
+                {otherStories.map((storyGroup, index) => {
+                    const hasUnseen = storyGroup.stories.some(s => !viewedStoryIds.has(s.id));
+                    return (
+                        <TouchableOpacity
+                            key={storyGroup.id}
+                            style={styles.storyItem}
+                            onPress={() => handleStoryPress(0, storyGroup.stories)}
+                        >
+                            <View style={styles.gradientBorderContainer}>
+                                <LinearGradient
+                                    colors={hasUnseen ? [colors.primary.DEFAULT, colors.warning] : ['rgba(128,128,128,0.4)', 'rgba(128,128,128,0.4)']}
+                                    style={styles.gradientBorder}
                                 />
+                                <View style={[styles.avatarContainerInner, { backgroundColor: tc.bg }]}>
+                                    <Image
+                                        source={{ uri: storyGroup.user.avatar_url }}
+                                        style={styles.avatar}
+                                    />
+                                </View>
                             </View>
-                        </View>
-                        <Text style={[styles.username, { color: tc.textSecondary }]} numberOfLines={1}>
-                            {storyGroup.user.name}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+                            <Text style={[styles.username, { color: tc.textSecondary }]} numberOfLines={1}>
+                                {storyGroup.user.name}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </ScrollView>
 
             <CreateStoryModal
                 visible={createModalVisible}
                 onClose={() => {
                     setCreateModalVisible(false);
-                    if (currentLocality) fetchStories(currentLocality.id);
+                    if (currentLocality) fetchStories(currentLocality.id, { isSponsored: true });
                 }}
             />
 

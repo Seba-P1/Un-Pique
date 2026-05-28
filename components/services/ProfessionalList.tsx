@@ -23,8 +23,11 @@ export function ProfessionalList() {
     const { services, loading, fetchServices } = useListingStore();
 
     useEffect(() => {
+        console.log('[ProfessionalList] Calling fetchServices on mount');
         fetchServices();
     }, []);
+
+    console.log('[ProfessionalList] render. services count:', services?.length, 'loading:', loading);
 
     if (loading) {
         return (

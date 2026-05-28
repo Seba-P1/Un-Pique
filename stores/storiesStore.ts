@@ -1,42 +1,71 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 
-interface Story {
+export interface Story {
     id: string;
-    url: string;
+    media_url: string;
+    url: string; // Backward compatibility
     media_type: 'image' | 'video';
     duration: number;
     created_at: string;
-    user?: {
+    author_id: string;
+    locality_id: string;
+    expires_at: string;
+    audio_url: string | null;
+    has_audio: boolean;
+    audio_duration?: number | null;
+    is_sponsored?: boolean;
+    author?: {
+        id: string;
+        full_name: string;
+        avatar_url: string;
+    };
+    user?: { // Backward compatibility
         id: string;
         name: string;
         avatar_url: string;
     };
-}
-
-interface UserStoryGroup {
-    id: string;
-    user: {
-        id: string;
-        name: string;
-        avatar_url: string;
-    };
-    hasStory: boolean;
-    stories: Story[];
 }
 
 interface StoriesState {
-    stories: UserStoryGroup[];
+    stories: Story[];
     loading: boolean;
-    fetchStories: (localityId: string) => Promise<void>;
-    createStory: (mediaUri: string, mediaType: 'image' | 'video', localityId: string) => Promise<void>;
+    viewedStoryIds: Set<string>;
+    fetchStories: (localityId: string, options?: { isSponsored?: boolean }) => Promise<void>;
+    fetchUserStories: (userId: string) => Promise<void>;
+    createStory: (
+        mediaUri: string, 
+        mediaType: 'image' | 'video', 
+        localityId: string, 
+        audioUrl?: string | null, 
+        hasAudio?: boolean,
+        audioDuration?: number | null
+    ) => Promise<Story>;
+    markAsViewed: (storyId: string) => void;
 }
+
+const mapStoryWithCompatibility = (story: any): Story => ({
+    ...story,
+    url: story.media_url,
+    user: story.author ? {
+        id: story.author.id,
+        name: story.author.full_name,
+        avatar_url: story.author.avatar_url || 'https://via.placeholder.com/100',
+    } : undefined
+});
 
 export const useStoriesStore = create<StoriesState>((set, get) => ({
     stories: [],
     loading: false,
+    viewedStoryIds: new Set<string>(),
 
-    createStory: async (mediaUri, mediaType, localityId) => {
+    markAsViewed: (storyId) => {
+        set(state => ({
+            viewedStoryIds: new Set([...state.viewedStoryIds, storyId])
+        }));
+    },
+
+    createStory: async (mediaUri, mediaType, localityId, audioUrl = null, hasAudio = false, audioDuration = null) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not authenticated');
@@ -72,7 +101,7 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
             const expiresAt = new Date();
             expiresAt.setHours(expiresAt.getHours() + 24);
 
-            const { error: insertError } = await supabase
+            const { data: insertedStories, error: insertError } = await supabase
                 .from('stories')
                 .insert({
                     author_id: user.id,
@@ -81,81 +110,101 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
                     duration: mediaType === 'image' ? 5 : 15,
                     locality_id: localityId,
                     expires_at: expiresAt.toISOString(),
-                });
+                    audio_url: audioUrl,
+                    has_audio: hasAudio,
+                    audio_duration: audioDuration ?? null,
+                })
+                .select();
 
             if (insertError) throw insertError;
+            if (!insertedStories || insertedStories.length === 0) throw new Error('Failed to insert story');
 
-            // Refresh stories
-            await get().fetchStories(localityId);
+            const insertedStory = insertedStories[0];
+
+            // Fetch with author relation
+            const { data: selectData, error: selectError } = await supabase
+                .from('stories')
+                .select(`
+                    *,
+                    author:author_id (
+                        id,
+                        full_name,
+                        avatar_url
+                    )
+                `)
+                .eq('id', insertedStory.id)
+                .single();
+
+            if (selectError) throw selectError;
+
+            const newStory = mapStoryWithCompatibility(selectData);
+
+            // Update state
+            set(state => ({ stories: [newStory, ...state.stories] }));
+
+            return newStory;
         } catch (error) {
             console.error('Error creating story:', error);
             throw error;
         }
     },
 
-    fetchStories: async (localityId) => {
+    fetchStories: async (localityId, options) => {
         set({ loading: true });
         try {
-            // 1. Fetch active stories (not expired) for the locality
-            const { data, error } = await supabase
+            let query = supabase
                 .from('stories')
                 .select(`
-          id,
-          media_url,
-          media_type,
-          duration,
-          created_at,
-          author_id,
-          users:author_id (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+                    *,
+                    author:author_id (
+                        id,
+                        full_name,
+                        avatar_url
+                    )
+                `)
                 .eq('locality_id', localityId)
-                .gt('expires_at', new Date().toISOString())
-                .order('created_at', { ascending: true });
+                .gt('expires_at', new Date().toISOString());
+
+            if (options?.isSponsored) {
+                query = query.eq('is_sponsored', true);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false });
 
             if (error) throw error;
 
-            // 2. Group stories by user
-            const groupedStories: { [key: string]: UserStoryGroup } = {};
-
-            data.forEach((story: any) => {
-                const userId = story.author_id;
-                if (!groupedStories[userId]) {
-                    // Safe check for user data
-                    const user = story.users || {
-                        id: userId,
-                        full_name: 'Usuario Desconocido',
-                        avatar_url: 'https://via.placeholder.com/100'
-                    };
-
-                    groupedStories[userId] = {
-                        id: userId,
-                        user: {
-                            id: userId,
-                            name: user.full_name,
-                            avatar_url: user.avatar_url || 'https://via.placeholder.com/100', // Fallback avatar
-                        },
-                        hasStory: true,
-                        stories: [],
-                    };
-                }
-
-                groupedStories[userId].stories.push({
-                    id: story.id,
-                    url: story.media_url,
-                    media_type: story.media_type,
-                    duration: story.duration,
-                    created_at: story.created_at,
-                    user: groupedStories[userId].user,
-                });
-            });
-
-            set({ stories: Object.values(groupedStories) });
+            const storiesWithCompatibility = (data || []).map(mapStoryWithCompatibility);
+            set({ stories: storiesWithCompatibility });
         } catch (error) {
             console.error('Error fetching stories:', error);
+        } finally {
+            set({ loading: false });
+        }
+    },
+
+    fetchUserStories: async (userId) => {
+        set({ loading: true });
+        try {
+            const { data, error } = await supabase
+                .from('stories')
+                .select(`
+                    *,
+                    author:author_id (
+                        id,
+                        full_name,
+                        avatar_url
+                    )
+                `)
+                .eq('author_id', userId)
+                .gt('expires_at', new Date().toISOString())
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            const storiesWithCompatibility = (data || []).map(mapStoryWithCompatibility);
+            set({ stories: storiesWithCompatibility });
+        } catch (error) {
+            console.error('Error fetching user stories:', error);
         } finally {
             set({ loading: false });
         }

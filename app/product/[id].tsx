@@ -308,7 +308,7 @@ export default function ProductDetailScreen() {
     return (
         <SafeAreaView style={[styles.rootContainer, { backgroundColor: tc.bg }]} edges={['top', 'left', 'right']}>
             {/* Botón Volver — siempre visible */}
-            <TouchableOpacity style={[styles.backBtn, { backgroundColor: 'rgba(0,0,0,0.45)' }]} onPress={() => router.back()}>
+            <TouchableOpacity style={[styles.backBtn, { backgroundColor: 'rgba(0,0,0,0.45)', top: 16 + insets.top }]} onPress={() => router.back()}>
                 <ArrowLeft size={20} color="#fff" />
             </TouchableOpacity>
 

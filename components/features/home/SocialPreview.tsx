@@ -17,7 +17,10 @@ export const SocialPreview = () => {
 
     useEffect(() => {
         if (currentLocality && posts.length === 0) {
+            console.log('[SocialPreview] Fetching posts for locality:', currentLocality.id);
             fetchPosts(currentLocality.id);
+        } else if (!currentLocality) {
+            console.log('[SocialPreview] No currentLocality, skipping posts fetch');
         }
     }, [currentLocality]);
 

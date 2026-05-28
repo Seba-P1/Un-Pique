@@ -37,6 +37,7 @@ export const useLocationStore = create<LocationState>()(
             setCurrentLocality: (locality) => set({ currentLocality: locality }),
 
             fetchLocalities: async () => {
+                console.log('[LocationStore] fetchLocalities called');
                 set({ isLoading: true });
 
                 const { data, error } = await supabase
@@ -44,6 +45,8 @@ export const useLocationStore = create<LocationState>()(
                     .select('*')
                     .eq('is_active', true)
                     .order('name');
+
+                console.log('[LocationStore] fetchLocalities result:', data?.length, 'error:', error?.message);
 
                 if (!error && data) {
                     set({ availableLocalities: data as Locality[] });
@@ -53,7 +56,11 @@ export const useLocationStore = create<LocationState>()(
                     if (!current && data.length > 0) {
                         // Prefer live localities, then first available
                         const liveLocality = data.find((l) => l.is_live);
-                        set({ currentLocality: (liveLocality || data[0]) as Locality });
+                        const selected = (liveLocality || data[0]) as Locality;
+                        console.log('[LocationStore] Auto-selected locality:', selected.name, selected.id);
+                        set({ currentLocality: selected });
+                    } else {
+                        console.log('[LocationStore] Existing locality kept:', current?.name, current?.id);
                     }
                 }
 

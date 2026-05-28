@@ -97,8 +97,8 @@ function DesktopSidebar() {
 
     // Choose logo based on theme
     const logoSource = theme === 'dark'
-        ? require('../../public/logo_unpique-mododark.svg')
-        : require('../../public/logo_unpique-modoclaro.svg');
+        ? require('../../public/logo_unpique-mododark.png')
+        : require('../../public/logo_unpique-modoclaro.png');
 
     return (
         <View style={[styles.sidebar, { width: sidebarWidth, borderRightColor: tc.borderLight }, glassStyle(tc.bgSecondary, 0.7, 20)]}>
@@ -231,8 +231,8 @@ function MobileDrawer({ visible, onClose }: { visible: boolean; onClose: () => v
     const insets = useSafeAreaInsets();
 
     const logoSource = theme === 'dark'
-        ? require('../../public/logo_unpique-mododark.svg')
-        : require('../../public/logo_unpique-modoclaro.svg');
+        ? require('../../public/logo_unpique-mododark.png')
+        : require('../../public/logo_unpique-modoclaro.png');
 
     const isActive = (key: string) => {
         if (key === 'index') return pathname === '/' || pathname === '/index';

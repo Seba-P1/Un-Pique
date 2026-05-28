@@ -7,11 +7,13 @@ import {
     LayoutDashboard, Package, ShoppingCart, History,
     BarChart3, TrendingUp, DollarSign, Settings,
     Megaphone, Crown, Bell, LogOut, User, ChevronRight,
-    Store, Target, Lock, QrCode
+    Store, Target, Lock, QrCode, X
 } from 'lucide-react-native';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { useAuthStore } from '../../stores/authStore';
 import { useBusinessStore } from '../../stores/businessStore';
+import { useThemeStore } from '../../stores/themeStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
 
 interface NavItem {
@@ -61,12 +63,14 @@ const NAV_SECTIONS: NavSection[] = [
     },
 ];
 
-export default function BusinessSidebar() {
+export default function BusinessSidebar({ onClose, isDrawer = false }: { onClose?: () => void; isDrawer?: boolean }) {
     const tc = useThemeColors();
     const router = useRouter();
     const pathname = usePathname();
     const { profile, signOut } = useAuthStore();
     const { selectedBusiness } = useBusinessStore();
+    const insets = useSafeAreaInsets();
+    const { theme } = useThemeStore();
 
     const trialDaysLeft = selectedBusiness?.trial_ends_at
         ? Math.ceil((new Date(selectedBusiness.trial_ends_at).getTime() - Date.now()) / 86400000)
@@ -80,20 +84,38 @@ export default function BusinessSidebar() {
         return pathname.startsWith(route);
     };
 
+    const logoSource = theme === 'dark'
+        ? require('../../public/logo_unpique-mododark.png')
+        : require('../../public/logo_unpique-modoclaro.png');
+
     return (
-        <View style={[styles.container, { backgroundColor: tc.bg, borderRightColor: tc.borderLight }]}>
+        <View style={[
+            styles.container,
+            { backgroundColor: tc.bg, borderRightColor: tc.borderLight },
+            isDrawer && { width: '100%', flex: 1, height: undefined, borderRightWidth: 0, paddingTop: insets.top + 8 }
+        ]}>
             {/* Logo y acceso a inicio */}
-            <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => router.replace('/(tabs)' as any)}
-                style={styles.logoContainer}
-            >
-                <Image
-                    source={require('../../public/logo_un-pique.svg')}
-                    style={{ width: '100%', height: 48 }}
-                    contentFit="contain"
-                />
-            </TouchableOpacity>
+            <View style={styles.logoHeaderRow}>
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => {
+                        onClose?.();
+                        router.replace('/(tabs)' as any);
+                    }}
+                    style={styles.logoWrapper}
+                >
+                    <Image
+                        source={logoSource}
+                        style={{ width: 220, height: 64 }}
+                        contentFit="contain"
+                    />
+                </TouchableOpacity>
+                {isDrawer && (
+                    <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={8}>
+                        <X size={24} color={tc.text} />
+                    </TouchableOpacity>
+                )}
+            </View>
 
             {/* Perfil del vendedor */}
             <View style={styles.profileSection}>
@@ -142,6 +164,7 @@ export default function BusinessSidebar() {
                                         isLockedPremium && { opacity: 0.7 }
                                     ]}
                                     onPress={() => {
+                                        onClose?.();
                                         if (isLockedPremium) {
                                             router.push('/business/subscription' as any);
                                         } else {
@@ -194,7 +217,10 @@ export default function BusinessSidebar() {
             <View style={[styles.footer, { borderTopColor: tc.borderLight }]}>
                 <TouchableOpacity
                     style={[styles.backToHomeBtn, { backgroundColor: (tc as any).bgAlert || '#FFF7ED', borderColor: colors.primary.DEFAULT + '30', borderWidth: 1 }]}
-                    onPress={() => router.replace('/(tabs)' as any)}
+                    onPress={() => {
+                        onClose?.();
+                        router.replace('/(tabs)' as any);
+                    }}
                     activeOpacity={0.7}
                 >
                     <Store size={16} color={colors.primary.DEFAULT} />
@@ -204,6 +230,7 @@ export default function BusinessSidebar() {
                 <TouchableOpacity
                     style={styles.logoutBtn}
                     onPress={async () => {
+                        onClose?.();
                         await signOut();
                         router.replace('/(auth)/login' as any);
                     }}
@@ -221,6 +248,7 @@ const styles = StyleSheet.create({
     container: {
         width: 260,
         borderRightWidth: 1,
+        height: '100%',
         ...(Platform.select({
             web: {
                 boxShadow: '3px 0 16px rgba(0,0,0,0.12)',
@@ -229,6 +257,22 @@ const styles = StyleSheet.create({
                 top: 0,
             },
         }) as any),
+    },
+    logoHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 8,
+    },
+    logoWrapper: {
+        flex: 1,
+        alignItems: 'flex-start',
+    },
+    closeBtn: {
+        padding: 8,
+        marginRight: -4,
     },
     logoContainer: {
         paddingTop: 24,

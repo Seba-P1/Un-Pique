@@ -24,6 +24,7 @@ export interface AppHeaderProps {
     onMessagesPress?: () => void;
     searchPlaceholder?: string;
     scrollY?: Animated.Value;
+    safeAreaTop?: boolean;
 }
 
 export function AppHeader({
@@ -36,9 +37,11 @@ export function AppHeader({
     onSearchSubmit,
     onMessagesPress,
     searchPlaceholder = 'Buscar...',
-    scrollY
+    scrollY,
+    safeAreaTop = false
 }: AppHeaderProps) {
     const tc = useThemeColors();
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const { items } = useCartStore();
     const { width } = useWindowDimensions();
@@ -209,7 +212,7 @@ export function AppHeader({
 
     return (
         <View style={{ zIndex: 100, position: 'relative', backgroundColor: 'transparent' }}>
-            <View style={[styles.headerContainer, { backgroundColor: 'transparent', borderBottomWidth: 0 }]}>
+            <View style={[styles.headerContainer, { backgroundColor: 'transparent', borderBottomWidth: 0 }, safeAreaTop && { paddingTop: insets.top }]}>
                 {/* Fondo animado absoluto (fade in/out en scroll) */}
                 <Animated.View
                     style={[

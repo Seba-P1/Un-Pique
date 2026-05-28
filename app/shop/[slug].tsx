@@ -424,6 +424,7 @@ export default function BusinessDetailScreen() {
                 leftIcon="back"
                 rightButtons={['search', 'favorites']}
                 scrollY={scrollY}
+                safeAreaTop
             />
 
             {business?.vendor_type === 'vitrina' && (
