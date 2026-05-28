@@ -1,6 +1,6 @@
 // Banner de publicidades — Más grande, responsivo, con autoplay
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Image, StyleSheet, useWindowDimensions, TouchableOpacity, ScrollView, Animated, Text } from 'react-native';
+import { View, Image, StyleSheet, useWindowDimensions, TouchableOpacity, ScrollView, Animated, Text, Platform } from 'react-native';
 import colors from '../../../constants/colors';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 
@@ -37,13 +37,14 @@ export const AdBanner = () => {
 
     return (
         <View style={styles.container}>
-            <Animated.View style={{ opacity: fadeAnim }}>
+            <Animated.View style={{ opacity: fadeAnim, height: bannerHeight }}>
                 <ScrollView
                     ref={scrollRef}
                     horizontal
                     pagingEnabled
                     showsHorizontalScrollIndicator={false}
-                    style={{ width: bannerWidth }}
+                    style={{ width: bannerWidth, height: bannerHeight, flexGrow: 0 }}
+                    contentContainerStyle={{ height: bannerHeight }}
                     onMomentumScrollEnd={(e) => {
                         const idx = Math.round(e.nativeEvent.contentOffset.x / bannerWidth);
                         setActiveIndex(idx);
@@ -95,11 +96,10 @@ const styles = StyleSheet.create({
     slide: {
         borderRadius: 20,
         overflow: 'hidden',
-        boxShadow: '0px 4px 12px rgba(0,0,0,0.1)', /* shadowColor:  */
-        
-        
-        
-        
+        ...(Platform.OS === 'web'
+            ? { boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' }
+            : { elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10 }
+        ),
         position: 'relative',
     },
     image: {
