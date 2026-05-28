@@ -89,6 +89,8 @@ export const CategoriesGrid = () => {
     const tc = useThemeColors();
     const router = useRouter();
 
+    console.log('[CategoriesGrid] render');
+
     const handlePress = (cat: Category) => {
         if (cat.route) {
             router.push(cat.route as any);

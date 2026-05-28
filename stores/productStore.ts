@@ -10,7 +10,7 @@ export interface Product {
     price: number;
     stock?: number;
     image_url: string | null;
-    category_id: string;
+    category: string;
     category_name?: string;
     is_available: boolean;
     options: any;
@@ -21,7 +21,7 @@ interface CreateProductData {
     description?: string;
     price: number;
     stock?: number;
-    category_id?: string;
+    category?: string;
     is_available?: boolean;
 }
 
@@ -61,7 +61,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
                 price: p.price,
                 stock: p.stock_quantity || 0,
                 image_url: p.image_url,
-                category_id: p.category_id || '',
+                category: p.category || '',
                 is_available: p.is_available !== false,
                 options: p.options || {},
             }));
@@ -94,8 +94,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
                 is_available: data.is_available !== false,
             };
 
-            if (data.category_id && data.category_id !== 'general') {
-                productPayload.category_id = data.category_id;
+            if (data.category) {
+                productPayload.category = data.category;
             }
 
             const { error } = await supabase
@@ -209,8 +209,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
                 options: product.options,
             };
 
-            if (product.category_id && product.category_id !== 'general') {
-                duplicatePayload.category_id = product.category_id;
+            if (product.category) {
+                duplicatePayload.category = product.category;
             }
 
             const { error } = await supabase

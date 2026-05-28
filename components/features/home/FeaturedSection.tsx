@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, Animated, Platform,
+    View, Text, StyleSheet, ScrollView, Animated, Platform,
     useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -94,6 +94,8 @@ export const FeaturedSection = ({ businesses = [], loading = false }: FeaturedSe
     const router = useRouter();
     const { width } = useWindowDimensions();
 
+    console.log('[FeaturedSection] render. businesses:', businesses?.length, 'loading:', loading);
+
     // Don't render section if no data and not loading
     if (!loading && businesses.length === 0) return null;
 
@@ -113,26 +115,28 @@ export const FeaturedSection = ({ businesses = [], loading = false }: FeaturedSe
             </View>
 
             {loading ? (
-                <FlatList
+                <ScrollView
                     horizontal
-                    data={[0, 1, 2]}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.listContent}
-                    renderItem={({ item }) => <SkeletonCard tc={tc} index={item} />}
-                    keyExtractor={item => `skeleton-${item}`}
                     scrollEnabled={false}
-                />
+                >
+                    {[0, 1, 2].map(item => (
+                        <SkeletonCard key={`skeleton-${item}`} tc={tc} index={item} />
+                    ))}
+                </ScrollView>
             ) : (
-                <FlatList
+                <ScrollView
                     horizontal
-                    data={businesses}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.listContent}
-                    renderItem={({ item }) => <BusinessCardWide business={item} />}
-                    keyExtractor={item => item.id}
                     snapToInterval={294} // card width (280) + marginRight (14)
                     decelerationRate="fast"
-                />
+                >
+                    {businesses.map(item => (
+                        <BusinessCardWide key={item.id} business={item} />
+                    ))}
+                </ScrollView>
             )}
         </View>
     );

@@ -1,15 +1,16 @@
-// Formulario de producto — Con persistencia real y upload de imagen
+// Formulario de producto — Con persistencia real, upload de imagen y categoría obligatoria
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Platform, Modal, Pressable, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Camera, X } from 'lucide-react-native';
+import { ArrowLeft, Camera, X, ChevronDown, Check } from 'lucide-react-native';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import colors from '../../../constants/colors';
 import { showAlert } from '../../../utils/alert';
 import { useProductStore } from '../../../stores/productStore';
 import { useBusinessStore } from '../../../stores/businessStore';
 import { pickImage } from '../../../services/imageUpload';
+import { PRODUCT_CATEGORIES } from '../../../constants/productCategories';
 
 export default function AddProductScreen() {
     const tc = useThemeColors();
@@ -21,7 +22,9 @@ export default function AddProductScreen() {
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
+    const [category, setCategory] = useState('');
     const [imageUri, setImageUri] = useState<string | null>(null);
+    const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
     const handlePickImage = async () => {
         try {
@@ -41,6 +44,10 @@ export default function AddProductScreen() {
             showAlert('Error', 'Ingresá un precio válido');
             return;
         }
+        if (!category) {
+            showAlert('Error', 'Seleccioná una categoría para el producto');
+            return;
+        }
         if (!myBusinessId) {
             showAlert('Error', 'No se encontró información del negocio');
             return;
@@ -53,6 +60,7 @@ export default function AddProductScreen() {
                 description: description.trim(),
                 price: parseFloat(price),
                 stock: parseInt(stock) || 0,
+                category,
             },
             imageUri || undefined
         );
@@ -116,6 +124,36 @@ export default function AddProductScreen() {
                         />
                     </View>
 
+                    {/* Categoría (obligatoria) */}
+                    <View style={styles.field}>
+                        <Text style={[styles.label, { color: tc.text }]}>
+                            Categoría <Text style={{ color: '#EF4444' }}>*</Text>
+                        </Text>
+                        <TouchableOpacity
+                            style={[
+                                styles.input,
+                                styles.categorySelector,
+                                {
+                                    backgroundColor: tc.bgCard,
+                                    borderColor: !category ? 'rgba(239,68,68,0.4)' : tc.borderLight,
+                                },
+                            ]}
+                            onPress={() => setShowCategoryPicker(true)}
+                            activeOpacity={0.7}
+                        >
+                            <Text
+                                style={{
+                                    fontSize: 14,
+                                    fontFamily: 'Nunito Sans',
+                                    color: category ? tc.text : tc.textMuted,
+                                }}
+                            >
+                                {category || 'Seleccioná una categoría...'}
+                            </Text>
+                            <ChevronDown size={18} color={tc.textMuted} />
+                        </TouchableOpacity>
+                    </View>
+
                     <View style={styles.field}>
                         <Text style={[styles.label, { color: tc.text }]}>Descripción</Text>
                         <TextInput
@@ -177,6 +215,48 @@ export default function AddProductScreen() {
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
+
+            {/* ── Category Picker Modal ── */}
+            <Modal visible={showCategoryPicker} transparent animationType="slide" onRequestClose={() => setShowCategoryPicker(false)}>
+                <Pressable style={styles.pickerOverlay} onPress={() => setShowCategoryPicker(false)}>
+                    <View style={[styles.pickerSheet, { backgroundColor: tc.bgCard }]}>
+                        <View style={styles.pickerHandle} />
+                        <Text style={[styles.pickerTitle, { color: tc.text }]}>Seleccioná una categoría</Text>
+                        <FlatList
+                            data={PRODUCT_CATEGORIES as unknown as string[]}
+                            keyExtractor={(item) => item}
+                            showsVerticalScrollIndicator={false}
+                            style={{ maxHeight: 400 }}
+                            renderItem={({ item }) => {
+                                const isSelected = category === item;
+                                return (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.pickerOption,
+                                            isSelected && { backgroundColor: 'rgba(255,107,53,0.1)' },
+                                        ]}
+                                        onPress={() => {
+                                            setCategory(item);
+                                            setShowCategoryPicker(false);
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.pickerOptionText,
+                                                { color: isSelected ? '#FF6B35' : tc.text },
+                                            ]}
+                                        >
+                                            {item}
+                                        </Text>
+                                        {isSelected && <Check size={18} color="#FF6B35" />}
+                                    </TouchableOpacity>
+                                );
+                            }}
+                        />
+                    </View>
+                </Pressable>
+            </Modal>
         </View>
     );
 }
@@ -209,6 +289,11 @@ const styles = StyleSheet.create({
     input: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 14, fontFamily: 'Nunito Sans' },
     textarea: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 14, fontFamily: 'Nunito Sans', minHeight: 100 },
     row: { flexDirection: 'row', gap: 12 },
+    categorySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
     footer: { padding: 16, gap: 10, borderTopWidth: 1 },
     saveBtn: {
         backgroundColor: colors.primary.DEFAULT,
@@ -217,4 +302,45 @@ const styles = StyleSheet.create({
     saveBtnText: { color: 'white', fontSize: 14, fontWeight: '700', fontFamily: 'Nunito Sans' },
     cancelBtn: { paddingVertical: 12, borderRadius: 9999, alignItems: 'center' },
     cancelBtnText: { fontSize: 14, fontWeight: '600', fontFamily: 'Nunito Sans' },
+
+    // ── Category Picker ──
+    pickerOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    pickerSheet: {
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingHorizontal: 20,
+        paddingBottom: 32,
+        paddingTop: 12,
+    },
+    pickerHandle: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(150,150,150,0.4)',
+        alignSelf: 'center',
+        marginBottom: 16,
+    },
+    pickerTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        fontFamily: 'Nunito Sans',
+        marginBottom: 12,
+    },
+    pickerOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+    },
+    pickerOptionText: {
+        fontSize: 15,
+        fontWeight: '600',
+        fontFamily: 'Nunito Sans',
+    },
 });

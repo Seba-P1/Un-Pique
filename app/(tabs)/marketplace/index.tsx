@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -9,12 +9,13 @@ import {
     Animated,
     ImageBackground,
     Pressable,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { UtensilsCrossed } from 'lucide-react-native';
+import { UtensilsCrossed, PackageSearch } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
-import { CategoriesGrid, BusinessCardWide, ProductCard, SectionHeader } from '../../../components/delivery';
+import { CategoriesGrid, BusinessCardWide, ProductCard, SectionHeader, BusinessCardCompact } from '../../../components/delivery';
 import { useLocationStore } from '../../../stores/locationStore';
 import { useThemeColors } from '../../../hooks/useThemeColors';
 import { useCartStore } from '../../../stores/cartStore';
@@ -194,7 +195,7 @@ function BusinessHorizontalList({ data, loading }: { data: Business[]; loading: 
             data={data}
             horizontal
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             contentContainerStyle={styles.horizontalList}
             renderItem={({ item }) => (
                 <BusinessCardWide business={item} />
@@ -213,7 +214,7 @@ function BusinessGridList({ data, loading, numColumns }: { data: Business[]; loa
         <FlatList
             data={data}
             scrollEnabled={false}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             numColumns={numColumns}
             key={'biz-' + numColumns}
             columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
@@ -238,7 +239,7 @@ function ProductHorizontalList({ data, loading }: { data: MarketplaceProduct[]; 
             data={data}
             horizontal
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             contentContainerStyle={styles.horizontalList}
             renderItem={({ item }) => <ProductCard product={item} variant="compact" />}
         />
@@ -255,7 +256,7 @@ function ProductGridList({ data, loading, numColumns }: { data: MarketplaceProdu
         <FlatList
             data={data}
             scrollEnabled={false}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             numColumns={numColumns}
             key={'top-' + numColumns}
             columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
@@ -266,6 +267,49 @@ function ProductGridList({ data, loading, numColumns }: { data: MarketplaceProdu
                 </View>
             )}
         />
+    );
+}
+
+// ─── Search Result Product Card ────────────────────────────────────
+function ProductSearchResult({ product, tc }: { product: MarketplaceProduct; tc: any }) {
+    const router = useRouter();
+    return (
+        <Pressable
+            style={{
+                flexDirection: 'row',
+                padding: 12,
+                marginHorizontal: 20,
+                marginBottom: 8,
+                borderRadius: 12,
+                backgroundColor: tc.bgCard,
+                borderColor: tc.borderLight,
+                borderWidth: 1,
+                gap: 12,
+            }}
+            onPress={() => router.push(`/product/${product.id}` as any)}
+        >
+            {product.image_url ? (
+                <Image
+                    source={{ uri: product.image_url }}
+                    style={{ width: 64, height: 64, borderRadius: 10 }}
+                />
+            ) : (
+                <View style={{ width: 64, height: 64, borderRadius: 10, backgroundColor: '#FF6B35', justifyContent: 'center', alignItems: 'center' }}>
+                    <PackageSearch size={24} color="#fff" />
+                </View>
+            )}
+            <View style={{ flex: 1, justifyContent: 'center', gap: 4 }}>
+                <Text style={{ fontWeight: '600', color: tc.text, fontSize: 14 }}>
+                    {product.name}
+                </Text>
+                <Text style={{ color: tc.textMuted, fontSize: 12 }}>
+                    {product.business_name || (product as any).business?.name}
+                </Text>
+                <Text style={{ color: '#FF6B35', fontWeight: '700', fontSize: 14 }}>
+                    ${product.price.toLocaleString('es-AR')}
+                </Text>
+            </View>
+        </Pressable>
     );
 }
 
@@ -291,6 +335,131 @@ export default function DeliveryScreen() {
         loadMoreProducts,
     } = useMarketplaceData(currentLocality?.id);
 
+    // ── Category filter helper ───────────────────────────────────
+    const filterByCategory = useCallback((businesses: Business[]): Business[] => {
+        if (!selectedCategory || selectedCategory === 'all') return businesses;
+        const query = selectedCategory.toLowerCase();
+        return businesses.filter(b => {
+            // Match by category field
+            if (b.category && b.category.toLowerCase() === query) return true;
+            // Match by tags array
+            if (b.tags?.some(t => t.toLowerCase().includes(query))) return true;
+            // Match by name containing category
+            if (b.name.toLowerCase().includes(query)) return true;
+            
+            // Match by products (using both allProducts and topProducts)
+            const businessProducts = [
+                ...allProducts.data.filter(p => p.business_id === b.id),
+                ...topProducts.data.filter(p => p.business_id === b.id)
+            ];
+            
+            // Deduplicate local products
+            const uniqueBizProducts = businessProducts.filter((p, index, self) => 
+                self.findIndex(t => t.id === p.id) === index
+            );
+
+            if (uniqueBizProducts.some(p =>
+                p.is_available && (
+                    p.name.toLowerCase().includes(query) ||
+                    p.description?.toLowerCase().includes(query) ||
+                    (p.category && p.category.toLowerCase().includes(query)) ||
+                    p.tags?.some(t => t.toLowerCase().includes(query))
+                )
+            )) return true;
+
+            return false;
+        });
+    }, [selectedCategory, allProducts.data, topProducts.data]);
+
+    const filterProductByCategory = useCallback((products: MarketplaceProduct[]): MarketplaceProduct[] => {
+        if (!selectedCategory || selectedCategory === 'all') return products;
+        const query = selectedCategory.toLowerCase();
+        return products.filter(p => {
+            if (p.category && p.category.toLowerCase().includes(query)) return true;
+            if (p.subcategory && p.subcategory.toLowerCase().includes(query)) return true;
+            if (p.tags?.some(t => t.toLowerCase().includes(query))) return true;
+            if (p.name.toLowerCase().includes(query)) return true;
+            if (p.description?.toLowerCase().includes(query)) return true;
+            return false;
+        });
+    }, [selectedCategory]);
+
+    // ── Filtered business & product sections (instant, no extra fetch) ─────
+    const filteredVendors = useMemo(() => filterByCategory(vendors.data), [vendors.data, filterByCategory]);
+    const filteredDelivery = useMemo(() => filterByCategory(delivery.data), [delivery.data, filterByCategory]);
+    const filteredPickup = useMemo(() => filterByCategory(pickup.data), [pickup.data, filterByCategory]);
+    const filteredTopProducts = useMemo(() => filterProductByCategory(topProducts.data), [topProducts.data, filterProductByCategory]);
+    const filteredAllProducts = useMemo(() => filterProductByCategory(allProducts.data), [allProducts.data, filterProductByCategory]);
+
+    // ── Search results logic (intelligent search) ────────────────
+    const searchResults = useMemo(() => {
+        const query = searchQuery.toLowerCase().trim();
+        if (!query) return null;
+
+        // Combine all known businesses from useMarketplaceData and deduplicate
+        const allBusinessesMap = new Map<string, Business>();
+        vendors.data.forEach(b => allBusinessesMap.set(b.id, b));
+        delivery.data.forEach(b => allBusinessesMap.set(b.id, b));
+        pickup.data.forEach(b => allBusinessesMap.set(b.id, b));
+        const allBusinesses = Array.from(allBusinessesMap.values());
+
+        // Negocios que coinciden
+        const matchedBusinesses = allBusinesses.filter(b =>
+            b.name.toLowerCase().includes(query) ||
+            b.description?.toLowerCase().includes(query) ||
+            b.tags?.some(t => t.toLowerCase().includes(query))
+        );
+
+        // Productos que coinciden (de cualquier negocio)
+        const matchedProducts = allProducts.data.filter(p =>
+            p.is_available && (
+                p.name.toLowerCase().includes(query) ||
+                p.description?.toLowerCase().includes(query) ||
+                (p.category && p.category.toLowerCase().includes(query)) ||
+                p.tags?.some(t => t.toLowerCase().includes(query))
+            )
+        );
+
+        // Para cada producto, encontrar su negocio
+        const productsWithBusiness = matchedProducts.map(p => ({
+            ...p,
+            business: allBusinesses.find(b => b.id === p.business_id),
+        })).filter(p => p.business); // solo si el negocio existe
+
+        // Deduplicate products by ID to prevent key errors
+        const uniqueProductsWithBusiness: typeof productsWithBusiness = [];
+        const seenProdIds = new Set<string>();
+        productsWithBusiness.forEach(p => {
+            if (!seenProdIds.has(p.id)) {
+                seenProdIds.add(p.id);
+                uniqueProductsWithBusiness.push(p);
+            }
+        });
+
+        // Agregar negocios que tienen productos que coinciden
+        // (aunque el nombre del negocio no coincida)
+        const businessesFromProducts = uniqueProductsWithBusiness
+            .map(p => p.business!)
+            .filter(b => !matchedBusinesses.find(m => m.id === b.id));
+
+        // Deduplicate businesses by ID to prevent key errors
+        const combinedBusinesses = [...matchedBusinesses, ...businessesFromProducts];
+        const uniqueBusinesses: Business[] = [];
+        const seenBizIds = new Set<string>();
+        combinedBusinesses.forEach(b => {
+            if (!seenBizIds.has(b.id)) {
+                seenBizIds.add(b.id);
+                uniqueBusinesses.push(b);
+            }
+        });
+
+        return {
+            businesses: uniqueBusinesses,
+            products: uniqueProductsWithBusiness,
+            totalResults: uniqueBusinesses.length + uniqueProductsWithBusiness.length,
+        };
+    }, [searchQuery, vendors.data, delivery.data, pickup.data, allProducts.data]);
+
     // ── Computed Subtitle logic ──────────────────────────────────
     const headerSubtitle = React.useMemo(() => {
         if (vendors.loading) return "TU ZONA";
@@ -302,11 +471,13 @@ export default function DeliveryScreen() {
     }, [vendors.loading, vendors.data, currentLocality]);
 
     // ── Empty check ──────────────────────────────────────────────
-    const allEmpty = !vendors.loading && !delivery.loading && !pickup.loading &&
-        !topProducts.loading && !allProducts.loading &&
-        vendors.data.length === 0 && delivery.data.length === 0 &&
-        pickup.data.length === 0 && topProducts.data.length === 0 &&
-        allProducts.data.length === 0;
+    const isAnyLoading = vendors.loading || delivery.loading || pickup.loading || topProducts.loading || allProducts.loading;
+    const allEmpty = !isAnyLoading &&
+        filteredVendors.length === 0 &&
+        filteredDelivery.length === 0 &&
+        filteredPickup.length === 0 &&
+        filteredTopProducts.length === 0 &&
+        filteredAllProducts.length === 0;
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={isDesktop ? [] : ['top']}>
@@ -332,111 +503,194 @@ export default function DeliveryScreen() {
                 )}
                 scrollEventThrottle={16}
             >
-                {/* Subtitle */}
-                <Text style={[styles.subtitle, { color: tc.textMuted }]}>Delivery y comida</Text>
-
-                {/* SECTION 1 — Categorías */}
-                <CategoriesGrid
-                    selectedCategory={selectedCategory}
-                    onSelectCategory={setSelectedCategory}
-                />
-
-                {/* SECTION 2 — Vendedores de Acá */}
-                {(vendors.loading || vendors.data.length > 0) && (
-                    <View>
-                        <SectionHeader title="Vendedores de Acá" onSeeAll={() => {}} />
-                        {isMobile ? (
-                            <BusinessHorizontalList data={vendors.data} loading={vendors.loading} />
+                {searchQuery.length > 0 && searchResults ? (
+                    // MODO BÚSQUEDA
+                    <View style={{ paddingBottom: 24 }}>
+                        {searchResults.totalResults === 0 ? (
+                            <View style={styles.emptySearch}>
+                                <Text style={[styles.emptySearchTitle, { color: tc.text }]}>
+                                    Sin resultados para "{searchQuery}"
+                                </Text>
+                                <Text style={[styles.emptySearchSub, { color: tc.textMuted }]}>
+                                    Intentá con otro nombre o categoría
+                                </Text>
+                            </View>
                         ) : (
-                            <BusinessGridList data={vendors.data} loading={vendors.loading} numColumns={businessCols} />
+                            <>
+                                {/* Sección de productos */}
+                                {searchResults.products.length > 0 && (
+                                    <View style={{ marginBottom: 16 }}>
+                                        <Text style={[styles.searchSectionTitle, { color: tc.textMuted }]}>
+                                            Productos ({searchResults.products.length})
+                                        </Text>
+                                        {searchResults.products.map((product, index) => (
+                                            <ProductSearchResult
+                                                key={`${product.id}-${index}`}
+                                                product={product}
+                                                tc={tc}
+                                            />
+                                        ))}
+                                    </View>
+                                )}
+
+                                {/* Sección de negocios */}
+                                {searchResults.businesses.length > 0 && (
+                                    <View>
+                                        <Text style={[styles.searchSectionTitle, { color: tc.textMuted }]}>
+                                            Locales ({searchResults.businesses.length})
+                                        </Text>
+                                        <FlatList
+                                            data={searchResults.businesses}
+                                            scrollEnabled={false}
+                                            keyExtractor={(b, index) => `${b.id}-${index}`}
+                                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+                                            renderItem={({ item }) => <BusinessCardCompact business={item} />}
+                                            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+                                        />
+                                    </View>
+                                )}
+                            </>
                         )}
                     </View>
-                )}
-
-                {/* SECTION 3 — Te lo enviamos a tu casa */}
-                {(delivery.loading || delivery.data.length > 0) && (
+                ) : (
+                    // MODO NORMAL
                     <View>
-                        <SectionHeader title="Te lo enviamos a tu casa" onSeeAll={() => {}} />
-                        {isMobile ? (
-                            <BusinessHorizontalList data={delivery.data} loading={delivery.loading} />
-                        ) : (
-                            <BusinessGridList data={delivery.data} loading={delivery.loading} numColumns={businessCols} />
-                        )}
-                    </View>
-                )}
+                        {/* Subtitle */}
+                        <Text style={[styles.subtitle, { color: tc.textMuted }]}>Delivery y comida</Text>
 
-                {/* SECTION 4 — Retirá en el local */}
-                {(pickup.loading || pickup.data.length > 0) && (
-                    <View>
-                        <SectionHeader title="Retirá en el local" onSeeAll={() => {}} />
-                        {isMobile ? (
-                            <BusinessHorizontalList data={pickup.data} loading={pickup.loading} />
-                        ) : (
-                            <BusinessGridList data={pickup.data} loading={pickup.loading} numColumns={businessCols} />
-                        )}
-                    </View>
-                )}
+                        {/* SECTION 1 — Categorías */}
+                        <CategoriesGrid
+                            selectedCategory={selectedCategory}
+                            onSelectCategory={setSelectedCategory}
+                        />
 
-                {/* SECTION 5 — Los más pedidos */}
-                {(topProducts.loading || topProducts.data.length > 0) && (
-                    <View>
-                        <SectionHeader title="Los más pedidos" onSeeAll={() => {}} />
-                        {isMobile ? (
-                            <ProductHorizontalList data={topProducts.data} loading={topProducts.loading} />
-                        ) : (
-                            <ProductGridList data={topProducts.data} loading={topProducts.loading} numColumns={productCols} />
-                        )}
-                    </View>
-                )}
+                        {/* SECTION 2 — Vendedores de Acá */}
+                        {vendors.loading ? (
+                            <View style={{ padding: 20 }}>
+                                <ActivityIndicator color={tc.primary} />
+                            </View>
+                        ) : filteredVendors.length > 0 ? (
+                            <View>
+                                <SectionHeader title="Vendedores de Acá" onSeeAll={() => {}} />
+                                {isMobile ? (
+                                    <BusinessHorizontalList data={filteredVendors} loading={false} />
+                                ) : (
+                                    <BusinessGridList data={filteredVendors} loading={false} numColumns={businessCols} />
+                                )}
+                            </View>
+                        ) : null}
 
-                {/* SECTION 6 — ¿Qué querés comer hoy? */}
-                {(allProducts.loading || allProducts.data.length > 0) && (
-                    <View>
-                        <SectionHeader title="¿Qué querés comer hoy?" />
+                        {/* SECTION 3 — Te lo enviamos a tu casa */}
+                        {delivery.loading ? (
+                            <View style={{ padding: 20 }}>
+                                <ActivityIndicator color={tc.primary} />
+                            </View>
+                        ) : filteredDelivery.length > 0 ? (
+                            <View>
+                                <SectionHeader title="Te lo enviamos a tu casa" onSeeAll={() => {}} />
+                                {isMobile ? (
+                                    <BusinessHorizontalList data={filteredDelivery} loading={false} />
+                                ) : (
+                                    <BusinessGridList data={filteredDelivery} loading={false} numColumns={businessCols} />
+                                )}
+                            </View>
+                        ) : null}
+
+                        {/* SECTION 4 — Retirá en el local */}
+                        {pickup.loading ? (
+                            <View style={{ padding: 20 }}>
+                                <ActivityIndicator color={tc.primary} />
+                            </View>
+                        ) : filteredPickup.length > 0 ? (
+                            <View>
+                                <SectionHeader title="Retirá en el local" onSeeAll={() => {}} />
+                                {isMobile ? (
+                                    <BusinessHorizontalList data={filteredPickup} loading={false} />
+                                ) : (
+                                    <BusinessGridList data={filteredPickup} loading={false} numColumns={businessCols} />
+                                )}
+                            </View>
+                        ) : null}
+
+                        {/* SECTION 5 — Los más pedidos */}
+                        {topProducts.loading ? (
+                            <View style={{ padding: 20 }}>
+                                <ActivityIndicator color={tc.primary} />
+                            </View>
+                        ) : filteredTopProducts.length > 0 ? (
+                            <View>
+                                <SectionHeader title="Los más pedidos" onSeeAll={() => {}} />
+                                {isMobile ? (
+                                    <ProductHorizontalList data={filteredTopProducts} loading={false} />
+                                ) : (
+                                    <ProductGridList data={filteredTopProducts} loading={false} numColumns={productCols} />
+                                )}
+                            </View>
+                        ) : null}
+
+                        {/* SECTION 6 — ¿Qué querés comer hoy? */}
                         {allProducts.loading ? (
                             <View style={styles.sectionLoading}>
                                 <ActivityIndicator size="small" color={tc.primary} />
                             </View>
-                        ) : (
-                            <FlatList
-                                data={allProducts.data}
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                keyExtractor={(item) => item.id?.toString()}
-                                contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-                                renderItem={({ item, index }) => (
-                                    <ProductCardCinematic
-                                        item={item}
-                                        index={index}
-                                        cardWidth={isDesktop ? 180 : 160}
-                                        onPress={() => router.push(`/product/${item.id}` as any)}
-                                    />
-                                )}
-                            />
+                        ) : filteredAllProducts.length > 0 ? (
+                            <View>
+                                <SectionHeader title="¿Qué querés comer hoy?" />
+                                <FlatList
+                                    data={filteredAllProducts}
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    keyExtractor={(item, index) => `${item.id || index}-${index}`}
+                                    contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+                                    renderItem={({ item, index }) => (
+                                        <ProductCardCinematic
+                                            item={item}
+                                            index={index}
+                                            cardWidth={isDesktop ? 180 : 160}
+                                            onPress={() => router.push(`/product/${item.id}` as any)}
+                                        />
+                                    )}
+                                />
+                            </View>
+                        ) : null}
+
+                        {/* Loading more */}
+                        {allProducts.loadingMore && (
+                            <View style={styles.footerLoading}>
+                                <ActivityIndicator size="small" color={tc.primary} />
+                                <Text style={[styles.footerText, { color: tc.textMuted }]}>Cargando más...</Text>
+                            </View>
                         )}
-                    </View>
-                )}
 
-                {/* Loading more */}
-                {allProducts.loadingMore && (
-                    <View style={styles.footerLoading}>
-                        <ActivityIndicator size="small" color={tc.primary} />
-                        <Text style={[styles.footerText, { color: tc.textMuted }]}>Cargando más...</Text>
-                    </View>
-                )}
+                        {/* Empty state category */}
+                        {selectedCategory !== 'all' && allEmpty && (
+                            <View style={styles.emptyContainer}>
+                                <View style={styles.emptyIcon}>
+                                    <UtensilsCrossed size={64} color={tc.textMuted} />
+                                </View>
+                                <Text style={[styles.emptyTitle, { color: tc.text }]}>
+                                    Sin resultados
+                                </Text>
+                                <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
+                                    No hay locales con productos de esta categoría todavía
+                                </Text>
+                            </View>
+                        )}
 
-                {/* Empty state */}
-                {allEmpty && (
-                    <View style={styles.emptyContainer}>
-                        <View style={styles.emptyIcon}>
-                            <UtensilsCrossed size={64} color={tc.textMuted} />
-                        </View>
-                        <Text style={[styles.emptyTitle, { color: tc.text }]}>
-                            No hay negocios disponibles
-                        </Text>
-                        <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
-                            Pronto habrá más negocios en tu zona
-                        </Text>
+                        {/* Empty state general */}
+                        {selectedCategory === 'all' && allEmpty && (
+                            <View style={styles.emptyContainer}>
+                                <View style={styles.emptyIcon}>
+                                    <UtensilsCrossed size={64} color={tc.textMuted} />
+                                </View>
+                                <Text style={[styles.emptyTitle, { color: tc.text }]}>
+                                    No hay negocios disponibles
+                                </Text>
+                                <Text style={[styles.emptyText, { color: tc.textSecondary }]}>
+                                    Pronto habrá más negocios en tu zona
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 )}
             </Animated.ScrollView>
@@ -497,5 +751,34 @@ const styles = StyleSheet.create({
         fontSize: 15,
         textAlign: 'center',
         lineHeight: 22,
+    },
+    searchResultsHeader: {
+        fontSize: 13,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        fontFamily: 'Nunito Sans',
+    },
+    emptySearch: {
+        paddingHorizontal: 20,
+        paddingTop: 40,
+        alignItems: 'center',
+        gap: 8,
+    },
+    emptySearchTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    emptySearchSub: {
+        fontSize: 13,
+        textAlign: 'center',
+    },
+    searchSectionTitle: {
+        fontSize: 12,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        fontWeight: '700',
     },
 });

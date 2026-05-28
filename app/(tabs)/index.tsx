@@ -208,8 +208,6 @@ export default function HomeScreen() {
         setLocationPickerVisible(false);
     };
 
-
-
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: tc.bg }]} edges={['top']}>
             <AppHeader
@@ -236,7 +234,7 @@ export default function HomeScreen() {
                 )}
                 scrollEventThrottle={16}
             >
-                <View style={[styles.maxContainer, isDesktop && { maxWidth: 1200 }]}>
+                <View style={[styles.maxContainer, isDesktop && { maxWidth: 1200, alignSelf: 'center' }]}>
                     <View style={styles.sectionSpacer}><StoriesRail /></View>
                     <AdBanner />
                     <CategoriesGrid />
@@ -338,7 +336,7 @@ const styles = StyleSheet.create({
     headerBadge: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger, borderWidth: 1.5 },
     // Content
     content: { flex: 1 },
-    scrollContent: { paddingBottom: 164, alignItems: 'center' },
+    scrollContent: { paddingBottom: 164 },
     maxContainer: { width: '100%', maxWidth: 1024 },
     sectionSpacer: { marginTop: 8 },
     // DM

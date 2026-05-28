@@ -15,6 +15,8 @@ export function StoriesRail() {
     const { currentLocality } = useLocationStore();
     const { user } = useAuthStore();
 
+    console.log('[StoriesRail] render. stories:', stories?.length, 'loading:', loading, 'locality:', currentLocality?.id);
+
     const [viewerVisible, setViewerVisible] = useState(false);
     const [createModalVisible, setCreateModalVisible] = useState(false);
     const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);

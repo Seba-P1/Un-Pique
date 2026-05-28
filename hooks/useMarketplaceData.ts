@@ -16,6 +16,9 @@ export interface MarketplaceProduct {
     business_id: string;
     business_name: string;
     business_slug?: string;
+    category?: string;
+    subcategory?: string;
+    tags?: string[];
 }
 
 interface SectionState<T> {
@@ -72,6 +75,9 @@ const formatProduct = (p: any): MarketplaceProduct => ({
     business_id: p.business_id,
     business_name: p.businesses?.name || '',
     business_slug: p.businesses?.slug,
+    category: p.category || '',
+    subcategory: p.subcategory || '',
+    tags: p.tags || [],
 });
 
 // ─── Page size for infinite scroll ──────────────────────────────
@@ -315,13 +321,19 @@ export function useMarketplaceData(localityId?: string) {
 
             if (error) throw error;
             const newProducts = (data || []).map(formatProduct);
-            setAllProducts(prev => ({
-                data: [...prev.data, ...newProducts],
-                loading: false,
-                loadingMore: false,
-                error: null,
-                hasMore: newProducts.length >= PAGE_SIZE,
-            }));
+            setAllProducts(prev => {
+                const combined = [...prev.data, ...newProducts];
+                const unique = combined.filter((p, idx, self) =>
+                    self.findIndex(x => x.id === p.id) === idx
+                );
+                return {
+                    data: unique,
+                    loading: false,
+                    loadingMore: false,
+                    error: null,
+                    hasMore: newProducts.length >= PAGE_SIZE,
+                };
+            });
             pageRef.current += 1;
         } catch (err: any) {
             console.error('[Marketplace] Error loading more products:', err);

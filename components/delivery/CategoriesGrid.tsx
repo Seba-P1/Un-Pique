@@ -1,28 +1,179 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Platform, ImageSourcePropType } from 'react-native';
 import { router } from 'expo-router';
-import { UtensilsCrossed } from 'lucide-react-native';
 import colors from '../../constants/colors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 
-const CATEGORIES = [
-    { id: '1', name: 'Hamburguesas', image: '/hamburguesas.svg', route: '/delivery/hamburguesas' },
-    { id: '2', name: 'Pizzas', image: '/pizzas.svg', route: '/delivery/pizzas' },
-    { id: '3', name: 'Empanadas', image: '/empanadas.svg', route: '/delivery/empanadas' },
-    { id: '4', name: 'Lomitos', image: '/lomitos.svg', route: '/delivery/lomitos' },
-    { id: '5', name: 'Milanesas', image: '/milanesas.svg', route: '/delivery/milanesas' },
-    { id: '6', name: 'Sushi', image: '/sushi.svg', route: '/delivery/sushi' },
-    { id: '7', name: 'Pastas', image: '/pastas.svg', route: '/delivery/pastas' },
-    { id: '8', name: 'Carnes', image: '/carnes.svg', route: '/delivery/carnes' },
-    { id: '9', name: 'Pescados', image: '/pescados.svg', route: '/delivery/pescados' },
-    { id: '10', name: 'Sandwiches', image: '/sandwiches.svg', route: '/delivery/sandwiches' },
-    { id: '11', name: 'Panchos', image: '/panchos.svg', route: '/delivery/panchos' },
-    { id: '12', name: 'Burritos', image: '/burritos.svg', route: '/delivery/burritos' },
-    { id: '13', name: 'Tortillas', image: '/tortillas.svg', route: '/delivery/tortillas' },
-    { id: '14', name: 'Tartas', image: '/tartas.svg', route: '/delivery/tartas' },
-    { id: '15', name: 'Papas Fritas', image: '/papas fritas.svg', route: '/delivery/papas-fritas' },
-    { id: '16', name: 'Guarniciones', image: '/guarniciones.svg', route: '/delivery/guarniciones' },
+// ─── Static require() for each category image ───────────────────
+// React Native requires static string literals in require() calls.
+// These PNGs were converted from the SVGs in public/.
+const CATEGORIES: { id: string; name: string; image: ImageSourcePropType; route: string }[] = [
+    {
+        id: '1',
+        name: 'Hamburguesas',
+        image: require('../../assets/images/categories/hamburguesas.png'),
+        route: '/delivery/hamburguesas',
+    },
+    {
+        id: '2',
+        name: 'Pizzas',
+        image: require('../../assets/images/categories/pizzas.png'),
+        route: '/delivery/pizzas',
+    },
+    {
+        id: '3',
+        name: 'Empanadas',
+        image: require('../../assets/images/categories/empanadas.png'),
+        route: '/delivery/empanadas',
+    },
+    {
+        id: '4',
+        name: 'Lomitos',
+        image: require('../../assets/images/categories/lomitos.png'),
+        route: '/delivery/lomitos',
+    },
+    {
+        id: '5',
+        name: 'Milanesas',
+        image: require('../../assets/images/categories/milanesas.png'),
+        route: '/delivery/milanesas',
+    },
+    {
+        id: '6',
+        name: 'Sushi',
+        image: require('../../assets/images/categories/sushi.png'),
+        route: '/delivery/sushi',
+    },
+    {
+        id: '7',
+        name: 'Pastas',
+        image: require('../../assets/images/categories/pastas.png'),
+        route: '/delivery/pastas',
+    },
+    {
+        id: '8',
+        name: 'Carnes',
+        image: require('../../assets/images/categories/carnes.png'),
+        route: '/delivery/carnes',
+    },
+    {
+        id: '9',
+        name: 'Pescados',
+        image: require('../../assets/images/categories/pescados.png'),
+        route: '/delivery/pescados',
+    },
+    {
+        id: '10',
+        name: 'Sandwiches',
+        image: require('../../assets/images/categories/sandwiches.png'),
+        route: '/delivery/sandwiches',
+    },
+    {
+        id: '11',
+        name: 'Panchos',
+        image: require('../../assets/images/categories/panchos.png'),
+        route: '/delivery/panchos',
+    },
+    {
+        id: '12',
+        name: 'Burritos',
+        image: require('../../assets/images/categories/burritos.png'),
+        route: '/delivery/burritos',
+    },
+    {
+        id: '13',
+        name: 'Tortillas',
+        image: require('../../assets/images/categories/tortillas.png'),
+        route: '/delivery/tortillas',
+    },
+    {
+        id: '14',
+        name: 'Tartas',
+        image: require('../../assets/images/categories/tartas.png'),
+        route: '/delivery/tartas',
+    },
+    {
+        id: '15',
+        name: 'Papas Fritas',
+        image: require('../../assets/images/categories/papas_fritas.png'),
+        route: '/delivery/papas-fritas',
+    },
+    {
+        id: '16',
+        name: 'Guarniciones',
+        image: require('../../assets/images/categories/guarniciones.png'),
+        route: '/delivery/guarniciones',
+    },
+    {
+        id: '17',
+        name: 'Bebidas',
+        image: require('../../assets/images/categories/bebidas.png'),
+        route: '/delivery/bebidas',
+    },
+    {
+        id: '18',
+        name: 'Cafetería',
+        image: require('../../assets/images/categories/cafeteria.png'),
+        route: '/delivery/cafeteria',
+    },
+    {
+        id: '19',
+        name: 'Combos',
+        image: require('../../assets/images/categories/combos.png'),
+        route: '/delivery/combos',
+    },
+    {
+        id: '20',
+        name: 'Desayunos',
+        image: require('../../assets/images/categories/desayunos.png'),
+        route: '/delivery/desayunos',
+    },
+    {
+        id: '21',
+        name: 'Helados',
+        image: require('../../assets/images/categories/helados.png'),
+        route: '/delivery/helados',
+    },
+    {
+        id: '22',
+        name: 'Panadería',
+        image: require('../../assets/images/categories/panaderia.png'),
+        route: '/delivery/panaderia',
+    },
+    {
+        id: '23',
+        name: 'Picadas',
+        image: require('../../assets/images/categories/picadas.png'),
+        route: '/delivery/picadas',
+    },
+    {
+        id: '24',
+        name: 'Postres',
+        image: require('../../assets/images/categories/postres.png'),
+        route: '/delivery/postres',
+    },
+    {
+        id: '25',
+        name: 'Promociones',
+        image: require('../../assets/images/categories/promociones.png'),
+        route: '/delivery/promociones',
+    },
+    {
+        id: '26',
+        name: 'Sin TACC',
+        image: require('../../assets/images/categories/sin-tacc.png'),
+        route: '/delivery/sin-tacc',
+    },
+    {
+        id: '27',
+        name: 'Vegano',
+        image: require('../../assets/images/categories/vegano.png'),
+        route: '/delivery/vegano',
+    },
 ];
+
+// "Todo" category image
+const TODO_IMAGE = require('../../assets/images/categories/todo.png');
 
 interface CategoriesGridProps {
     selectedCategory: string;
@@ -40,53 +191,66 @@ export const CategoriesGrid = ({ selectedCategory, onSelectCategory }: Categorie
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {/* All Category */}
+                {/* "Todo" Category */}
                 <TouchableOpacity
-                    style={styles.item}
+                    style={styles.categoryWrapper}
                     onPress={() => onSelectCategory('all')}
                     activeOpacity={0.7}
                 >
                     <View style={[
-                        styles.imageContainer,
-                        {
-                            backgroundColor: selectedCategory === 'all' ? tc.primary : tc.bgCard,
-                            borderColor: selectedCategory === 'all' ? tc.primary : tc.borderLight
-                        }
+                        styles.categoryRing,
+                        selectedCategory === 'all' && styles.categoryRingSelected,
                     ]}>
-                        <UtensilsCrossed size={24} color={selectedCategory === 'all' ? '#fff' : tc.icon} />
+                        <View style={[styles.categoryCircle, { backgroundColor: tc.bgCard }]}>
+                            <Image
+                                source={TODO_IMAGE}
+                                style={styles.categoryImage}
+                                resizeMode="contain"
+                            />
+                        </View>
                     </View>
-                    <Text style={[
-                        styles.name,
-                        { color: selectedCategory === 'all' ? tc.primary : tc.text }
-                    ]}>Todo</Text>
+                    <Text
+                        style={[
+                            styles.categoryLabel,
+                            { color: selectedCategory === 'all' ? '#FF6B35' : tc.textSecondary },
+                        ]}
+                        numberOfLines={1}
+                    >
+                        Todo
+                    </Text>
                 </TouchableOpacity>
 
+                {/* Category items */}
                 {CATEGORIES.map((item) => {
                     const isSelected = selectedCategory === item.name;
                     return (
                         <TouchableOpacity
                             key={item.id}
-                            style={styles.item}
+                            style={styles.categoryWrapper}
                             onPress={() => onSelectCategory(item.name)}
                             activeOpacity={0.7}
                         >
                             <View style={[
-                                styles.imageContainer,
-                                {
-                                    backgroundColor: isSelected ? tc.primary : tc.bgCard,
-                                    borderColor: isSelected ? tc.primary : tc.borderLight
-                                }
+                                styles.categoryRing,
+                                isSelected && styles.categoryRingSelected,
                             ]}>
-                                <Image
-                                    source={{ uri: item.image }}
-                                    style={[styles.image, isSelected && { tintColor: '#fff' }]}
-                                    resizeMode="contain"
-                                />
+                                <View style={[styles.categoryCircle, { backgroundColor: tc.bgCard }]}>
+                                    <Image
+                                        source={item.image}
+                                        style={styles.categoryImage}
+                                        resizeMode="contain"
+                                    />
+                                </View>
                             </View>
-                            <Text style={[
-                                styles.name,
-                                { color: isSelected ? tc.primary : tc.text }
-                            ]}>{item.name}</Text>
+                            <Text
+                                style={[
+                                    styles.categoryLabel,
+                                    { color: isSelected ? '#FF6B35' : tc.textSecondary },
+                                ]}
+                                numberOfLines={1}
+                            >
+                                {item.name}
+                            </Text>
                         </TouchableOpacity>
                     );
                 })}
@@ -109,18 +273,27 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         gap: 16,
     },
-    item: {
+    categoryWrapper: {
         alignItems: 'center',
-        width: 68, // slightly smaller width to fit text neatly
+        gap: 6,
+        width: 80,
     },
-    imageContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 30, // Perfect circle
+    categoryRing: {
+        padding: 3,
+        borderRadius: 99,
+        borderWidth: 2.5,
+        borderColor: 'transparent',
+    },
+    categoryRingSelected: {
+        borderColor: '#FF6B35',
+    },
+    categoryCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
-        borderWidth: 1,
         ...(Platform.OS === 'web'
             ? { boxShadow: '0px 4px 12px rgba(0,0,0,0.06)' }
             : {
@@ -131,14 +304,14 @@ const styles = StyleSheet.create({
                 shadowRadius: 8,
             }),
     },
-    image: {
-        width: 32,
-        height: 32,
+    categoryImage: {
+        width: '100%' as any,
+        height: '100%' as any,
     },
-    name: {
-        fontSize: 11, // smaller text to look more elegant
-        textAlign: 'center',
+    categoryLabel: {
+        fontSize: 12,
         fontWeight: '600',
+        textAlign: 'center',
         fontFamily: 'Nunito Sans',
     },
 });
